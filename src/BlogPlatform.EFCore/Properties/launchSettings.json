@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "BlogPlatform.EFCore": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "environment": "Development"
+      }
+    }
+  }
+}
