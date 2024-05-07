@@ -29,9 +29,13 @@ namespace BlogPlatform.EFCore.Models
         /// 내용
         /// </summary>
         [Required]
+        [Column(TypeName = "text")]
         public string Content { get; set; }
 
-        [Column("json")]
+        /// <summary>
+        /// 태그
+        /// </summary>
+        [Column(TypeName = "json")]
         public List<string> Tags { get; } = [];
 
         /// <summary>
