@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <OutputType>Exe</OutputType>
+    <UserSecretsId>4eed3db5-099e-47f0-a80f-0a75ee206c94</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,10 +28,6 @@
 
   <ItemGroup>
     <EditorConfigFiles Remove="D:\Programming\Project\BlogPlatform\src\BlogPlatform.EFCore\Models\.editorconfig" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="D:\Programming\Project\BlogPlatform\src\BlogPlatform.EFCore\Models\.editorconfig" />
   </ItemGroup>
 
 </Project>
