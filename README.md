@@ -33,3 +33,109 @@ ASP.NET Core로 구현하는 블로그 플랫폼 서비스 API
 - MySQL
 - Redis
 - Docker
+
+## ERD
+
+```mermaid
+erDiagram
+    __EFMigrationsHistory {
+        varchar MigrationId PK
+        varchar ProductVersion
+    }
+    BasicAccounts {
+        int Id PK
+        datetime CreatedAt
+        datetime DeletedAt
+        timestamp Version
+        varchar AccountId
+        longtext PasswordHash
+    }
+    OAuthProvider {
+        int Id PK
+        datetime CreatedAt
+        datetime DeletedAt
+        timestamp Version
+        varchar Name
+    }
+    Role {
+        int Id PK
+        datetime CreatedAt
+        datetime DeletedAt
+        timestamp Version
+        varchar Name
+        int Priority
+    }
+    User {
+        int Id PK
+        datetime CreatedAt
+        datetime DeletedAt
+        timestamp Version
+        varchar UserName
+        varchar Email
+        int BasicLoginAccountId FK
+    }
+    Blog {
+        int Id PK
+        datetime CreatedAt
+        datetime DeletedAt
+        timestamp Version
+        varchar Name
+        longtext Description
+        int UserId FK
+    }
+    OAuthAccount {
+        int Id PK
+        datetime CreatedAt
+        datetime DeletedAt
+        timestamp Version
+        varchar NameIdentifier
+        int ProviderId FK
+        int UserId FK
+    }
+    RoleUser {
+        int RolesId PK
+        int UsersId PK
+    }
+    Category {
+        int Id PK
+        datetime CreatedAt
+        datetime DeletedAt
+        timestamp Version
+        longtext Name
+        int BlogId FK
+    }
+    Post {
+        int Id PK
+        datetime CreatedAt
+        datetime DeletedAt
+        timestamp Version
+        longtext Title
+        text Content
+        json Tags
+        datetime LastUpdatedAt
+        int CategoryId FK
+    }
+    Comment {
+        int Id PK
+        datetime CreatedAt
+        datetime DeletedAt
+        timestamp Version
+        longtext Content
+        datetime LastUpdatedAt
+        int PostId FK
+        int UserId FK
+        int ParentCommentId FK
+    }
+
+    User ||--o{ BasicAccounts : has
+    Blog ||--o{ User : has
+    OAuthAccount ||--o{ OAuthProvider : has
+    OAuthAccount ||--o{ User : has
+    RoleUser ||--o{ Role : has
+    RoleUser ||--o{ User : has
+    Category ||--o{ Blog : has
+    Post ||--o{ Category : has
+    Comment ||--o{ Post : has
+    Comment ||--o{ User : has
+    Comment ||--|| Comment : has
+```
