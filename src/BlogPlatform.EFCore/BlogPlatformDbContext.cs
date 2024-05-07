@@ -25,6 +25,8 @@ namespace BlogPlatform.EFCore
 
         public DbSet<OAuthAccount> OAuthAccounts { get; private set; }
 
+        public DbSet<OAuthProvider> OAuthProviders { get; private set; }
+
         public DbSet<Role> Roles { get; private set; }
 
         public BlogPlatformDbContext(DbContextOptions options) : base(options)
@@ -40,6 +42,7 @@ namespace BlogPlatform.EFCore
         {
             modelBuilder.Entity<EntityBase>(builder =>
             {
+                builder.UseTpcMappingStrategy();
                 builder.HasQueryFilter(builder => builder.DeletedAt == DateTimeOffset.MinValue);
                 builder.Property(e => e.DeletedAt).HasDefaultValue(DateTimeOffset.MinValue);
 
