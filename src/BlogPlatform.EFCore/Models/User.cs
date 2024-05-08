@@ -10,14 +10,14 @@ namespace BlogPlatform.EFCore.Models
     /// <summary>
     /// 사용자
     /// </summary>
-    [Index(nameof(UserName), nameof(DeletedAt), IsUnique = true)]
+    [Index(nameof(Name), nameof(DeletedAt), IsUnique = true)]
     [Index(nameof(Email), nameof(DeletedAt), IsUnique = true)]
     [Table("User")]
     public class User : EntityBase
     {
-        public User(string userName, string email, int? basicLoginAccountId)
+        public User(string name, string email, int? basicLoginAccountId)
         {
-            UserName = userName;
+            Name = name;
             Email = email;
             BasicLoginAccountId = basicLoginAccountId;
         }
@@ -26,7 +26,7 @@ namespace BlogPlatform.EFCore.Models
         /// 사용자 이름
         /// </summary>
         [Required]
-        public string UserName { get; set; }
+        public string Name { get; set; }
 
         /// <summary>
         /// 이메일

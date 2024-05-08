@@ -8,7 +8,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace BlogPlatform.EFCore.Models
 {
     /// <summary>
-    /// 기본 로그인 계정
+    /// 기본 계정
     /// </summary>
     [Index(nameof(AccountId), nameof(DeletedAt), IsUnique = true)]
     [Table("BasicAccounts")]
