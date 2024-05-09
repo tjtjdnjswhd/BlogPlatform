@@ -43,8 +43,7 @@ namespace BlogPlatform.EFCore
             modelBuilder.Entity<EntityBase>(builder =>
             {
                 builder.UseTpcMappingStrategy();
-                builder.HasQueryFilter(builder => builder.DeletedAt == DateTimeOffset.MinValue);
-                builder.Property(e => e.DeletedAt).HasDefaultValue(DateTimeOffset.MinValue);
+                builder.HasQueryFilter(builder => builder.DeletedAt == null);
 
                 builder.Property(e => e.CreatedAt).ValueGeneratedOnAdd().HasValueGenerator<DateTimeOffsetUtcNowGenerator>();
             });

@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations;
 namespace BlogPlatform.EFCore.Models.Abstractions
 {
     [PrimaryKey(nameof(Id))]
+    [Index(nameof(DeletedAt))]
     public abstract class EntityBase
     {
         /// <summary>
@@ -22,7 +23,7 @@ namespace BlogPlatform.EFCore.Models.Abstractions
         /// 삭제 시각
         /// </summary>
         [Required]
-        public DateTimeOffset DeletedAt { get; internal set; }
+        public DateTimeOffset? DeletedAt { get; internal set; }
 
         [Timestamp]
         public byte[] Version { get; private set; }
