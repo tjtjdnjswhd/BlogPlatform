@@ -30,4 +30,12 @@
     <EditorConfigFiles Remove="D:\Programming\Project\BlogPlatform\src\BlogPlatform.EFCore\Models\.editorconfig" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EditorConfigFiles Remove="D:\Programming\Project\BlogPlatform\src\BlogPlatform.EFCore\Models\.editorconfig" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="D:\Programming\Project\BlogPlatform\src\BlogPlatform.EFCore\Models\.editorconfig" />
+  </ItemGroup>
+
 </Project>

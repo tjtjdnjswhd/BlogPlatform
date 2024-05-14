@@ -29,7 +29,7 @@ namespace BlogPlatform.EFCore
 
         public DbSet<Role> Roles { get; private set; }
 
-        public BlogPlatformDbContext(DbContextOptions options) : base(options)
+        public BlogPlatformDbContext(DbContextOptions<BlogPlatformDbContext> options) : base(options)
         {
         }
 

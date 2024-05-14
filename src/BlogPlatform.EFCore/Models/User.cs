@@ -40,6 +40,11 @@ namespace BlogPlatform.EFCore.Models
         public int? BasicLoginAccountId { get; set; }
 
         /// <summary>
+        /// 차단 해제 시간
+        /// </summary>
+        public DateTimeOffset? BanExpiresAt { get; set; }
+
+        /// <summary>
         /// 블로그
         /// </summary>
         public Blog? Blog { get; private set; }

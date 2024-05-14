@@ -16,6 +16,11 @@ builder.Services.AddDbContext<BlogPlatformDbContext>(options =>
     options.UseMySql(mySqlConnectionStringBuilder.ToString(), new MySqlServerVersion(new Version(8, 0, 36)));
 });
 
+builder.Services.AddDbContext<BlogPlatformImgDbContext>(options =>
+{
+    options.UseMySql(mySqlConnectionStringBuilder.ToString(), new MySqlServerVersion(new Version(8, 0, 36)));
+});
+
 var app = builder.Build();
 
 app.Run();
