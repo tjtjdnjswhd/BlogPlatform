@@ -2,10 +2,10 @@
 using BlogPlatform.Api.Identity.Attributes;
 using BlogPlatform.Api.Identity.Models;
 using BlogPlatform.Api.Identity.Services.interfaces;
+using BlogPlatform.Api.Models;
 using BlogPlatform.EFCore.Models;
 
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 using System.ComponentModel;
@@ -17,31 +17,31 @@ namespace BlogPlatform.Api.Controllers
     [ApiController]
     public class IdentityController : ControllerBase
     {
-        private readonly IIdentityService _identityService;
+        private readonly IUserService _userService;
         private readonly ILogger<IdentityController> _logger;
 
-        public IdentityController(IIdentityService identityService, ILogger<IdentityController> logger)
+        public IdentityController(IUserService userService, ILogger<IdentityController> logger)
         {
-            _identityService = identityService;
+            _userService = userService;
             _logger = logger;
         }
 
         [HttpPost("login/basic")]
-        public async Task<IActionResult> BasicLoginAsync([FromBody] BasicLoginInfo loginInfo, CancellationToken cancellationToken, [FromHeader] bool setCookie = false)
+        public async Task<IActionResult> BasicLoginAsync([FromBody] BasicLoginInfo loginInfo, CancellationToken cancellationToken, [TokenSetCookie] bool setCookie = false)
         {
-            (ELoginResult loginResult, User? user) = await _identityService.LoginAsync(loginInfo, cancellationToken);
+            (ELoginResult loginResult, User? user) = await _userService.LoginAsync(loginInfo, cancellationToken);
             return HandleLogin(loginResult, user, setCookie);
         }
 
         [HttpPost("signup/basic")]
-        public async Task<IActionResult> BasicSignUpAsync([FromBody] BasicSignUpInfo signUpInfo, CancellationToken cancellationToken, [FromHeader] bool setCookie = false)
+        public async Task<IActionResult> BasicSignUpAsync([FromBody] BasicSignUpInfo signUpInfo, CancellationToken cancellationToken, [TokenSetCookie] bool setCookie = false)
         {
-            (ESignUpResult signUpResult, User? user) = await _identityService.SignUpAsync(signUpInfo, cancellationToken);
+            (ESignUpResult signUpResult, User? user) = await _userService.SignUpAsync(signUpInfo, cancellationToken);
             return HandleSignUp(signUpResult, user, setCookie);
         }
 
         [HttpPost("login/oauth")]
-        public IActionResult OAuthLogin([FromForm] string provider, [FromHeader] bool setCookie = false)
+        public IActionResult OAuthLogin([FromForm] string provider, [TokenSetCookie] bool setCookie = false)
         {
             AuthenticationProperties authenticationProperties = new()
             {
@@ -59,13 +59,13 @@ namespace BlogPlatform.Api.Controllers
         [OAuthAuthorize]
         public async Task<IActionResult> OAuthLoginCallbackAsync(OAuthLoginInfo loginInfo, [FromQuery] bool setCookie)
         {
-            (ELoginResult loginResult, User? user) = await _identityService.LoginAsync(loginInfo);
+            (ELoginResult loginResult, User? user) = await _userService.LoginAsync(loginInfo);
             Debug.Assert(loginResult != ELoginResult.WrongPassword); // OAuth 로그인 시 비밀번호가 틀릴 수 없음
             return HandleLogin(loginResult, user, setCookie);
         }
 
         [HttpPost("signup/oauth")]
-        public IActionResult OAuthSignUp([FromForm] string provider, [FromForm] string name, [FromHeader] bool setCookie)
+        public IActionResult OAuthSignUp([FromForm] string provider, [FromForm] string name, [TokenSetCookie] bool setCookie = false)
         {
             AuthenticationProperties authenticationProperties = new()
             {
@@ -75,23 +75,22 @@ namespace BlogPlatform.Api.Controllers
                 IssuedUtc = DateTimeOffset.UtcNow,
             };
 
-            return Challenge(authenticationProperties, provider);
+            return new OAuthSignUpChallengeResult(authenticationProperties, provider, name);
         }
 
         [HttpGet("signup/oauth")]
         [OAuthAuthorize]
         public async Task<IActionResult> OAuthSignUpCallbackAsync(OAuthSignUpInfo signUpInfo, [FromQuery] bool setCookie)
         {
-            (ESignUpResult signUpResult, User? user) = await _identityService.SignUpAsync(signUpInfo);
+            (ESignUpResult signUpResult, User? user) = await _userService.SignUpAsync(signUpInfo);
             return HandleSignUp(signUpResult, user, setCookie);
         }
 
         [HttpPost("logout")]
-        [Authorize]
         public LogoutResult Logout() => new();
 
         [HttpPost("refresh")]
-        public RefreshResult Refresh() => new RefreshResult();
+        public RefreshResult Refresh() => new();
 
         private IActionResult HandleLogin(ELoginResult loginResult, User? user, bool setCookie)
         {
@@ -99,7 +98,7 @@ namespace BlogPlatform.Api.Controllers
             {
                 case ELoginResult.Success:
                     Debug.Assert(user is not null); // 로그인 성공 시 user는 null이 아니어야 함
-                    return new LoginSuccessResult(user, setCookie);
+                    return new LoginResult(user, setCookie);
 
                 case ELoginResult.NotFound:
                     return NotFound();
@@ -119,22 +118,22 @@ namespace BlogPlatform.Api.Controllers
             {
                 case ESignUpResult.Success:
                     Debug.Assert(user is not null); // 가입 성공 시 user는 null이 아니어야 함
-                    return new LoginSuccessResult(user, setCookie);
+                    return new LoginResult(user, setCookie);
 
                 case ESignUpResult.IdDuplicate:
-                    return Conflict();
+                    return Conflict(new Error("중복된 Id입니다."));
 
                 case ESignUpResult.NameDuplicate:
-                    return Conflict();
+                    return Conflict(new Error("중복된 이름입니다."));
 
                 case ESignUpResult.EmailDuplicate:
-                    return Conflict();
+                    return Conflict(new Error("중복된 이메일입니다."));
 
                 case ESignUpResult.AlreadyExists:
-                    return Conflict();
+                    return Conflict(new Error("이미 존재하는 계정입니다."));
 
                 case ESignUpResult.ProviderNotFound:
-                    return NotFound();
+                    return NotFound(new Error("잘못된 OAuth 제공자입니다."));
 
                 default:
                     Debug.Assert(false);

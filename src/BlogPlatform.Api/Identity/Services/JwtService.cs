@@ -1,13 +1,20 @@
-﻿using BlogPlatform.Api.Identity.Models;
+﻿using BlogPlatform.Api.Helper;
+using BlogPlatform.Api.Identity.Models;
 using BlogPlatform.Api.Identity.Options;
 using BlogPlatform.Api.Services.interfaces;
+using BlogPlatform.EFCore;
+using BlogPlatform.EFCore.Models;
 
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 using System.IdentityModel.Tokens.Jwt;
+using System.IO.Pipelines;
 using System.Security.Claims;
+using System.Text;
 
 namespace BlogPlatform.Api.Services
 {
@@ -15,36 +22,41 @@ namespace BlogPlatform.Api.Services
     {
         private static readonly JwtSecurityTokenHandler _jwtSecurityTokenHandler = new();
 
+        private readonly BlogPlatformDbContext _blogPlatformDbContext;
         private readonly JwtOptions _jwtOptions;
         private readonly IDistributedCache _cache;
         private readonly ILogger<JwtService> _logger;
 
-        public JwtService(IOptions<JwtOptions> jwtOptions, IDistributedCache cache, ILogger<JwtService> logger)
+        public JwtService(BlogPlatformDbContext blogPlatformDbContext, IOptions<JwtOptions> jwtOptions, IDistributedCache cache, ILogger<JwtService> logger)
         {
+            _blogPlatformDbContext = blogPlatformDbContext;
             _jwtOptions = jwtOptions.Value;
             _cache = cache;
             _logger = logger;
         }
 
         /// <inheritdoc/>
-        public AuthorizeToken GenerateToken(ClaimsIdentity claimsIdentity)
+        public async Task<AuthorizeToken> GenerateTokenAsync(User user, CancellationToken cancellationToken = default)
         {
-            _logger.LogDebug("Generating token for {claimsIdentity}", claimsIdentity);
+            _logger.LogDebug("Generating token for {user}", user);
 
-            SecurityKey securityKey = _jwtOptions.SecurityKeyFunc(_jwtOptions.SecretKey);
-            SigningCredentials signingCredentials = new(securityKey, _jwtOptions.Algorithm);
+            List<string> roleNames = await _blogPlatformDbContext.Roles
+                .Where(r => r.Users.Any(u => u.Id == user.Id))
+                .Select(r => r.Name)
+                .ToListAsync(cancellationToken);
 
-            string accessToken = _jwtSecurityTokenHandler.CreateJwtSecurityToken(
-                _jwtOptions.Issuer,
-                _jwtOptions.Audience,
-                claimsIdentity,
-                DateTime.UtcNow,
-                DateTime.UtcNow.Add(_jwtOptions.AccessTokenExpiration),
-                DateTime.UtcNow,
-                signingCredentials).ToString();
+            _logger.LogDebug("Found user roles for {user}: {roles}", user, roleNames);
 
-            string refreshToken = Guid.NewGuid().ToString();
-            AuthorizeToken token = new(accessToken, refreshToken);
+            Claim[] claims = [
+                new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+                new(JwtRegisteredClaimNames.Name, user.Name),
+                new(ClaimTypes.Role, string.Join(',', roleNames)),
+            ];
+
+            _logger.LogDebug("Created claims for {user}: {claims}", user, claims);
+
+            ClaimsIdentity claimsIdentity = new(claims, JwtBearerDefaults.AuthenticationScheme, JwtRegisteredClaimNames.Name, ClaimTypes.Role);
+            AuthorizeToken token = GenerateToken(claimsIdentity);
 
             _logger.LogInformation("Generated token: {token}", token);
             return token;
@@ -145,6 +157,39 @@ namespace BlogPlatform.Api.Services
             return authorizeToken;
         }
 
+        /// <inheritdoc/>
+        public async Task SetBodyTokenAsync(HttpResponse response, AuthorizeToken token, CancellationToken cancellationToken = default)
+        {
+            await response.WriteAsJsonAsync(token, cancellationToken);
+        }
+
+        /// <inheritdoc/>
+        public async Task<AuthorizeToken?> GetBodyTokenAsync(HttpRequest request, CancellationToken cancellationToken = default)
+        {
+            PipeReader pipeReader = request.BodyReader;
+            AuthorizeToken? authorizeToken = await pipeReader.DeserializeJsonAsync<AuthorizeToken>(cancellationToken);
+            return authorizeToken;
+        }
+
+        private AuthorizeToken GenerateToken(ClaimsIdentity claimsIdentity)
+        {
+            SecurityKey securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.SecretKey));
+            SigningCredentials signingCredentials = new(securityKey, _jwtOptions.Algorithm);
+
+            string accessToken = _jwtSecurityTokenHandler.CreateJwtSecurityToken(
+                _jwtOptions.Issuer,
+                _jwtOptions.Audience,
+                claimsIdentity,
+                DateTime.UtcNow,
+                DateTime.UtcNow.Add(_jwtOptions.AccessTokenExpiration),
+                DateTime.UtcNow,
+                signingCredentials).ToString();
+
+            string refreshToken = Guid.NewGuid().ToString();
+            AuthorizeToken token = new(accessToken, refreshToken);
+            return token;
+        }
+
         private string GetRefreshTokenCacheName(string refreshToken) => $"{_jwtOptions.RefreshTokenName}_{refreshToken}";
 
         private ClaimsPrincipal? ValidateOldAccessToken(string accessToken)
@@ -155,7 +200,7 @@ namespace BlogPlatform.Api.Services
                 ValidAudience = _jwtOptions.Audience,
                 // 만료된 토큰일 수 있기 때문에 토큰의 유효기간을 검증하지 않습니다.
                 ValidateLifetime = false,
-                TokenDecryptionKey = _jwtOptions.SecurityKeyFunc(_jwtOptions.SecretKey),
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.SecretKey)),
             };
 
             ClaimsPrincipal principal;
@@ -165,7 +210,7 @@ namespace BlogPlatform.Api.Services
             }
             catch (Exception e)
             {
-                _logger.LogWarning(e, "Invalid access token: {accessToken}", accessToken);
+                _logger.LogInformation(e, "Invalid access token: {accessToken}", accessToken);
                 return null;
             }
 

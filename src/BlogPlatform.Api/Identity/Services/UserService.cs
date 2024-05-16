@@ -10,13 +10,13 @@ using System.Diagnostics;
 
 namespace BlogPlatform.Api.Services
 {
-    public class IdentityService : IIdentityService
+    public class UserService : IUserService
     {
         private readonly BlogPlatformDbContext _blogPlatformDbContext;
         private readonly IPasswordHasher<BasicAccount> _passwordHasher;
-        private readonly ILogger<IdentityService> _logger;
+        private readonly ILogger<UserService> _logger;
 
-        public IdentityService(BlogPlatformDbContext blogPlatformDbContext, IPasswordHasher<BasicAccount> passwordHasher, ILogger<IdentityService> logger)
+        public UserService(BlogPlatformDbContext blogPlatformDbContext, IPasswordHasher<BasicAccount> passwordHasher, ILogger<UserService> logger)
         {
             _blogPlatformDbContext = blogPlatformDbContext;
             _passwordHasher = passwordHasher;

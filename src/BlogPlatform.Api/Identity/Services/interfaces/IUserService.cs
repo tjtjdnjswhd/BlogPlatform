@@ -3,7 +3,7 @@ using BlogPlatform.EFCore.Models;
 
 namespace BlogPlatform.Api.Identity.Services.interfaces
 {
-    public interface IIdentityService
+    public interface IUserService
     {
         /// <summary>
         /// 

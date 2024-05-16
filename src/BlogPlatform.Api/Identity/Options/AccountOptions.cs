@@ -3,9 +3,9 @@
 namespace BlogPlatform.Api.Identity.Options
 {
     /// <summary>
-    /// 기본 계정 설정
+    /// 계정 설정
     /// </summary>
-    public class BasicAccountOptions
+    public class AccountOptions
     {
         /// <summary>
         /// 최소 Id 길이

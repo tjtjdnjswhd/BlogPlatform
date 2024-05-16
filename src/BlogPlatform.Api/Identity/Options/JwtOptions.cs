@@ -1,6 +1,4 @@
-﻿using Microsoft.IdentityModel.Tokens;
-
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace BlogPlatform.Api.Identity.Options
 {
@@ -56,11 +54,5 @@ namespace BlogPlatform.Api.Identity.Options
         /// </summary>
         [Required]
         public required TimeSpan RefreshTokenExpiration { get; set; }
-
-        /// <summary>
-        /// <see cref="SecretKey"/> -> <see cref="SecurityKey"/> 변환 함수
-        /// </summary>
-        [Required]
-        public required Func<string, SecurityKey> SecurityKeyFunc { get; set; }
     }
 }

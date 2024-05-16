@@ -19,21 +19,16 @@ namespace BlogPlatform.Api.Identity.Attributes
                 throw new ArgumentException("BasicSignUpInfo 타입이 아닙니다.");
             }
 
-            BasicAccountOptions basicAccountOptions = validationContext.GetRequiredService<IOptionsMonitor<BasicAccountOptions>>().CurrentValue;
+            AccountOptions accountOptions = validationContext.GetRequiredService<IOptionsMonitor<AccountOptions>>().CurrentValue;
 
-            if (basicSignUpInfo.Id.Length < basicAccountOptions.MinIdLength || basicSignUpInfo.Id.Length > basicAccountOptions.MaxIdLength)
+            if (basicSignUpInfo.Id.Length < accountOptions.MinIdLength || basicSignUpInfo.Id.Length > accountOptions.MaxIdLength)
             {
-                return new ValidationResult($"Id의 길이는 {basicAccountOptions.MinIdLength}에서 {basicAccountOptions.MaxIdLength} 사이여야 합니다.", [nameof(BasicSignUpInfo.Id)]);
+                return new ValidationResult($"Id의 길이는 {accountOptions.MinIdLength}에서 {accountOptions.MaxIdLength} 사이여야 합니다.", [nameof(BasicSignUpInfo.Id)]);
             }
 
-            if (basicSignUpInfo.Password.Length < basicAccountOptions.MinPasswordLength || basicSignUpInfo.Password.Length > basicAccountOptions.MaxPasswordLength)
+            if (basicSignUpInfo.Password.Length < accountOptions.MinPasswordLength || basicSignUpInfo.Password.Length > accountOptions.MaxPasswordLength)
             {
-                return new ValidationResult($"비밀번호의 길이는 {basicAccountOptions.MinPasswordLength}에서 {basicAccountOptions.MaxPasswordLength} 사이여야 합니다.", [nameof(BasicSignUpInfo.Password)]);
-            }
-
-            if (basicSignUpInfo.Name.Length < basicAccountOptions.MinNameLength || basicSignUpInfo.Name.Length > basicAccountOptions.MaxNameLength)
-            {
-                return new ValidationResult($"이름의 길이는 {basicAccountOptions.MinNameLength}에서 {basicAccountOptions.MaxNameLength} 사이여야 합니다.", [nameof(BasicSignUpInfo.Name)]);
+                return new ValidationResult($"비밀번호의 길이는 {accountOptions.MinPasswordLength}에서 {accountOptions.MaxPasswordLength} 사이여야 합니다.", [nameof(BasicSignUpInfo.Password)]);
             }
 
             return base.IsValid(value, validationContext);
