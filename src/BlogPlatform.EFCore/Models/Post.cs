@@ -11,11 +11,10 @@ namespace BlogPlatform.EFCore.Models
     [Table("Post")]
     public class Post : EntityBase
     {
-        public Post(string title, string content, DateTimeOffset lastUpdatedAt, int categoryId)
+        public Post(string title, string content, int categoryId)
         {
             Title = title;
             Content = content;
-            LastUpdatedAt = lastUpdatedAt;
             CategoryId = categoryId;
         }
 
@@ -41,8 +40,7 @@ namespace BlogPlatform.EFCore.Models
         /// <summary>
         /// 마지막 수정 시각
         /// </summary>
-        [Required]
-        public DateTimeOffset LastUpdatedAt { get; set; }
+        public DateTimeOffset? LastUpdatedAt { get; set; }
 
         /// <summary>
         /// 카테고리 ID

@@ -1,23 +1,20 @@
-﻿using Microsoft.EntityFrameworkCore;
-
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
 namespace BlogPlatform.EFCore.Models
 {
     [Table("Image")]
-    [Index(nameof(Uri), IsUnique = true)]
     public class Image
     {
-        public Image(Uri uri, string contentType, byte[] data)
+        public Image(string name, string contentType, byte[] data)
         {
-            Uri = uri;
+            Name = name;
             ContentType = contentType;
             Data = data;
         }
 
         public int Id { get; private set; }
 
-        public Uri Uri { get; set; }
+        public string Name { get; set; }
 
         public string ContentType { get; set; }
 

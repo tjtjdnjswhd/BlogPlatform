@@ -26,6 +26,6 @@ namespace BlogPlatform.EFCore.Models.Abstractions
         public DateTimeOffset? DeletedAt { get; internal set; }
 
         [Timestamp]
-        public byte[] Version { get; private set; }
+        public byte[] RowVersion { get; private set; }
     }
 }

@@ -28,8 +28,7 @@ namespace BlogPlatform.EFCore.Models
         /// <summary>
         /// 마지막 수정 시각
         /// </summary>
-        [Required]
-        public DateTimeOffset LastUpdatedAt { get; set; }
+        public DateTimeOffset? LastUpdatedAt { get; set; }
 
         /// <summary>
         /// 게시글 ID
