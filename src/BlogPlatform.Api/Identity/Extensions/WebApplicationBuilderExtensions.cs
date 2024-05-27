@@ -24,15 +24,16 @@ namespace BlogPlatform.Api.Identity.Extensions
     {
         public static WebApplicationBuilder AddJwtIdentity(this WebApplicationBuilder builder)
         {
-            builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddScoped<IIdentityService, IdentityService>();
             builder.Services.AddScoped<IJwtService, JwtService>();
             builder.Services.AddScoped<IPasswordHasher<BasicAccount>, PasswordHasher<BasicAccount>>();
 
             JwtOptions jwtOptions = builder.Configuration.GetRequiredSection("JwtOptions").Get<JwtOptions>() ?? throw new Exception();
 
             builder.Services.AddOptions<JwtOptions>().BindConfiguration("JwtOptions").ValidateOnStart().ValidateDataAnnotations();
-            builder.Services.AddOptions<AccountOptions>().BindConfiguration("BasicAccountOptions").ValidateOnStart().ValidateDataAnnotations();
+            builder.Services.AddOptions<AccountOptions>().BindConfiguration("AccountOptions").ValidateOnStart().ValidateDataAnnotations();
 
+            builder.Services.AddScoped<UserBanFilter>();
             builder.Services.Configure<MvcOptions>(m =>
             {
                 m.Filters.AddService<UserBanFilter>();

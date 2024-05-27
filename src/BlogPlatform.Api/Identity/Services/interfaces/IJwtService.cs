@@ -1,6 +1,8 @@
 ﻿using BlogPlatform.Api.Identity.Models;
 using BlogPlatform.EFCore.Models;
 
+using System.Security.Claims;
+
 namespace BlogPlatform.Api.Services.interfaces
 {
     public interface IJwtService
@@ -87,5 +89,13 @@ namespace BlogPlatform.Api.Services.interfaces
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         Task<AuthorizeToken?> GetBodyTokenAsync(HttpRequest request, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// 유저 Id를 반환합니다.
+        /// </summary>
+        /// <param name="principal"></param>
+        /// <param name="userId"></param>
+        /// <returns></returns>
+        bool TryGetUserId(ClaimsPrincipal principal, out int userId);
     }
 }

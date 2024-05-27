@@ -8,7 +8,7 @@ using System.Diagnostics;
 
 namespace BlogPlatform.Api.Identity.Attributes
 {
-    [AttributeUsage(AttributeTargets.Property)]
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Parameter)]
     public class UserNameValidateAttribute : ValidationAttribute
     {
         protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
@@ -20,7 +20,6 @@ namespace BlogPlatform.Api.Identity.Attributes
             }
 
             AccountOptions accountOptions = validationContext.GetRequiredService<IOptionsMonitor<AccountOptions>>().CurrentValue;
-
 
             if (userName.Length < accountOptions.MinNameLength || userName.Length > accountOptions.MaxNameLength)
             {

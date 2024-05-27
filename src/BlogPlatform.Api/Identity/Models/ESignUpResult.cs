@@ -3,10 +3,10 @@
     public enum ESignUpResult
     {
         Success,
-        IdDuplicate,
-        NameDuplicate,
-        EmailDuplicate,
+        UserIdAlreadyExists,
+        NameAlreadyExists,
+        EmailAlreadyExists,
         ProviderNotFound,
-        AlreadyExists
+        OAuthAlreadyExists
     }
 }

@@ -1,9 +1,13 @@
 ﻿using BlogPlatform.Api.Identity.Models;
 using BlogPlatform.EFCore.Models;
 
+using Microsoft.AspNetCore.Authentication;
+
+using System.Security.Claims;
+
 namespace BlogPlatform.Api.Identity.Services.interfaces
 {
-    public interface IUserService
+    public interface IIdentityService
     {
         /// <summary>
         /// 
@@ -19,7 +23,7 @@ namespace BlogPlatform.Api.Identity.Services.interfaces
         /// <param name="loginInfo"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task<(ELoginResult, User?)> LoginAsync(OAuthLoginInfo loginInfo, CancellationToken cancellationToken = default);
+        Task<(ELoginResult, User?)> LoginAsync(OAuthInfo loginInfo, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// 
@@ -36,5 +40,23 @@ namespace BlogPlatform.Api.Identity.Services.interfaces
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         Task<(ESignUpResult, User?)> SignUpAsync(OAuthSignUpInfo signUpInfo, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="authenticateResult"></param>
+        /// <param name="oAuthInfo"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task<EAddOAuthResult> AddOAuthAsync(AuthenticateResult authenticateResult, OAuthInfo oAuthInfo, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="provider"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task<ERemoveOAuthResult> RemoveOAuthAsync(ClaimsPrincipal user, string provider, CancellationToken cancellationToken = default);
     }
 }

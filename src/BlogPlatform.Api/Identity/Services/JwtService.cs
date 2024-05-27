@@ -51,6 +51,8 @@ namespace BlogPlatform.Api.Services
                 new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new(JwtRegisteredClaimNames.Name, user.Name),
                 new(ClaimTypes.Role, string.Join(',', roleNames)),
+                new(JwtRegisteredClaimNames.Iss, _jwtOptions.Issuer),
+                new(JwtRegisteredClaimNames.Aud, _jwtOptions.Audience)
             ];
 
             _logger.LogDebug("Created claims for {user}: {claims}", user, claims);
@@ -170,6 +172,9 @@ namespace BlogPlatform.Api.Services
             AuthorizeToken? authorizeToken = await pipeReader.DeserializeJsonAsync<AuthorizeToken>(cancellationToken);
             return authorizeToken;
         }
+
+        /// <inheritdoc/>
+        public bool TryGetUserId(ClaimsPrincipal principal, out int userId) => int.TryParse(principal.FindFirstValue(JwtRegisteredClaimNames.Sub), out userId);
 
         private AuthorizeToken GenerateToken(ClaimsIdentity claimsIdentity)
         {

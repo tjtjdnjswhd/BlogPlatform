@@ -1,25 +1,30 @@
 ﻿using BlogPlatform.Api.Identity.Models;
 using BlogPlatform.Api.Identity.Services.interfaces;
+using BlogPlatform.Api.Services.interfaces;
 using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Models;
 
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 using System.Diagnostics;
+using System.Security.Claims;
 
 namespace BlogPlatform.Api.Services
 {
-    public class UserService : IUserService
+    public class IdentityService : IIdentityService
     {
         private readonly BlogPlatformDbContext _blogPlatformDbContext;
+        private readonly IJwtService _jwtService;
         private readonly IPasswordHasher<BasicAccount> _passwordHasher;
-        private readonly ILogger<UserService> _logger;
+        private readonly ILogger<IdentityService> _logger;
 
-        public UserService(BlogPlatformDbContext blogPlatformDbContext, IPasswordHasher<BasicAccount> passwordHasher, ILogger<UserService> logger)
+        public IdentityService(BlogPlatformDbContext blogPlatformDbContext, IJwtService jwtService, IPasswordHasher<BasicAccount> passwordHasher, ILogger<IdentityService> logger)
         {
             _blogPlatformDbContext = blogPlatformDbContext;
             _passwordHasher = passwordHasher;
+            _jwtService = jwtService;
             _logger = logger;
         }
 
@@ -54,21 +59,21 @@ namespace BlogPlatform.Api.Services
             if (isAccountIdExist)
             {
                 _logger.LogInformation("Account id already exists: {signUpInfo}", signUpInfo);
-                return (ESignUpResult.IdDuplicate, null);
+                return (ESignUpResult.UserIdAlreadyExists, null);
             }
 
             bool isNameExist = await _blogPlatformDbContext.Users.AnyAsync(u => u.Name == signUpInfo.Name, cancellationToken);
             if (isNameExist)
             {
                 _logger.LogInformation("Name already exists: {signUpInfo}", signUpInfo);
-                return (ESignUpResult.NameDuplicate, null);
+                return (ESignUpResult.NameAlreadyExists, null);
             }
 
             bool isEmailExist = await _blogPlatformDbContext.Users.AnyAsync(u => u.Email == signUpInfo.Email, cancellationToken);
             if (isEmailExist)
             {
                 _logger.LogInformation("Email already exists: {signUpInfo}", signUpInfo);
-                return (ESignUpResult.EmailDuplicate, null);
+                return (ESignUpResult.EmailAlreadyExists, null);
             }
 
             string passwordHash = _passwordHasher.HashPassword(null, signUpInfo.Password);
@@ -114,7 +119,7 @@ namespace BlogPlatform.Api.Services
         }
 
         /// <inheritdoc/>
-        public async Task<(ELoginResult, User?)> LoginAsync(OAuthLoginInfo loginInfo, CancellationToken cancellationToken = default)
+        public async Task<(ELoginResult, User?)> LoginAsync(OAuthInfo loginInfo, CancellationToken cancellationToken = default)
         {
             User? user = await _blogPlatformDbContext.OAuthAccounts
                 .Where(o => o.Provider.Name == loginInfo.Provider && o.NameIdentifier == loginInfo.NameIdentifier)
@@ -145,21 +150,21 @@ namespace BlogPlatform.Api.Services
                 .AnyAsync(o => o.Provider.Name == signUpInfo.Provider && o.NameIdentifier == signUpInfo.NameIdentifier, cancellationToken);
             if (isAccountExist)
             {
-                return (ESignUpResult.AlreadyExists, null);
+                return (ESignUpResult.OAuthAlreadyExists, null);
             }
 
             bool isEmailExist = await _blogPlatformDbContext.Users
                 .AnyAsync(u => u.Email == signUpInfo.Email, cancellationToken);
             if (isEmailExist)
             {
-                return (ESignUpResult.EmailDuplicate, null);
+                return (ESignUpResult.EmailAlreadyExists, null);
             }
 
             bool isNameExist = await _blogPlatformDbContext.Users
                 .AnyAsync(u => u.Name == signUpInfo.Name, cancellationToken);
             if (isNameExist)
             {
-                return (ESignUpResult.NameDuplicate, null);
+                return (ESignUpResult.NameAlreadyExists, null);
             }
 
             var strategy = _blogPlatformDbContext.Database.CreateExecutionStrategy();
@@ -198,6 +203,79 @@ namespace BlogPlatform.Api.Services
                     throw;
                 }
             }
+        }
+
+        /// <inheritdoc/>
+        public async Task<EAddOAuthResult> AddOAuthAsync(AuthenticateResult authenticateResult, OAuthInfo oAuthInfo, CancellationToken cancellationToken = default)
+        {
+            Debug.Assert(authenticateResult.Succeeded);
+
+            if (!_jwtService.TryGetUserId(authenticateResult.Principal, out int userId))
+            {
+                Debug.Assert(false);
+            }
+
+            bool isUserExist = await _blogPlatformDbContext.Users.AnyAsync(u => u.Id == userId, cancellationToken);
+            if (!isUserExist)
+            {
+                return EAddOAuthResult.UserNotFound;
+            }
+
+            int providerId = await _blogPlatformDbContext.OAuthProviders
+                .Where(p => p.Name == oAuthInfo.Provider)
+                .Select(p => p.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (providerId == default)
+            {
+                return EAddOAuthResult.ProviderNotFound;
+            }
+
+            bool isUserHasOAuth = await _blogPlatformDbContext.OAuthAccounts.AnyAsync(o => o.UserId == userId && o.ProviderId == providerId, cancellationToken);
+            if (isUserHasOAuth)
+            {
+                return EAddOAuthResult.UserAlreadyHasOAuth;
+            }
+
+            bool isOAuthAlreadyExist = await _blogPlatformDbContext.OAuthAccounts.Where(o => o.NameIdentifier == oAuthInfo.NameIdentifier && o.ProviderId == providerId).AnyAsync(cancellationToken);
+            if (isOAuthAlreadyExist)
+            {
+                return EAddOAuthResult.OAuthAlreadyExists;
+            }
+
+            OAuthAccount oAuthAccount = new(oAuthInfo.NameIdentifier, providerId, userId);
+            _blogPlatformDbContext.OAuthAccounts.Add(oAuthAccount);
+            await _blogPlatformDbContext.SaveChangesAsync(cancellationToken);
+
+            return EAddOAuthResult.Success;
+        }
+
+        public async Task<ERemoveOAuthResult> RemoveOAuthAsync(ClaimsPrincipal user, string provider, CancellationToken cancellationToken = default)
+        {
+            if (!_jwtService.TryGetUserId(user, out int userId))
+            {
+                Debug.Assert(false);
+            }
+
+            bool isUserExist = await _blogPlatformDbContext.Users.AnyAsync(u => u.Id == userId, cancellationToken);
+            if (!isUserExist)
+            {
+                return ERemoveOAuthResult.UserNotFound;
+            }
+
+            OAuthAccount? oAuthAccount = await _blogPlatformDbContext.OAuthAccounts
+                .Where(o => o.UserId == userId && o.Provider.Name == provider)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (oAuthAccount is null)
+            {
+                return ERemoveOAuthResult.OAuthNotFound;
+            }
+
+            _blogPlatformDbContext.OAuthAccounts.Remove(oAuthAccount);
+            await _blogPlatformDbContext.SaveChangesAsync(cancellationToken);
+
+            return ERemoveOAuthResult.Success;
         }
     }
 }
