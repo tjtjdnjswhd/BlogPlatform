@@ -36,6 +36,8 @@ namespace BlogPlatform.EFCore
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.AddInterceptors(new SoftDeleteInterceptor());
+            optionsBuilder.AddInterceptors(new PostLastUpdatedAtInterceptor());
+            optionsBuilder.AddInterceptors(new CommentLastUpdatedAtInterceptor());
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
