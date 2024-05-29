@@ -206,9 +206,10 @@ namespace BlogPlatform.Api.Services
         }
 
         /// <inheritdoc/>
-        public async Task<EAddOAuthResult> AddOAuthAsync(AuthenticateResult authenticateResult, OAuthInfo oAuthInfo, CancellationToken cancellationToken = default)
+        public async Task<EAddOAuthResult> AddOAuthAsync(HttpContext httpContext, OAuthInfo oAuthInfo, CancellationToken cancellationToken = default)
         {
-            Debug.Assert(authenticateResult.Succeeded);
+            AuthenticateResult authenticateResult = await httpContext.AuthenticateAsync();
+            Debug.Assert(authenticateResult.Succeeded); // 인증이 성공해야 함
 
             if (!_jwtService.TryGetUserId(authenticateResult.Principal, out int userId))
             {
@@ -250,6 +251,7 @@ namespace BlogPlatform.Api.Services
             return EAddOAuthResult.Success;
         }
 
+        /// <inheritdoc/>
         public async Task<ERemoveOAuthResult> RemoveOAuthAsync(ClaimsPrincipal user, string provider, CancellationToken cancellationToken = default)
         {
             if (!_jwtService.TryGetUserId(user, out int userId))

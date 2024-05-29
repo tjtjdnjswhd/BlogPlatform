@@ -1,5 +1,6 @@
 ﻿using BlogPlatform.Api.Identity.ActionResults;
 using BlogPlatform.Api.Identity.Attributes;
+using BlogPlatform.Api.Identity.Filters;
 using BlogPlatform.Api.Identity.Models;
 using BlogPlatform.Api.Identity.Services.interfaces;
 using BlogPlatform.Api.Models;
@@ -9,6 +10,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 
 namespace BlogPlatform.Api.Controllers
@@ -18,11 +20,13 @@ namespace BlogPlatform.Api.Controllers
     public class IdentityController : ControllerBase
     {
         private readonly IIdentityService _identityService;
+        private readonly IVerifyEmailService _verifyEmailService;
         private readonly ILogger<IdentityController> _logger;
 
-        public IdentityController(IIdentityService identityService, ILogger<IdentityController> logger)
+        public IdentityController(IIdentityService identityService, IVerifyEmailService verifyEmailService, ILogger<IdentityController> logger)
         {
             _identityService = identityService;
+            _verifyEmailService = verifyEmailService;
             _logger = logger;
         }
 
@@ -34,11 +38,26 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpPost("signup/basic")]
+        [CheckEmailVerifyFilter(nameof(signUpInfo))]
         public async Task<IActionResult> BasicSignUpAsync([FromBody] BasicSignUpInfo signUpInfo, CancellationToken cancellationToken, [TokenSetCookie] bool setCookie = false)
         {
             (ESignUpResult signUpResult, User? user) = await _identityService.SignUpAsync(signUpInfo, cancellationToken);
             Debug.Assert(signUpResult != ESignUpResult.OAuthAlreadyExists); // OAuth 계정이 아닌 경우 OAuthAlreadyExists가 나올 수 없음
             return HandleSignUp(signUpResult, user, setCookie);
+        }
+
+        [HttpPost("signup/basic/email")]
+        public async Task<IActionResult> SendVerifyEmailAsync([FromForm, EmailAddress] string email, CancellationToken cancellationToken)
+        {
+            await _verifyEmailService.SendEmailVerificationAsync(email, cancellationToken);
+            return Ok();
+        }
+
+        [HttpGet("signup/basic/email")]
+        public async Task<IActionResult> VerifyEmailAsync([FromQuery] string code, CancellationToken cancellationToken)
+        {
+            string? email = await _verifyEmailService.VerifyEmailCodeAsync(code, cancellationToken);
+            return email is not null ? Ok() : BadRequest(new Error("잘못된 코드입니다."));
         }
 
         [HttpPost("login/oauth")]
@@ -107,8 +126,7 @@ namespace BlogPlatform.Api.Controllers
         [UserAuthorize]
         public async Task<IActionResult> AddOAuthCallbackAsync(OAuthInfo info, CancellationToken cancellationToken)
         {
-            AuthenticateResult authenticateResult = await HttpContext.AuthenticateAsync();
-            EAddOAuthResult addOAuthResult = await _identityService.AddOAuthAsync(authenticateResult, info, cancellationToken);
+            EAddOAuthResult addOAuthResult = await _identityService.AddOAuthAsync(HttpContext, info, cancellationToken);
             switch (addOAuthResult)
             {
                 case EAddOAuthResult.Success:

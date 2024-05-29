@@ -4,6 +4,5 @@ using System.ComponentModel.DataAnnotations;
 
 namespace BlogPlatform.Api.Identity.Models
 {
-    [BasicSignUpValidate]
-    public record BasicSignUpInfo([Required] string Id, [Required] string Password, [Required] string Email, [Required, UserNameValidate] string Name);
+    public record BasicSignUpInfo([Required(AllowEmptyStrings = false), AccountIdValidate] string Id, [Required(AllowEmptyStrings = false), AccountPasswordValidate] string Password, [Required(AllowEmptyStrings = false), EmailAddress] string Email, [Required(AllowEmptyStrings = false), UserNameValidate] string Name);
 }

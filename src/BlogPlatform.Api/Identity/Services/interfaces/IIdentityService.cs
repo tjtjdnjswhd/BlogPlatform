@@ -44,11 +44,11 @@ namespace BlogPlatform.Api.Identity.Services.interfaces
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="authenticateResult"></param>
+        /// <param name="httpContext"></param>
         /// <param name="oAuthInfo"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task<EAddOAuthResult> AddOAuthAsync(AuthenticateResult authenticateResult, OAuthInfo oAuthInfo, CancellationToken cancellationToken = default);
+        Task<EAddOAuthResult> AddOAuthAsync(HttpContext httpContext, OAuthInfo oAuthInfo, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// 

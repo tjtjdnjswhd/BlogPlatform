@@ -8,11 +8,11 @@ using System.Diagnostics;
 namespace BlogPlatform.Api.Identity.Attributes
 {
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Parameter)]
-    public class UserNameValidateAttribute : ValidationAttribute
+    public class AccountPasswordValidateAttribute : ValidationAttribute
     {
         protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
         {
-            if (value is not string userName)
+            if (value is not string password)
             {
                 Debug.Assert(false);
                 throw new ArgumentException("string 타입이 아닙니다.", nameof(value));
@@ -20,9 +20,9 @@ namespace BlogPlatform.Api.Identity.Attributes
 
             AccountOptions accountOptions = validationContext.GetRequiredService<IOptionsMonitor<AccountOptions>>().CurrentValue;
 
-            if (userName.Length < accountOptions.MinNameLength || userName.Length > accountOptions.MaxNameLength)
+            if (password.Length < accountOptions.MinPasswordLength || password.Length > accountOptions.MaxPasswordLength)
             {
-                return new ValidationResult($"이름의 길이는 {accountOptions.MinNameLength}에서 {accountOptions.MaxNameLength} 사이여야 합니다.", [validationContext.MemberName]);
+                return new ValidationResult($"비밀번호의 길이는 {accountOptions.MinPasswordLength}에서 {accountOptions.MaxPasswordLength} 사이여야 합니다.", [validationContext.MemberName]);
             }
 
             return base.IsValid(value, validationContext);
