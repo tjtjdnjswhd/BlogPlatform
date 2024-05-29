@@ -33,6 +33,12 @@ namespace BlogPlatform.EFCore.Models
         public string PasswordHash { get; set; }
 
         /// <summary>
+        /// 비밀번호 변경 필요 여부
+        /// </summary>
+        [Required]
+        public bool IsPasswordChangeRequired { get; set; }
+
+        /// <summary>
         /// 사용자
         /// </summary>
         public User User { get; private set; }

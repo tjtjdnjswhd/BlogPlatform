@@ -1,8 +1,6 @@
 ﻿using BlogPlatform.Api.Identity.Models;
 using BlogPlatform.EFCore.Models;
 
-using Microsoft.AspNetCore.Authentication;
-
 using System.Security.Claims;
 
 namespace BlogPlatform.Api.Identity.Services.interfaces
@@ -58,5 +56,23 @@ namespace BlogPlatform.Api.Identity.Services.interfaces
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         Task<ERemoveOAuthResult> RemoveOAuthAsync(ClaimsPrincipal user, string provider, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="newPassword"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task<bool> ChangePasswordAsync(ClaimsPrincipal user, string newPassword, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="newName"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task<bool> ChangeNameAsync(ClaimsPrincipal user, string newName, CancellationToken cancellationToken = default);
     }
 }

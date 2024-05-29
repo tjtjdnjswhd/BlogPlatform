@@ -21,16 +21,19 @@ namespace BlogPlatform.Api.Controllers
     {
         private readonly IIdentityService _identityService;
         private readonly IVerifyEmailService _verifyEmailService;
+        private readonly IPasswordResetService _passwordResetService;
         private readonly ILogger<IdentityController> _logger;
 
-        public IdentityController(IIdentityService identityService, IVerifyEmailService verifyEmailService, ILogger<IdentityController> logger)
+        public IdentityController(IIdentityService identityService, IVerifyEmailService verifyEmailService, IPasswordResetService passwordResetService, ILogger<IdentityController> logger)
         {
             _identityService = identityService;
             _verifyEmailService = verifyEmailService;
+            _passwordResetService = passwordResetService;
             _logger = logger;
         }
 
         [HttpPost("login/basic")]
+        [BasicLoginFilter(nameof(loginInfo))]
         public async Task<IActionResult> BasicLoginAsync([FromBody] BasicLoginInfo loginInfo, CancellationToken cancellationToken, [TokenSetCookie] bool setCookie = false)
         {
             (ELoginResult loginResult, User? user) = await _identityService.LoginAsync(loginInfo, cancellationToken);
@@ -38,7 +41,7 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpPost("signup/basic")]
-        [CheckEmailVerifyFilter(nameof(signUpInfo))]
+        [BasicLoginFilter(nameof(signUpInfo))]
         public async Task<IActionResult> BasicSignUpAsync([FromBody] BasicSignUpInfo signUpInfo, CancellationToken cancellationToken, [TokenSetCookie] bool setCookie = false)
         {
             (ESignUpResult signUpResult, User? user) = await _identityService.SignUpAsync(signUpInfo, cancellationToken);
@@ -133,7 +136,7 @@ namespace BlogPlatform.Api.Controllers
                     return Ok();
 
                 case EAddOAuthResult.UserNotFound:
-                    return NotFound();
+                    return new AuthenticatedUserDataNotFoundResult();
 
                 case EAddOAuthResult.UserAlreadyHasOAuth:
                     return Conflict(new Error("동일한 OAuth 제공자를 가지고 있습니다."));
@@ -158,7 +161,7 @@ namespace BlogPlatform.Api.Controllers
                     return Ok();
 
                 case ERemoveOAuthResult.UserNotFound:
-                    return NotFound(new Error("잘못된 유저입니다."));
+                    return new AuthenticatedUserDataNotFoundResult();
 
                 case ERemoveOAuthResult.OAuthNotFound:
                     return NotFound(new Error("해당 OAuth 제공자를 사용하고 있지 않습니다."));
@@ -174,6 +177,35 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpPost("refresh")]
         public RefreshResult Refresh() => new();
+
+        [HttpPost("password/change")]
+        [UserAuthorize]
+        public async Task<IActionResult> ChangePasswordAsync([FromForm, AccountPasswordValidate] string newPassword, CancellationToken cancellationToken)
+        {
+            bool isUserExist = await _identityService.ChangePasswordAsync(User, newPassword, cancellationToken);
+            return isUserExist ? Ok() : new AuthenticatedUserDataNotFoundResult();
+        }
+
+        [HttpPost("password/reset")]
+        public async Task<IActionResult> ResetPasswordAsync(string email, CancellationToken cancellationToken)
+        {
+            string? newPassword = await _passwordResetService.ResetPasswordAsync(email, cancellationToken);
+            if (newPassword is null)
+            {
+                return NotFound();
+            }
+
+            _passwordResetService.SendResetPasswordEmail(email, newPassword, cancellationToken);
+            return Ok();
+        }
+
+        [HttpPost("name")]
+        [UserAuthorize]
+        public async Task<IActionResult> ChangeNameAsync([FromForm, UserNameValidate] string name, CancellationToken cancellationToken)
+        {
+            bool isExist = await _identityService.ChangeNameAsync(User, name, cancellationToken);
+            return isExist ? Ok() : new AuthenticatedUserDataNotFoundResult();
+        }
 
         private IActionResult HandleLogin(ELoginResult loginResult, User? user, bool setCookie)
         {

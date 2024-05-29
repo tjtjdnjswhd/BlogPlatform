@@ -279,5 +279,53 @@ namespace BlogPlatform.Api.Services
 
             return ERemoveOAuthResult.Success;
         }
+
+        /// <inheritdoc/>
+        public async Task<bool> ChangePasswordAsync(ClaimsPrincipal user, string newPassword, CancellationToken cancellationToken = default)
+        {
+            if (!_jwtService.TryGetUserId(user, out int userId))
+            {
+                Debug.Assert(false);
+            }
+
+            _logger.LogDebug("Changing password. user id: {userId}, new password: {newPassword}", userId, newPassword);
+            string newPasswordHash = _passwordHasher.HashPassword(null, newPassword);
+
+            int result = await _blogPlatformDbContext.BasicAccounts.Where(b => b.User.Id == userId).ExecuteUpdateAsync(set => set.SetProperty(b => b.PasswordHash, newPasswordHash).SetProperty(b => b.IsPasswordChangeRequired, false), cancellationToken);
+            Debug.Assert(result <= 1);
+
+            _logger.LogInformation("Password changed. user id: {userId}", userId);
+            return result == 1;
+        }
+
+        /// <inheritdoc/>
+        public async Task<bool> ChangeNameAsync(ClaimsPrincipal user, string newName, CancellationToken cancellationToken = default)
+        {
+            if (!_jwtService.TryGetUserId(user, out int userId))
+            {
+                Debug.Assert(false);
+            }
+
+            _logger.LogDebug("Changing user name. user id: {userId}. newName: {newName}", userId, newName);
+
+            string? oldName = await _blogPlatformDbContext.Users.Where(u => u.Id == userId).Select(u => u.Name).FirstOrDefaultAsync(cancellationToken);
+            if (oldName is null)
+            {
+                return false;
+            }
+
+            int result = await _blogPlatformDbContext.Users.Where(u => u.Id == userId)
+                .ExecuteUpdateAsync(set => set.SetProperty(u => u.Name, newName), cancellationToken);
+
+            Debug.Assert(result <= 1);
+
+            if (result == 0)
+            {
+                return false;
+            }
+
+            _logger.LogInformation("User name changed. user id: {userId}, {oldName} -> {newName}", userId, oldName, newName);
+            return true;
+        }
     }
 }
