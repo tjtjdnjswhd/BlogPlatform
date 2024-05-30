@@ -20,7 +20,7 @@ namespace BlogPlatform.Api.Identity.ActionResults
             logger.LogWarning("Authenticated user data not found. Logging out. user: {user}", context.HttpContext.User.Identities);
 
             jwtService.RemoveCookieToken(context.HttpContext.Request, context.HttpContext.Response);
-
+            context.HttpContext.Response.StatusCode = StatusCodes.Status401Unauthorized;
             await context.HttpContext.SignOutAsync();
         }
     }

@@ -195,7 +195,7 @@ namespace BlogPlatform.Api.Controllers
                 return NotFound();
             }
 
-            _passwordResetService.SendResetPasswordEmail(email, newPassword, cancellationToken);
+            _passwordResetService.SendResetPasswordEmail(email, newPassword);
             return Ok();
         }
 
