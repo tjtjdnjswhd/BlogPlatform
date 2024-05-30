@@ -7,6 +7,9 @@ using System.Diagnostics;
 
 namespace BlogPlatform.Api.Identity.ModelBinders
 {
+    /// <summary>
+    /// <see cref="OAuthSignUpInfo"/> 모델을 바인딩하는 <see cref="IModelBinder"/>
+    /// </summary>
     public class OAuthSignUpInfoModelBinder : IModelBinder
     {
         public Task BindModelAsync(ModelBindingContext bindingContext)

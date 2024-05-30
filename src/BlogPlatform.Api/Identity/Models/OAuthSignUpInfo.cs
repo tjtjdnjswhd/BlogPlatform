@@ -10,12 +10,21 @@ using System.Security.Claims;
 
 namespace BlogPlatform.Api.Identity.Models
 {
+    /// <summary>
+    /// OAuth 인증을 통한 사용자의 가입 정보
+    /// </summary>
     [ModelBinder<OAuthSignUpInfoModelBinder>]
-    public class OAuthSignUpInfo : OAuthInfo
+    public class OAuthSignUpInfo : OAuthLoginInfo
     {
+        /// <summary>
+        /// 가입할 사용자의 이름
+        /// </summary>
         [UserNameValidate, Required(AllowEmptyStrings = false)]
         public string Name { get; private set; }
 
+        /// <summary>
+        /// 가입할 사용자의 이메일
+        /// </summary>
         [Required(AllowEmptyStrings = false)]
         public string Email { get; private set; }
 

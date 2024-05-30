@@ -1,5 +1,5 @@
 ﻿using BlogPlatform.Api.Identity.Options;
-using BlogPlatform.Api.Identity.Services.interfaces;
+using BlogPlatform.Api.Identity.Services.Interfaces;
 using BlogPlatform.Api.Services.Interfaces;
 
 using Microsoft.Extensions.Caching.Distributed;
@@ -30,16 +30,18 @@ namespace BlogPlatform.Api.Identity.Services
             _logger = logger;
         }
 
+        /// <inheritdoc/>
         public async Task SendEmailVerificationAsync(string email, CancellationToken cancellationToken = default)
         {
             string code = Random.Shared.Next(0, 99999999).ToString("D8");
             string cacheKey = GetVerificationCodeKey(code);
             await _cache.SetStringAsync(cacheKey, email, CacheExipirationOption, cancellationToken);
-            _mailSender.Send(_verifyEmailOptions.From, email, _verifyEmailOptions.Subject, _verifyEmailOptions.BodyFactory(code));
+            _mailSender.Send(_verifyEmailOptions.From, email, _verifyEmailOptions.Subject, _verifyEmailOptions.BodyFactory(code), CancellationToken.None);
 
             _logger.LogInformation("Email verification code {code} for {email} is sent", code, email);
         }
 
+        /// <inheritdoc/>
         public async Task<string?> VerifyEmailCodeAsync(string code, CancellationToken cancellationToken = default)
         {
             string cacheKey = GetVerificationCodeKey(code);
@@ -59,6 +61,7 @@ namespace BlogPlatform.Api.Identity.Services
             return email;
         }
 
+        /// <inheritdoc/>
         public async Task<bool> IsVerifyAsync(string email, CancellationToken cancellationToken = default)
         {
             string verifiedEmailKey = GetVerifiedEmailKey(email);

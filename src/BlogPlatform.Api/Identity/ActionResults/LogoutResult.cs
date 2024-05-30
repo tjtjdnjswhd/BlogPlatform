@@ -1,10 +1,13 @@
 ﻿using BlogPlatform.Api.Identity.Models;
-using BlogPlatform.Api.Services.interfaces;
+using BlogPlatform.Api.Services.Interfaces;
 
 using Microsoft.AspNetCore.Mvc;
 
 namespace BlogPlatform.Api.Identity.ActionResults
 {
+    /// <summary>
+    /// 로그아웃 요청에 대한 <see cref="IActionResult"/>
+    /// </summary>
     public class LogoutResult : IActionResult
     {
         public async Task ExecuteResultAsync(ActionContext context)

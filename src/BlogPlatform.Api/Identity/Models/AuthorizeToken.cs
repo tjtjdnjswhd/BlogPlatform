@@ -2,5 +2,10 @@
 
 namespace BlogPlatform.Api.Identity.Models
 {
-    public record AuthorizeToken([property: Required] string AccessToken, [property: Required] string RefreshToken);
+    /// <summary>
+    /// JWT 토큰 발급의 결과값
+    /// </summary>
+    /// <param name="AccessToken"></param>
+    /// <param name="RefreshToken"></param>
+    public record AuthorizeToken([Required] string AccessToken, [Required] string RefreshToken);
 }

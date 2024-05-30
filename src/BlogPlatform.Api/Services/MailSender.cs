@@ -20,6 +20,7 @@ namespace BlogPlatform.Api.Services
             _logger = logger;
         }
 
+        /// <inheritdoc/>
         public void Send(string from, string to, string subject, string body, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation(
@@ -45,7 +46,7 @@ namespace BlogPlatform.Api.Services
             smtpClient.Connect(_mailOptions.Host, _mailOptions.Port, true, cancellationToken);
             smtpClient.Authenticate(_mailOptions.Username, _mailOptions.Password, cancellationToken);
             string responseText = smtpClient.Send(message, cancellationToken);
-            smtpClient.Disconnect(true, cancellationToken);
+            smtpClient.Disconnect(true, CancellationToken.None);
 
             _logger.LogDebug("Email sent. response: {responseText}", responseText);
         }

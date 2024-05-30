@@ -1,4 +1,5 @@
-﻿using BlogPlatform.EFCore;
+﻿using BlogPlatform.Api.Models;
+using BlogPlatform.EFCore;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
@@ -10,6 +11,10 @@ using System.Security.Claims;
 
 namespace BlogPlatform.Api.Identity.Filters
 {
+    /// <summary>
+    /// 유저가 차단되었는지 확인하는 필터.
+    /// 차단된 유저의 요청을 거부하고, <see cref="ForbidResult"/>로 short-circuiting 실행함
+    /// </summary>
     public class UserBanFilter : IAsyncAuthorizationFilter
     {
         private readonly BlogPlatformDbContext _blogPlatformDbContext;
@@ -42,7 +47,8 @@ namespace BlogPlatform.Api.Identity.Filters
             if (banExpiresAt is not null && DateTimeOffset.UtcNow < banExpiresAt)
             {
                 _logger.LogInformation("User {userId} is banned until {banExpiresAt}", userId, banExpiresAt);
-                context.Result = new ForbidResult($"해당 계정은 {banExpiresAt}까지 사용할 수 없습니다.");
+                await context.HttpContext.Response.WriteAsJsonAsync(new Error($"해당 계정은 {banExpiresAt}까지 사용할 수 없습니다."));
+                context.Result = new ForbidResult();
             }
         }
     }

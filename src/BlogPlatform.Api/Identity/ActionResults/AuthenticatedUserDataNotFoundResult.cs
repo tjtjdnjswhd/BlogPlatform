@@ -1,10 +1,13 @@
-﻿using BlogPlatform.Api.Services.interfaces;
+﻿using BlogPlatform.Api.Services.Interfaces;
 
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BlogPlatform.Api.Identity.ActionResults
 {
+    /// <summary>
+    /// DB에 없는 인증된 사용자가 존재할 때 반환되는 <see cref="IActionResult"/>
+    /// </summary>
     public class AuthenticatedUserDataNotFoundResult : IActionResult
     {
         public async Task ExecuteResultAsync(ActionContext context)

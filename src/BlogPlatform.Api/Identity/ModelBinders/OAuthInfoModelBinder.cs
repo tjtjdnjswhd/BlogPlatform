@@ -7,6 +7,9 @@ using System.Diagnostics;
 
 namespace BlogPlatform.Api.Identity.ModelBinders
 {
+    /// <summary>
+    /// <see cref="OAuthLoginInfo"/> 모델을 바인딩하는 <see cref="IModelBinder"/>
+    /// </summary>
     public class OAuthInfoModelBinder : IModelBinder
     {
         public Task BindModelAsync(ModelBindingContext bindingContext)
@@ -17,7 +20,7 @@ namespace BlogPlatform.Api.Identity.ModelBinders
             AuthenticateResult? authenticateResult = authenticateResultFeature.AuthenticateResult;
             Debug.Assert(authenticateResult is not null);
 
-            OAuthInfo oauthInfo = new(authenticateResult);
+            OAuthLoginInfo oauthInfo = new(authenticateResult);
 
             bindingContext.Result = ModelBindingResult.Success(oauthInfo);
             return Task.CompletedTask;

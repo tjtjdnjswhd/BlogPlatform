@@ -2,7 +2,7 @@
 using BlogPlatform.Api.Identity.Attributes;
 using BlogPlatform.Api.Identity.Filters;
 using BlogPlatform.Api.Identity.Models;
-using BlogPlatform.Api.Identity.Services.interfaces;
+using BlogPlatform.Api.Identity.Services.Interfaces;
 using BlogPlatform.Api.Models;
 using BlogPlatform.EFCore.Models;
 
@@ -21,10 +21,10 @@ namespace BlogPlatform.Api.Controllers
     {
         private readonly IIdentityService _identityService;
         private readonly IVerifyEmailService _verifyEmailService;
-        private readonly IPasswordResetService _passwordResetService;
+        private readonly IPasswordResetMailService _passwordResetService;
         private readonly ILogger<IdentityController> _logger;
 
-        public IdentityController(IIdentityService identityService, IVerifyEmailService verifyEmailService, IPasswordResetService passwordResetService, ILogger<IdentityController> logger)
+        public IdentityController(IIdentityService identityService, IVerifyEmailService verifyEmailService, IPasswordResetMailService passwordResetService, ILogger<IdentityController> logger)
         {
             _identityService = identityService;
             _verifyEmailService = verifyEmailService;
@@ -33,7 +33,7 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpPost("login/basic")]
-        [BasicLoginFilter(nameof(loginInfo))]
+        [PasswordChangeRequiredFilter(nameof(loginInfo))]
         public async Task<IActionResult> BasicLoginAsync([FromBody] BasicLoginInfo loginInfo, CancellationToken cancellationToken, [TokenSetCookie] bool setCookie = false)
         {
             (ELoginResult loginResult, User? user) = await _identityService.LoginAsync(loginInfo, cancellationToken);
@@ -41,7 +41,7 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpPost("signup/basic")]
-        [BasicLoginFilter(nameof(signUpInfo))]
+        [SignUpEmailVerificationFilter(nameof(signUpInfo))]
         public async Task<IActionResult> BasicSignUpAsync([FromBody] BasicSignUpInfo signUpInfo, CancellationToken cancellationToken, [TokenSetCookie] bool setCookie = false)
         {
             (ESignUpResult signUpResult, User? user) = await _identityService.SignUpAsync(signUpInfo, cancellationToken);
@@ -80,7 +80,7 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpGet("login/oauth")]
         [OAuthAuthorize]
-        public async Task<IActionResult> OAuthLoginCallbackAsync(OAuthInfo loginInfo, [FromQuery] bool setCookie, CancellationToken cancellationToken)
+        public async Task<IActionResult> OAuthLoginCallbackAsync(OAuthLoginInfo loginInfo, [FromQuery] bool setCookie, CancellationToken cancellationToken)
         {
             (ELoginResult loginResult, User? user) = await _identityService.LoginAsync(loginInfo, cancellationToken);
             Debug.Assert(loginResult != ELoginResult.WrongPassword); // OAuth 로그인 시 비밀번호가 틀릴 수 없음
@@ -127,7 +127,7 @@ namespace BlogPlatform.Api.Controllers
         [HttpPost("oauth")]
         [OAuthAuthorize]
         [UserAuthorize]
-        public async Task<IActionResult> AddOAuthCallbackAsync(OAuthInfo info, CancellationToken cancellationToken)
+        public async Task<IActionResult> AddOAuthCallbackAsync(OAuthLoginInfo info, CancellationToken cancellationToken)
         {
             EAddOAuthResult addOAuthResult = await _identityService.AddOAuthAsync(HttpContext, info, cancellationToken);
             switch (addOAuthResult)
@@ -189,7 +189,7 @@ namespace BlogPlatform.Api.Controllers
         [HttpPost("password/reset")]
         public async Task<IActionResult> ResetPasswordAsync(string email, CancellationToken cancellationToken)
         {
-            string? newPassword = await _passwordResetService.ResetPasswordAsync(email, cancellationToken);
+            string? newPassword = await _identityService.ResetPasswordAsync(email, cancellationToken);
             if (newPassword is null)
             {
                 return NotFound();

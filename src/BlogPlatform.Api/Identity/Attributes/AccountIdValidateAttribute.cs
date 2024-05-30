@@ -8,6 +8,10 @@ using System.Diagnostics;
 
 namespace BlogPlatform.Api.Identity.Attributes
 {
+    /// <summary>
+    /// 계정 Id의 유효성을 검사하는 Attribute.
+    /// <seealso cref="AccountOptions"/> 참조
+    /// </summary>
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Parameter)]
     public class AccountIdValidateAttribute : ValidationAttribute
     {

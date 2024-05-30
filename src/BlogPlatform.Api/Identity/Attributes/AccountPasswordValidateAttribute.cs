@@ -7,6 +7,10 @@ using System.Diagnostics;
 
 namespace BlogPlatform.Api.Identity.Attributes
 {
+    /// <summary>
+    /// 계정 비밀번호의 유효성을 검사하는 Attribute.
+    /// <seealso cref="AccountOptions"/> 참조
+    /// </summary>
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Parameter)]
     public class AccountPasswordValidateAttribute : ValidationAttribute
     {

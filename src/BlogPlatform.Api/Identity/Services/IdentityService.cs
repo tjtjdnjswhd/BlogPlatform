@@ -1,6 +1,6 @@
 ﻿using BlogPlatform.Api.Identity.Models;
-using BlogPlatform.Api.Identity.Services.interfaces;
-using BlogPlatform.Api.Services.interfaces;
+using BlogPlatform.Api.Identity.Services.Interfaces;
+using BlogPlatform.Api.Services.Interfaces;
 using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Models;
 
@@ -119,7 +119,7 @@ namespace BlogPlatform.Api.Services
         }
 
         /// <inheritdoc/>
-        public async Task<(ELoginResult, User?)> LoginAsync(OAuthInfo loginInfo, CancellationToken cancellationToken = default)
+        public async Task<(ELoginResult, User?)> LoginAsync(OAuthLoginInfo loginInfo, CancellationToken cancellationToken = default)
         {
             User? user = await _blogPlatformDbContext.OAuthAccounts
                 .Where(o => o.Provider.Name == loginInfo.Provider && o.NameIdentifier == loginInfo.NameIdentifier)
@@ -206,7 +206,7 @@ namespace BlogPlatform.Api.Services
         }
 
         /// <inheritdoc/>
-        public async Task<EAddOAuthResult> AddOAuthAsync(HttpContext httpContext, OAuthInfo oAuthInfo, CancellationToken cancellationToken = default)
+        public async Task<EAddOAuthResult> AddOAuthAsync(HttpContext httpContext, OAuthLoginInfo oAuthInfo, CancellationToken cancellationToken = default)
         {
             AuthenticateResult authenticateResult = await httpContext.AuthenticateAsync();
             Debug.Assert(authenticateResult.Succeeded); // 인증이 성공해야 함
@@ -326,6 +326,21 @@ namespace BlogPlatform.Api.Services
 
             _logger.LogInformation("User name changed. user id: {userId}, {oldName} -> {newName}", userId, oldName, newName);
             return true;
+        }
+
+        /// <inheritdoc/>
+        public async Task<string?> ResetPasswordAsync(string email, CancellationToken cancellationToken = default)
+        {
+            string newPassword = Guid.NewGuid().ToString("N");
+
+            _logger.LogInformation("Resetting password for {email}", email);
+            _logger.LogDebug("Resetting password for {email} to {password}", email, newPassword);
+            string newPasswordHash = _passwordHasher.HashPassword(null, newPassword);
+
+            int result = await _blogPlatformDbContext.BasicAccounts.Where(a => a.User.Email == email).ExecuteUpdateAsync(set => set.SetProperty(a => a.PasswordHash, newPasswordHash).SetProperty(a => a.IsPasswordChangeRequired, true), cancellationToken);
+            Debug.Assert(result > 1);
+
+            return result == 0 ? null : newPassword;
         }
     }
 }

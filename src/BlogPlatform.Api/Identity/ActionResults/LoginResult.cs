@@ -1,5 +1,5 @@
 ﻿using BlogPlatform.Api.Identity.Models;
-using BlogPlatform.Api.Services.interfaces;
+using BlogPlatform.Api.Services.Interfaces;
 using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Models;
 
@@ -7,6 +7,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BlogPlatform.Api.Identity.ActionResults
 {
+    /// <summary>
+    /// 로그인 성공 시 반환하는 <see cref="IActionResult"/>
+    /// </summary>
     public class LoginResult : IActionResult
     {
         private readonly User _user;

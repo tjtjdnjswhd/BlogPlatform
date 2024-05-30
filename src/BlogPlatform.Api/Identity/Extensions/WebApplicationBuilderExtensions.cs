@@ -4,9 +4,9 @@ using AspNet.Security.OAuth.Naver;
 using BlogPlatform.Api.Identity.Constants;
 using BlogPlatform.Api.Identity.Filters;
 using BlogPlatform.Api.Identity.Options;
-using BlogPlatform.Api.Identity.Services.interfaces;
+using BlogPlatform.Api.Identity.Services.Interfaces;
 using BlogPlatform.Api.Services;
-using BlogPlatform.Api.Services.interfaces;
+using BlogPlatform.Api.Services.Interfaces;
 using BlogPlatform.EFCore.Models;
 
 using Microsoft.AspNetCore.Authentication.Google;

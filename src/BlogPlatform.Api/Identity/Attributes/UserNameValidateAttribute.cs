@@ -7,6 +7,10 @@ using System.Diagnostics;
 
 namespace BlogPlatform.Api.Identity.Attributes
 {
+    /// <summary>
+    /// 유저 이름의 유효성을 검사하는 Attribute.
+    /// <seealso cref="AccountOptions"/> 참조
+    /// </summary>
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Parameter)]
     public class UserNameValidateAttribute : ValidationAttribute
     {

@@ -1,11 +1,15 @@
-﻿using BlogPlatform.Api.Identity.Models;
+﻿
+using BlogPlatform.Api.Identity.Models;
 using BlogPlatform.Api.Models;
-using BlogPlatform.Api.Services.interfaces;
+using BlogPlatform.Api.Services.Interfaces;
 
 using Microsoft.AspNetCore.Mvc;
 
 namespace BlogPlatform.Api.Identity.ActionResults
 {
+    /// <summary>
+    /// JWT 토큰 갱신에 대한 <see cref="IActionResult"/>
+    /// </summary>
     public class RefreshResult : IActionResult
     {
         public async Task ExecuteResultAsync(ActionContext context)

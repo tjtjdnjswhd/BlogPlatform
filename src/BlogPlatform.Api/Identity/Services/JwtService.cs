@@ -1,7 +1,7 @@
 ﻿using BlogPlatform.Api.Helper;
 using BlogPlatform.Api.Identity.Models;
 using BlogPlatform.Api.Identity.Options;
-using BlogPlatform.Api.Services.interfaces;
+using BlogPlatform.Api.Services.Interfaces;
 using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Models;
 

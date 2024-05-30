@@ -9,16 +9,25 @@ using System.Security.Claims;
 
 namespace BlogPlatform.Api.Identity.Models
 {
+    /// <summary>
+    /// OAuth 인증을 통한 사용자의 로그인 정보 
+    /// </summary>
     [ModelBinder<OAuthInfoModelBinder>]
-    public class OAuthInfo
+    public class OAuthLoginInfo
     {
+        /// <summary>
+        /// OAuth 제공자
+        /// </summary>
         [Required(AllowEmptyStrings = false)]
         public string Provider { get; private set; }
 
+        /// <summary>
+        /// OAuth 제공자에서 제공하는 유저 식별자
+        /// </summary>
         [Required(AllowEmptyStrings = false)]
         public string NameIdentifier { get; private set; }
 
-        public OAuthInfo(AuthenticateResult authenticateResult)
+        public OAuthLoginInfo(AuthenticateResult authenticateResult)
         {
             Debug.Assert(authenticateResult.Ticket is not null);
             Debug.Assert(authenticateResult.Principal is not null);
