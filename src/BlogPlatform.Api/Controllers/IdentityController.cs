@@ -22,13 +22,15 @@ namespace BlogPlatform.Api.Controllers
         private readonly IIdentityService _identityService;
         private readonly IVerifyEmailService _verifyEmailService;
         private readonly IPasswordResetMailService _passwordResetService;
+        private readonly IFindAccountIdMailService _findAccountIdMailService;
         private readonly ILogger<IdentityController> _logger;
 
-        public IdentityController(IIdentityService identityService, IVerifyEmailService verifyEmailService, IPasswordResetMailService passwordResetService, ILogger<IdentityController> logger)
+        public IdentityController(IIdentityService identityService, IVerifyEmailService verifyEmailService, IPasswordResetMailService passwordResetService, IFindAccountIdMailService findAccountIdMailService, ILogger<IdentityController> logger)
         {
             _identityService = identityService;
             _verifyEmailService = verifyEmailService;
             _passwordResetService = passwordResetService;
+            _findAccountIdMailService = findAccountIdMailService;
             _logger = logger;
         }
 
@@ -204,6 +206,64 @@ namespace BlogPlatform.Api.Controllers
         public async Task<IActionResult> ChangeNameAsync([FromForm, UserNameValidate] string name, CancellationToken cancellationToken)
         {
             bool isExist = await _identityService.ChangeNameAsync(User, name, cancellationToken);
+            return isExist ? Ok() : new AuthenticatedUserDataNotFoundResult();
+        }
+
+        [HttpPost("id/find")]
+        public async Task<IActionResult> FindIdAsync([FromForm, EmailAddress] string email, CancellationToken cancellationToken)
+        {
+            string? accountId = await _identityService.FindAccountIdAsync(email, cancellationToken);
+            if (accountId is null)
+            {
+                return NotFound();
+            }
+
+            _findAccountIdMailService.SendMail(email, accountId);
+            return Ok();
+        }
+
+        [HttpPost("withdraw")]
+        [UserAuthorize]
+        public async Task<IActionResult> WithDrawAsync(CancellationToken cancellationToken)
+        {
+            bool isExist = await _identityService.WithDrawAsync(User, cancellationToken);
+            return isExist ? Ok() : new AuthenticatedUserDataNotFoundResult();
+        }
+
+        [HttpPost("withdraw/cancel")]
+        [UserAuthorize]
+        public async Task<IActionResult> CancelWithDrawAsync(CancellationToken cancellationToken)
+        {
+            ECancelWithDrawResult result = await _identityService.CancelWithDrawAsync(User, cancellationToken);
+            return result switch
+            {
+                ECancelWithDrawResult.Success => Ok(),
+                ECancelWithDrawResult.UserNotFound => new AuthenticatedUserDataNotFoundResult(),
+                ECancelWithDrawResult.Expired => BadRequest(new Error("탈퇴 요청이 만료되었습니다.")),
+                ECancelWithDrawResult.WithDrawNotRequested => BadRequest(new Error("탈퇴하지 않은 계정입니다.")),
+                _ => throw new InvalidEnumArgumentException(nameof(result), (int)result, typeof(ECancelWithDrawResult))
+            };
+        }
+
+        [HttpPost("email/change")]
+        [UserAuthorize]
+        public async Task<IActionResult> ChangeEmailAsync([FromForm, EmailAddress] string newEmail, CancellationToken cancellationToken)
+        {
+            await _verifyEmailService.SendEmailVerificationAsync(newEmail, cancellationToken);
+            return Ok();
+        }
+
+        [HttpGet("email/change/confirm")]
+        [UserAuthorize]
+        public async Task<IActionResult> ConfirmChangeEmailAsync([FromQuery] string code, CancellationToken cancellationToken)
+        {
+            string? email = await _verifyEmailService.VerifyEmailCodeAsync(code, cancellationToken);
+            if (email is null)
+            {
+                return BadRequest(new Error("잘못된 코드입니다."));
+            }
+
+            bool isExist = await _identityService.ChangeEmailAsync(User, email, cancellationToken);
             return isExist ? Ok() : new AuthenticatedUserDataNotFoundResult();
         }
 

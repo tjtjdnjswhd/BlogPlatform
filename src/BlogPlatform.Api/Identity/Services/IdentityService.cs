@@ -342,5 +342,86 @@ namespace BlogPlatform.Api.Services
 
             return result == 0 ? null : newPassword;
         }
+
+        /// <inheritdoc/>
+        public async Task<string?> FindAccountIdAsync(string email, CancellationToken cancellationToken = default)
+        {
+            string? accountId = await _blogPlatformDbContext.BasicAccounts
+                .Where(b => b.User.Email == email)
+                .Select(b => b.AccountId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            _logger.LogDebug("Finding account id for {email}. Account id: {accountId}", email, accountId);
+
+            return accountId;
+        }
+
+        /// <inheritdoc/>
+        public async Task<bool> WithDrawAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)
+        {
+            if (!_jwtService.TryGetUserId(user, out int userId))
+            {
+                Debug.Assert(false);
+            }
+
+            _logger.LogInformation("Withdrawing user. user id: {userId}", userId);
+
+            User? userData = await _blogPlatformDbContext.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+            if (userData is null)
+            {
+                return false;
+            }
+
+            _blogPlatformDbContext.Users.Remove(userData);
+            await _blogPlatformDbContext.SaveChangesAsync(cancellationToken);
+            return true;
+        }
+
+        /// <inheritdoc/>
+        public async Task<ECancelWithDrawResult> CancelWithDrawAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)
+        {
+            if (!_jwtService.TryGetUserId(user, out int userId))
+            {
+                Debug.Assert(false);
+            }
+
+            _logger.LogInformation("Canceling withdrawal. user id: {userId}", userId);
+
+            var userData = await _blogPlatformDbContext.Users.IgnoreQueryFilters().Where(u => u.Id == userId).Select(u => new { u.DeletedAt }).FirstOrDefaultAsync(cancellationToken);
+            if (userData is null)
+            {
+                return ECancelWithDrawResult.UserNotFound;
+            }
+
+            if (userData.DeletedAt is null)
+            {
+                return ECancelWithDrawResult.WithDrawNotRequested;
+            }
+
+            if (DateTimeOffset.UtcNow - userData.DeletedAt > TimeSpan.FromDays(1))
+            {
+                return ECancelWithDrawResult.Expired;
+            }
+
+            int result = await _blogPlatformDbContext.Users.IgnoreQueryFilters().Where(u => u.Id == userId).ExecuteUpdateAsync(set => set.SetProperty(u => u.DeletedAt, (DateTimeOffset?)null), cancellationToken);
+            Debug.Assert(result == 1);
+            return ECancelWithDrawResult.Success;
+        }
+
+        /// <inheritdoc/>
+        public async Task<bool> ChangeEmailAsync(ClaimsPrincipal user, string newEmail, CancellationToken cancellationToken = default)
+        {
+            if (!_jwtService.TryGetUserId(user, out int userId))
+            {
+                Debug.Assert(false);
+            }
+
+            _logger.LogInformation("Changing email. user id: {userId}, new email: {newEmail}", userId, newEmail);
+
+            int result = await _blogPlatformDbContext.Users.Where(u => u.Id == userId).ExecuteUpdateAsync(set => set.SetProperty(u => u.Email, newEmail), cancellationToken);
+            Debug.Assert(result <= 1);
+
+            return result != 0;
+        }
     }
 }

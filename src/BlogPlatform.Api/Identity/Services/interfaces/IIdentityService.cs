@@ -118,5 +118,43 @@ namespace BlogPlatform.Api.Identity.Services.Interfaces
         /// </returns>
         /// <exception cref="OperationCanceledException"/>
         Task<string?> ResetPasswordAsync(string email, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// 해당 <paramref name="email"/>을 가진 유저의 Id를 반환합니다
+        /// </summary>
+        /// <param name="email"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns>
+        /// 해당 계정이 존재할 시 Id를 반환합니다.
+        /// 존재하지 않거나, OAuth 계정인 경우 null을 반환합니다
+        /// </returns>
+        Task<string?> FindAccountIdAsync(string email, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// 해당 유저의 계정을 삭제합니다
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task<bool> WithDrawAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// 해당 유저의 계정 삭제를 취소합니다
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task<ECancelWithDrawResult> CancelWithDrawAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// 해당 유저의 이메일을 변경합니다
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="newEmail"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns>
+        /// 
+        /// </returns>
+        Task<bool> ChangeEmailAsync(ClaimsPrincipal user, string newEmail, CancellationToken cancellationToken = default);
     }
 }
