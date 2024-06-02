@@ -82,13 +82,9 @@ namespace BlogPlatform.EFCore
 
             modelBuilder.Entity<User>(builder =>
             {
-                builder.HasOne(u => u.BasicLoginAccount).WithOne(b => b.User).HasForeignKey<User>(u => u.BasicLoginAccountId);
+                builder.HasMany(u => u.BasicLoginAccounts).WithOne(b => b.User).HasForeignKey(b => b.UserId);
+                builder.HasMany(u => u.OAuthAccounts).WithOne(o => o.User).HasForeignKey(o => o.UserId);
                 builder.HasMany(u => u.Roles).WithMany(r => r.Users);
-            });
-
-            modelBuilder.Entity<OAuthAccount>(builder =>
-            {
-                builder.HasOne(o => o.User).WithMany(u => u.OAuthAccounts).HasForeignKey(o => o.UserId);
             });
         }
     }

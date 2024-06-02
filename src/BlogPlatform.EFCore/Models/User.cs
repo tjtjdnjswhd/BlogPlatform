@@ -19,7 +19,6 @@ namespace BlogPlatform.EFCore.Models
         {
             Name = name;
             Email = email;
-            BasicLoginAccountId = basicLoginAccountId;
         }
 
         /// <summary>
@@ -33,11 +32,6 @@ namespace BlogPlatform.EFCore.Models
         /// </summary>
         [Required]
         public string Email { get; set; }
-
-        /// <summary>
-        /// 기본 로그인 계정 ID
-        /// </summary>
-        public int? BasicLoginAccountId { get; set; }
 
         /// <summary>
         /// 차단 해제 시간
@@ -57,7 +51,7 @@ namespace BlogPlatform.EFCore.Models
         /// <summary>
         /// 기본 로그인 계정
         /// </summary>
-        public BasicAccount? BasicLoginAccount { get; set; }
+        public List<BasicAccount> BasicLoginAccounts { get; } = [];
 
         /// <summary>
         /// OAuth 계정

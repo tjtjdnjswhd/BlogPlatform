@@ -39,6 +39,12 @@ namespace BlogPlatform.EFCore.Models
         public bool IsPasswordChangeRequired { get; set; }
 
         /// <summary>
+        /// 사용자 ID
+        /// </summary>
+        [Required]
+        public int UserId { get; private set; }
+
+        /// <summary>
         /// 사용자
         /// </summary>
         public User User { get; private set; }
