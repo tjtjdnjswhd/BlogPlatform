@@ -35,7 +35,6 @@ namespace BlogPlatform.EFCore
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.AddInterceptors(new SoftDeleteInterceptor());
             optionsBuilder.AddInterceptors(new PostLastUpdatedAtInterceptor());
             optionsBuilder.AddInterceptors(new CommentLastUpdatedAtInterceptor());
         }
@@ -45,14 +44,14 @@ namespace BlogPlatform.EFCore
             modelBuilder.Entity<EntityBase>(builder =>
             {
                 builder.UseTpcMappingStrategy();
-                builder.HasQueryFilter(builder => builder.DeletedAt == null);
+                builder.HasQueryFilter(e => e.SoftDeleteLevel == 0);
 
                 builder.Property(e => e.CreatedAt).ValueGeneratedOnAdd().HasValueGenerator<DateTimeOffsetUtcNowGenerator>();
             });
 
             modelBuilder.Entity<Blog>(builder =>
             {
-                builder.HasOne(b => b.User).WithOne(u => u.Blog).HasForeignKey<Blog>(b => b.UserId);
+                builder.HasOne(b => b.User).WithMany(u => u.Blog).HasForeignKey(b => b.UserId);
             });
 
             modelBuilder.Entity<Category>(builder =>

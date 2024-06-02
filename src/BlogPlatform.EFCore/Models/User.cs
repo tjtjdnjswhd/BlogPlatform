@@ -10,8 +10,8 @@ namespace BlogPlatform.EFCore.Models
     /// <summary>
     /// 사용자
     /// </summary>
-    [Index(nameof(Name), nameof(DeletedAt), IsUnique = true)]
-    [Index(nameof(Email), nameof(DeletedAt), IsUnique = true)]
+    [Index(nameof(Name), nameof(SoftDeletedAt), IsUnique = true)]
+    [Index(nameof(Email), nameof(SoftDeletedAt), IsUnique = true)]
     [Table("User")]
     public class User : EntityBase
     {
@@ -47,7 +47,7 @@ namespace BlogPlatform.EFCore.Models
         /// <summary>
         /// 블로그
         /// </summary>
-        public Blog? Blog { get; private set; }
+        public List<Blog> Blog { get; private set; } = [];
 
         /// <summary>
         /// 댓글

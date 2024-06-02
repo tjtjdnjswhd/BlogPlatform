@@ -9,8 +9,8 @@ namespace BlogPlatform.EFCore.Models
     /// <summary>
     /// 유저 역할
     /// </summary>
-    [Index(nameof(Name), nameof(DeletedAt), IsUnique = true)]
-    [Index(nameof(Priority), nameof(DeletedAt), IsUnique = true)]
+    [Index(nameof(Name), nameof(SoftDeletedAt), IsUnique = true)]
+    [Index(nameof(Priority), nameof(SoftDeletedAt), IsUnique = true)]
     [Table("Role")]
     public class Role : EntityBase
     {

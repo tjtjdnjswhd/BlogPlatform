@@ -10,7 +10,7 @@ namespace BlogPlatform.EFCore.Models
     /// <summary>
     /// OAuth 제공자
     /// </summary>
-    [Index(nameof(Name), nameof(DeletedAt), IsUnique = true)]
+    [Index(nameof(Name), nameof(SoftDeletedAt), IsUnique = true)]
     [Table("OAuthProvider")]
     public class OAuthProvider : EntityBase
     {

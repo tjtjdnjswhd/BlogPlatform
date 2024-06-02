@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations;
 namespace BlogPlatform.EFCore.Models.Abstractions
 {
     [PrimaryKey(nameof(Id))]
-    [Index(nameof(DeletedAt))]
+    [Index(nameof(SoftDeleteLevel))]
     public abstract class EntityBase
     {
         /// <summary>
@@ -22,8 +22,13 @@ namespace BlogPlatform.EFCore.Models.Abstractions
         /// <summary>
         /// 삭제 시각
         /// </summary>
+        public DateTimeOffset? SoftDeletedAt { get; internal set; }
+
+        /// <summary>
+        /// Soft Delete 레벨
+        /// </summary>
         [Required]
-        public DateTimeOffset? DeletedAt { get; internal set; }
+        public byte SoftDeleteLevel { get; internal set; }
 
         [Timestamp]
         public byte[] RowVersion { get; private set; }

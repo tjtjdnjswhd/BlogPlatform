@@ -10,7 +10,7 @@ namespace BlogPlatform.EFCore.Models
     /// <summary>
     /// OAuth 계정
     /// </summary>
-    [Index(nameof(NameIdentifier), nameof(ProviderId), nameof(DeletedAt), IsUnique = true)]
+    [Index(nameof(NameIdentifier), nameof(ProviderId), nameof(SoftDeletedAt), IsUnique = true)]
     [Table("OAuthAccount")]
     public class OAuthAccount : EntityBase
     {

@@ -10,7 +10,7 @@ namespace BlogPlatform.EFCore.Models
     /// <summary>
     /// 기본 계정
     /// </summary>
-    [Index(nameof(AccountId), nameof(DeletedAt), IsUnique = true)]
+    [Index(nameof(AccountId), nameof(SoftDeletedAt), IsUnique = true)]
     [Table("BasicAccounts")]
     public class BasicAccount : EntityBase
     {

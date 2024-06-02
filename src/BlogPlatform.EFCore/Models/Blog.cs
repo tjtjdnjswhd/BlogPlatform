@@ -10,8 +10,8 @@ namespace BlogPlatform.EFCore.Models
     /// <summary>
     /// 블로그
     /// </summary>
-    [Index(nameof(Name), nameof(DeletedAt), IsUnique = true)]
-    [Index(nameof(UserId), nameof(DeletedAt), IsUnique = true)]
+    [Index(nameof(Name), nameof(SoftDeletedAt), IsUnique = true)]
+    [Index(nameof(UserId), nameof(SoftDeletedAt), IsUnique = true)]
     [Table("Blog")]
     public class Blog : EntityBase
     {
