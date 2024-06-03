@@ -14,10 +14,11 @@ namespace BlogPlatform.EFCore.Models
     [Table("BasicAccounts")]
     public class BasicAccount : EntityBase
     {
-        public BasicAccount(string accountId, string passwordHash)
+        public BasicAccount(string accountId, string passwordHash, int userId)
         {
             AccountId = accountId;
             PasswordHash = passwordHash;
+            UserId = userId;
         }
 
         /// <summary>

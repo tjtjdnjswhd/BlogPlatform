@@ -15,7 +15,7 @@ namespace BlogPlatform.EFCore.Models
     [Table("User")]
     public class User : EntityBase
     {
-        public User(string name, string email, int? basicLoginAccountId)
+        public User(string name, string email)
         {
             Name = name;
             Email = email;
@@ -51,7 +51,7 @@ namespace BlogPlatform.EFCore.Models
         /// <summary>
         /// 기본 로그인 계정
         /// </summary>
-        public List<BasicAccount> BasicLoginAccounts { get; } = [];
+        public List<BasicAccount> BasicAccounts { get; } = [];
 
         /// <summary>
         /// OAuth 계정

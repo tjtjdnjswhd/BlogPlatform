@@ -43,6 +43,7 @@ namespace BlogPlatform.EFCore
         {
             modelBuilder.Entity<EntityBase>(builder =>
             {
+                builder.ToTable(b => b.HasCheckConstraint("CK_SoftDeleteLevel_SoftDeletedAt", "(SoftDeleteLevel = 0 XOR SoftDeletedAt IS NOT NULL) = 1"));
                 builder.UseTpcMappingStrategy();
                 builder.HasQueryFilter(e => e.SoftDeleteLevel == 0);
 
@@ -82,7 +83,7 @@ namespace BlogPlatform.EFCore
 
             modelBuilder.Entity<User>(builder =>
             {
-                builder.HasMany(u => u.BasicLoginAccounts).WithOne(b => b.User).HasForeignKey(b => b.UserId);
+                builder.HasMany(u => u.BasicAccounts).WithOne(b => b.User).HasForeignKey(b => b.UserId);
                 builder.HasMany(u => u.OAuthAccounts).WithOne(o => o.User).HasForeignKey(o => o.UserId);
                 builder.HasMany(u => u.Roles).WithMany(r => r.Users);
             });
