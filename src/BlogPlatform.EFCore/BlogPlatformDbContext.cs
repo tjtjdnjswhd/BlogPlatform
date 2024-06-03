@@ -43,8 +43,8 @@ namespace BlogPlatform.EFCore
         {
             modelBuilder.Entity<EntityBase>(builder =>
             {
-                builder.ToTable(b => b.HasCheckConstraint("CK_SoftDeleteLevel_SoftDeletedAt", "(SoftDeleteLevel = 0 XOR SoftDeletedAt IS NOT NULL) = 1"));
                 builder.UseTpcMappingStrategy();
+                builder.ToTable(b => b.HasCheckConstraint("CK_SoftDeleteLevel_SoftDeletedAt", "(SoftDeleteLevel = 0 XOR SoftDeletedAt IS NOT NULL) = 1"));
                 builder.HasQueryFilter(e => e.SoftDeleteLevel == 0);
 
                 builder.Property(e => e.CreatedAt).ValueGeneratedOnAdd().HasValueGenerator<DateTimeOffsetUtcNowGenerator>();
