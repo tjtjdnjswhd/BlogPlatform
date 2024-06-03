@@ -1,12 +1,19 @@
-﻿using BlogPlatform.Api.Identity.Models;
+﻿using BlogPlatform.Api.Helper;
+using BlogPlatform.Api.Identity.Models;
 using BlogPlatform.Api.Identity.Services.Interfaces;
 using BlogPlatform.Api.Services.Interfaces;
 using BlogPlatform.EFCore;
+using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
+using BlogPlatform.EFCore.Models.Abstractions;
 
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+
+using SoftDeleteServices.Concrete;
+
+using StatusGeneric;
 
 using System.Diagnostics;
 using System.Security.Claims;
@@ -15,16 +22,20 @@ namespace BlogPlatform.Api.Services
 {
     public class IdentityService : IIdentityService
     {
+        private static readonly TimeSpan UserRestoreDuration = TimeSpan.FromDays(1);
+
         private readonly BlogPlatformDbContext _blogPlatformDbContext;
         private readonly IJwtService _jwtService;
         private readonly IPasswordHasher<BasicAccount> _passwordHasher;
+        private readonly CascadeSoftDelService<EntityBase> _softDeleteService;
         private readonly ILogger<IdentityService> _logger;
 
-        public IdentityService(BlogPlatformDbContext blogPlatformDbContext, IJwtService jwtService, IPasswordHasher<BasicAccount> passwordHasher, ILogger<IdentityService> logger)
+        public IdentityService(BlogPlatformDbContext blogPlatformDbContext, IJwtService jwtService, IPasswordHasher<BasicAccount> passwordHasher, CascadeSoftDelService<EntityBase> softDeleteService, ILogger<IdentityService> logger)
         {
             _blogPlatformDbContext = blogPlatformDbContext;
             _passwordHasher = passwordHasher;
             _jwtService = jwtService;
+            _softDeleteService = softDeleteService;
             _logger = logger;
         }
 
@@ -55,21 +66,25 @@ namespace BlogPlatform.Api.Services
         public async Task<(ESignUpResult, User?)> SignUpAsync(BasicSignUpInfo signUpInfo, CancellationToken cancellationToken = default)
         {
             _logger.LogDebug("Signing up with {signUpInfo}", signUpInfo);
-            bool isAccountIdExist = await _blogPlatformDbContext.BasicAccounts.AnyAsync(b => b.AccountId == signUpInfo.Id, cancellationToken);
+
+            IQueryable<User> users = _blogPlatformDbContext.Users.Union(GetRestorableUsers());
+            IQueryable<BasicAccount> accounts = users.SelectMany(u => u.BasicAccounts);
+
+            bool isAccountIdExist = await accounts.AnyAsync(b => b.AccountId == signUpInfo.Id, cancellationToken);
             if (isAccountIdExist)
             {
                 _logger.LogInformation("Account id already exists: {signUpInfo}", signUpInfo);
                 return (ESignUpResult.UserIdAlreadyExists, null);
             }
 
-            bool isNameExist = await _blogPlatformDbContext.Users.AnyAsync(u => u.Name == signUpInfo.Name, cancellationToken);
+            bool isNameExist = await users.AnyAsync(u => u.Name == signUpInfo.Name, cancellationToken);
             if (isNameExist)
             {
                 _logger.LogInformation("Name already exists: {signUpInfo}", signUpInfo);
                 return (ESignUpResult.NameAlreadyExists, null);
             }
 
-            bool isEmailExist = await _blogPlatformDbContext.Users.AnyAsync(u => u.Email == signUpInfo.Email, cancellationToken);
+            bool isEmailExist = await users.AnyAsync(u => u.Email == signUpInfo.Email, cancellationToken);
             if (isEmailExist)
             {
                 _logger.LogInformation("Email already exists: {signUpInfo}", signUpInfo);
@@ -97,12 +112,12 @@ namespace BlogPlatform.Api.Services
                 using var transaction = await _blogPlatformDbContext.Database.BeginTransactionAsync(token);
                 try
                 {
-                    BasicAccount basicAccount = new(signUpInfo.Id, passwordHash);
-                    _blogPlatformDbContext.BasicAccounts.Add(basicAccount);
+                    User user = new(signUpInfo.Name, signUpInfo.Email);
+                    _blogPlatformDbContext.Users.Add(user);
                     await _blogPlatformDbContext.SaveChangesAsync(cancellationToken);
 
-                    User user = new(signUpInfo.Name, signUpInfo.Email, basicAccount.Id);
-                    _blogPlatformDbContext.Users.Add(user);
+                    BasicAccount basicAccount = new(signUpInfo.Id, passwordHash, user.Id);
+                    _blogPlatformDbContext.BasicAccounts.Add(basicAccount);
                     await _blogPlatformDbContext.SaveChangesAsync(cancellationToken);
 
                     transaction.Commit();
@@ -146,22 +161,22 @@ namespace BlogPlatform.Api.Services
                 return (ESignUpResult.ProviderNotFound, null);
             }
 
-            bool isAccountExist = await _blogPlatformDbContext.OAuthAccounts
-                .AnyAsync(o => o.Provider.Name == signUpInfo.Provider && o.NameIdentifier == signUpInfo.NameIdentifier, cancellationToken);
+            IQueryable<User> users = _blogPlatformDbContext.Users.Union(GetRestorableUsers());
+            IQueryable<OAuthAccount> oAuthAccounts = users.SelectMany(u => u.OAuthAccounts);
+
+            bool isAccountExist = await oAuthAccounts.AnyAsync(o => o.Provider.Name == signUpInfo.Provider && o.NameIdentifier == signUpInfo.NameIdentifier, cancellationToken);
             if (isAccountExist)
             {
                 return (ESignUpResult.OAuthAlreadyExists, null);
             }
 
-            bool isEmailExist = await _blogPlatformDbContext.Users
-                .AnyAsync(u => u.Email == signUpInfo.Email, cancellationToken);
+            bool isEmailExist = await users.AnyAsync(u => u.Email == signUpInfo.Email, cancellationToken);
             if (isEmailExist)
             {
                 return (ESignUpResult.EmailAlreadyExists, null);
             }
 
-            bool isNameExist = await _blogPlatformDbContext.Users
-                .AnyAsync(u => u.Name == signUpInfo.Name, cancellationToken);
+            bool isNameExist = await users.AnyAsync(u => u.Name == signUpInfo.Name, cancellationToken);
             if (isNameExist)
             {
                 return (ESignUpResult.NameAlreadyExists, null);
@@ -185,7 +200,7 @@ namespace BlogPlatform.Api.Services
                 using var transaction = await _blogPlatformDbContext.Database.BeginTransactionAsync(token);
                 try
                 {
-                    User user = new(signUpInfo.Name, signUpInfo.Email, null);
+                    User user = new(signUpInfo.Name, signUpInfo.Email);
                     _blogPlatformDbContext.Users.Add(user);
                     await _blogPlatformDbContext.SaveChangesAsync(token);
 
@@ -232,13 +247,16 @@ namespace BlogPlatform.Api.Services
                 return EAddOAuthResult.ProviderNotFound;
             }
 
-            bool isUserHasOAuth = await _blogPlatformDbContext.OAuthAccounts.AnyAsync(o => o.UserId == userId && o.ProviderId == providerId, cancellationToken);
+            IQueryable<User> users = _blogPlatformDbContext.Users.Union(GetRestorableUsers());
+            IQueryable<OAuthAccount> oAuthAccounts = users.SelectMany(u => u.OAuthAccounts);
+
+            bool isUserHasOAuth = await oAuthAccounts.AnyAsync(o => o.UserId == userId && o.ProviderId == providerId, cancellationToken);
             if (isUserHasOAuth)
             {
                 return EAddOAuthResult.UserAlreadyHasOAuth;
             }
 
-            bool isOAuthAlreadyExist = await _blogPlatformDbContext.OAuthAccounts.Where(o => o.NameIdentifier == oAuthInfo.NameIdentifier && o.ProviderId == providerId).AnyAsync(cancellationToken);
+            bool isOAuthAlreadyExist = await oAuthAccounts.Where(o => o.NameIdentifier == oAuthInfo.NameIdentifier && o.ProviderId == providerId).AnyAsync(cancellationToken);
             if (isOAuthAlreadyExist)
             {
                 return EAddOAuthResult.OAuthAlreadyExists;
@@ -274,7 +292,9 @@ namespace BlogPlatform.Api.Services
                 return ERemoveOAuthResult.OAuthNotFound;
             }
 
-            _blogPlatformDbContext.OAuthAccounts.Remove(oAuthAccount);
+            IStatusGeneric<int> result = _softDeleteService.SetCascadeSoftDelete(oAuthAccount, false);
+            _logger.LogSoftDeleteStatus(result, LogLevel.Debug);
+
             await _blogPlatformDbContext.SaveChangesAsync(cancellationToken);
 
             return ERemoveOAuthResult.Success;
@@ -372,7 +392,9 @@ namespace BlogPlatform.Api.Services
                 return false;
             }
 
-            _blogPlatformDbContext.Users.Remove(userData);
+            var result = _softDeleteService.SetCascadeSoftDelete(userData, false);
+            _logger.LogSoftDeleteStatus(result, LogLevel.Debug);
+            Debug.Assert(result.IsValid);
             await _blogPlatformDbContext.SaveChangesAsync(cancellationToken);
             return true;
         }
@@ -387,24 +409,27 @@ namespace BlogPlatform.Api.Services
 
             _logger.LogInformation("Canceling withdrawal. user id: {userId}", userId);
 
-            var userData = await _blogPlatformDbContext.Users.IgnoreQueryFilters().Where(u => u.Id == userId).Select(u => new { u.DeletedAt }).FirstOrDefaultAsync(cancellationToken);
+            User? userData = _blogPlatformDbContext.Users.IgnoreSoftDeleteFilter().FirstOrDefault(u => u.Id == userId);
             if (userData is null)
             {
                 return ECancelWithDrawResult.UserNotFound;
             }
 
-            if (userData.DeletedAt is null)
+            if (userData.SoftDeletedAt is null)
             {
                 return ECancelWithDrawResult.WithDrawNotRequested;
             }
 
-            if (DateTimeOffset.UtcNow - userData.DeletedAt > TimeSpan.FromDays(1))
+            if (userData.SoftDeletedAt.Value.Add(UserRestoreDuration) > DateTimeOffset.UtcNow)
             {
                 return ECancelWithDrawResult.Expired;
             }
 
-            int result = await _blogPlatformDbContext.Users.IgnoreQueryFilters().Where(u => u.Id == userId).ExecuteUpdateAsync(set => set.SetProperty(u => u.DeletedAt, (DateTimeOffset?)null), cancellationToken);
-            Debug.Assert(result == 1);
+            var result = _softDeleteService.ResetCascadeSoftDelete(userData, false);
+            _logger.LogSoftDeleteStatus(result, LogLevel.Debug);
+            Debug.Assert(result.IsValid);
+
+            await _blogPlatformDbContext.SaveChangesAsync(cancellationToken);
             return ECancelWithDrawResult.Success;
         }
 
@@ -422,6 +447,11 @@ namespace BlogPlatform.Api.Services
             Debug.Assert(result <= 1);
 
             return result != 0;
+        }
+
+        private IQueryable<User> GetRestorableUsers()
+        {
+            return _blogPlatformDbContext.Users.FilterBySoftDeletedAt(DateTimeOffset.UtcNow, UserRestoreDuration);
         }
     }
 }
