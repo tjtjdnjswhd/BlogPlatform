@@ -12,13 +12,14 @@ namespace BlogPlatform.Api.Identity.ActionResults
     /// </summary>
     public class LoginResult : IActionResult
     {
-        private readonly User _user;
-        private readonly bool _setCookie;
+        public User User { get; }
+
+        public bool SetCookie { get; }
 
         public LoginResult(User user, bool setCookie)
         {
-            _user = user;
-            _setCookie = setCookie;
+            User = user;
+            SetCookie = setCookie;
         }
 
         public async Task ExecuteResultAsync(ActionContext context)
@@ -27,15 +28,15 @@ namespace BlogPlatform.Api.Identity.ActionResults
             CancellationToken cancellationToken = context.HttpContext.RequestAborted;
 
             ILogger<LoginResult> logger = serviceScope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger<LoginResult>();
-            logger.LogInformation("Logging in user {userId}", _user.Id);
+            logger.LogInformation("Logging in user {userId}", User.Id);
 
             BlogPlatformDbContext blogPlatformDbContext = serviceScope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
             IJwtService jwtService = serviceScope.ServiceProvider.GetRequiredService<IJwtService>();
 
-            AuthorizeToken token = await jwtService.GenerateTokenAsync(_user, cancellationToken);
+            AuthorizeToken token = await jwtService.GenerateTokenAsync(User, cancellationToken);
             await jwtService.SetCacheTokenAsync(token, cancellationToken);
 
-            if (_setCookie)
+            if (SetCookie)
             {
                 logger.LogDebug("Setting cookie token: {token}", token);
                 jwtService.SetCookieToken(context.HttpContext.Response, token);

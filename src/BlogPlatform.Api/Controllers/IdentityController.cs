@@ -146,6 +146,9 @@ namespace BlogPlatform.Api.Controllers
                 case EAddOAuthResult.OAuthAlreadyExists:
                     return Conflict(new Error("이미 사용하는 OAuth 계정입니다."));
 
+                case EAddOAuthResult.ProviderNotFound:
+                    return NotFound(new Error("잘못된 OAuth 제공자입니다."));
+
                 default:
                     Debug.Assert(false);
                     throw new InvalidEnumArgumentException(nameof(addOAuthResult), (int)addOAuthResult, typeof(EAddOAuthResult));
@@ -194,7 +197,7 @@ namespace BlogPlatform.Api.Controllers
             string? newPassword = await _identityService.ResetPasswordAsync(email, cancellationToken);
             if (newPassword is null)
             {
-                return NotFound();
+                return NotFound(new Error("존재하지 않는 계정의 이메일입니다."));
             }
 
             _passwordResetService.SendResetPasswordEmail(email, newPassword);
