@@ -165,6 +165,9 @@ namespace BlogPlatform.Api.Controllers
                 case ERemoveOAuthResult.Success:
                     return Ok();
 
+                case ERemoveOAuthResult.HasSingleAccount:
+                    return Conflict(new Error("연결 계정이 1개일 경우 삭제할 수 없습니다."));
+
                 case ERemoveOAuthResult.UserNotFound:
                     return new AuthenticatedUserDataNotFoundResult();
 

@@ -181,14 +181,15 @@ namespace BlogPlatform.Api.Services
             SecurityKey securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.SecretKey));
             SigningCredentials signingCredentials = new(securityKey, _jwtOptions.Algorithm);
 
-            string accessToken = _jwtSecurityTokenHandler.CreateJwtSecurityToken(
+            JwtSecurityToken securityToken = new(
                 _jwtOptions.Issuer,
                 _jwtOptions.Audience,
-                claimsIdentity,
+                claimsIdentity.Claims,
                 DateTime.UtcNow,
                 DateTime.UtcNow.Add(_jwtOptions.AccessTokenExpiration),
-                DateTime.UtcNow,
-                signingCredentials).ToString();
+                signingCredentials);
+
+            string accessToken = _jwtSecurityTokenHandler.WriteToken(securityToken);
 
             string refreshToken = Guid.NewGuid().ToString();
             AuthorizeToken token = new(accessToken, refreshToken);

@@ -28,15 +28,19 @@ namespace BlogPlatform.Api.Services
         private readonly IJwtService _jwtService;
         private readonly IPasswordHasher<BasicAccount> _passwordHasher;
         private readonly CascadeSoftDelService<EntityBase> _softDeleteService;
+        private readonly IAuthenticationService _authenticationService;
+        private readonly TimeProvider _timeProvider;
         private readonly ILogger<IdentityService> _logger;
 
-        public IdentityService(BlogPlatformDbContext blogPlatformDbContext, IJwtService jwtService, IPasswordHasher<BasicAccount> passwordHasher, CascadeSoftDelService<EntityBase> softDeleteService, ILogger<IdentityService> logger)
+        public IdentityService(BlogPlatformDbContext blogPlatformDbContext, IJwtService jwtService, IPasswordHasher<BasicAccount> passwordHasher, CascadeSoftDelService<EntityBase> softDeleteService, IAuthenticationService authenticationService, TimeProvider timeProvider, ILogger<IdentityService> logger)
         {
             _blogPlatformDbContext = blogPlatformDbContext;
             _passwordHasher = passwordHasher;
             _jwtService = jwtService;
             _softDeleteService = softDeleteService;
             _logger = logger;
+            _timeProvider = timeProvider;
+            _authenticationService = authenticationService;
         }
 
         /// <inheritdoc/>
@@ -223,7 +227,7 @@ namespace BlogPlatform.Api.Services
         /// <inheritdoc/>
         public async Task<EAddOAuthResult> AddOAuthAsync(HttpContext httpContext, OAuthLoginInfo oAuthInfo, CancellationToken cancellationToken = default)
         {
-            AuthenticateResult authenticateResult = await httpContext.AuthenticateAsync();
+            AuthenticateResult authenticateResult = await _authenticationService.AuthenticateAsync(httpContext, null);
             Debug.Assert(authenticateResult.Succeeded); // 인증이 성공해야 함
 
             if (!_jwtService.TryGetUserId(authenticateResult.Principal, out int userId))
@@ -250,16 +254,16 @@ namespace BlogPlatform.Api.Services
             IQueryable<User> users = _blogPlatformDbContext.Users.Union(GetRestorableUsers());
             IQueryable<OAuthAccount> oAuthAccounts = users.SelectMany(u => u.OAuthAccounts);
 
-            bool isUserHasOAuth = await oAuthAccounts.AnyAsync(o => o.UserId == userId && o.ProviderId == providerId, cancellationToken);
-            if (isUserHasOAuth)
-            {
-                return EAddOAuthResult.UserAlreadyHasOAuth;
-            }
-
             bool isOAuthAlreadyExist = await oAuthAccounts.Where(o => o.NameIdentifier == oAuthInfo.NameIdentifier && o.ProviderId == providerId).AnyAsync(cancellationToken);
             if (isOAuthAlreadyExist)
             {
                 return EAddOAuthResult.OAuthAlreadyExists;
+            }
+
+            bool isUserHasOAuth = await oAuthAccounts.AnyAsync(o => o.UserId == userId && o.ProviderId == providerId, cancellationToken);
+            if (isUserHasOAuth)
+            {
+                return EAddOAuthResult.UserAlreadyHasOAuth;
             }
 
             OAuthAccount oAuthAccount = new(oAuthInfo.NameIdentifier, providerId, userId);
@@ -284,12 +288,18 @@ namespace BlogPlatform.Api.Services
             }
 
             OAuthAccount? oAuthAccount = await _blogPlatformDbContext.OAuthAccounts
-                .Where(o => o.UserId == userId && o.Provider.Name == provider)
-                .FirstOrDefaultAsync(cancellationToken);
+    .Where(o => o.UserId == userId && o.Provider.Name == provider)
+    .FirstOrDefaultAsync(cancellationToken);
 
             if (oAuthAccount is null)
             {
                 return ERemoveOAuthResult.OAuthNotFound;
+            }
+
+            int accountCount = await _blogPlatformDbContext.Users.Where(u => u.Id == userId).Select(u => u.BasicAccounts.Count + u.OAuthAccounts.Count).FirstOrDefaultAsync(cancellationToken);
+            if (accountCount == 1)
+            {
+                return ERemoveOAuthResult.HasSingleAccount;
             }
 
             IStatusGeneric<int> result = _softDeleteService.SetCascadeSoftDelete(oAuthAccount, false);
@@ -420,7 +430,7 @@ namespace BlogPlatform.Api.Services
                 return ECancelWithDrawResult.WithDrawNotRequested;
             }
 
-            if (userData.SoftDeletedAt.Value.Add(UserRestoreDuration) > DateTimeOffset.UtcNow)
+            if (userData.SoftDeletedAt.Value.Add(UserRestoreDuration) > _timeProvider.GetUtcNow())
             {
                 return ECancelWithDrawResult.Expired;
             }
@@ -451,7 +461,7 @@ namespace BlogPlatform.Api.Services
 
         private IQueryable<User> GetRestorableUsers()
         {
-            return _blogPlatformDbContext.Users.FilterBySoftDeletedAt(DateTimeOffset.UtcNow, UserRestoreDuration);
+            return _blogPlatformDbContext.Users.FilterBySoftDeletedAt(_timeProvider.GetUtcNow(), UserRestoreDuration);
         }
     }
 }

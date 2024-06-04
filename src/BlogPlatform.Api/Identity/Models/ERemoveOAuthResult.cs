@@ -13,6 +13,11 @@ namespace BlogPlatform.Api.Identity.Models
         Success,
 
         /// <summary>
+        /// 유저의 계정이 OAuth 계정 한 개만 존재함
+        /// </summary>
+        HasSingleAccount,
+
+        /// <summary>
         /// 유저를 찾을 수 없음
         /// </summary>
         UserNotFound,
