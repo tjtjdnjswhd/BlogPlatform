@@ -15,7 +15,7 @@ namespace BlogPlatform.EFCore
             {
                 if (value == 0)
                 {
-                    e.SoftDeletedAt = null;
+                    e.SoftDeletedAt = EntityBase.DefaultSoftDeletedAt;
                 }
                 else if (e.SoftDeleteLevel == 0)
                 {

@@ -4,7 +4,9 @@ using BlogPlatform.EFCore.Models.Abstractions;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Metadata;
 
+using System.Linq.Expressions;
 using System.Text.Json;
 
 namespace BlogPlatform.EFCore
@@ -41,15 +43,6 @@ namespace BlogPlatform.EFCore
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<EntityBase>(builder =>
-            {
-                builder.UseTpcMappingStrategy();
-                builder.ToTable(b => b.HasCheckConstraint("CK_SoftDeleteLevel_SoftDeletedAt", "(SoftDeleteLevel = 0 XOR SoftDeletedAt IS NOT NULL) = 1"));
-                builder.HasQueryFilter(e => e.SoftDeleteLevel == 0);
-
-                builder.Property(e => e.CreatedAt).ValueGeneratedOnAdd().HasValueGenerator<DateTimeOffsetUtcNowGenerator>();
-            });
-
             modelBuilder.Entity<Blog>(builder =>
             {
                 builder.HasOne(b => b.User).WithMany(u => u.Blog).HasForeignKey(b => b.UserId);
@@ -87,6 +80,42 @@ namespace BlogPlatform.EFCore
                 builder.HasMany(u => u.OAuthAccounts).WithOne(o => o.User).HasForeignKey(o => o.UserId);
                 builder.HasMany(u => u.Roles).WithMany(r => r.Users);
             });
+
+            ConfigureEntityBaseModels(modelBuilder);
+        }
+
+        private static void ConfigureEntityBaseModels(ModelBuilder modelBuilder)
+        {
+            string defaultSoftDeletedAt = EntityBase.DefaultSoftDeletedAt.ToString("yyyy-MM-dd HH:mm:ss.ffffff");
+            foreach (var entity in modelBuilder.Model.GetEntityTypes().Where(t => t.ClrType.IsAssignableTo(typeof(EntityBase))))
+            {
+                if (entity.GetTableName() is not string tableName)
+                {
+                    continue;
+                }
+
+                IMutableProperty softDeletedAtProperty = entity.GetProperty(nameof(EntityBase.SoftDeletedAt));
+                softDeletedAtProperty.SetDefaultValue(EntityBase.DefaultSoftDeletedAt);
+
+                string softDeletedAtName = softDeletedAtProperty.GetColumnName();
+                string softDeleteLevelName = entity.GetProperty(nameof(EntityBase.SoftDeleteLevel)).GetColumnName();
+
+                string checkConstraintName = $"CK_{tableName}_{softDeleteLevelName}_{softDeletedAtName}";
+                string checkConstraintSql = $"({softDeleteLevelName} = 0 AND {softDeletedAtName} = '{defaultSoftDeletedAt}') OR ({softDeleteLevelName} <> 0 AND {softDeletedAtName} <> '{defaultSoftDeletedAt}')";
+
+                entity.AddCheckConstraint(checkConstraintName, checkConstraintSql);
+
+                ParameterExpression parameterExp = Expression.Parameter(entity.ClrType);
+                Expression softDeleteLevelProperty = Expression.Property(parameterExp, nameof(EntityBase.SoftDeleteLevel));
+                Expression softDeleteLevelIsZeroExp = Expression.Equal(softDeleteLevelProperty, Expression.Constant((byte)0));
+                LambdaExpression softDeleteLevelFilterLambda = Expression.Lambda(softDeleteLevelIsZeroExp, parameterExp);
+
+                entity.SetQueryFilter(softDeleteLevelFilterLambda);
+
+                var createdAtProperty = entity.GetProperty(nameof(EntityBase.CreatedAt));
+                createdAtProperty.SetValueGenerationStrategy(MySqlValueGenerationStrategy.IdentityColumn);
+                createdAtProperty.SetValueGeneratorFactory((_, _) => new DateTimeOffsetUtcNowGenerator());
+            }
         }
     }
 }

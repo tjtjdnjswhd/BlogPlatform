@@ -9,6 +9,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="BlogPlatform.Api.Tests" />
+  </ItemGroup>
+	
+  <ItemGroup>
     <PackageReference Include="EfCore.SoftDeleteServices" Version="8.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.4">
       <PrivateAssets>all</PrivateAssets>

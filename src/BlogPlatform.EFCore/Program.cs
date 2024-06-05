@@ -7,7 +7,12 @@ using Microsoft.Extensions.Hosting;
 
 using MySqlConnector;
 
-var builder = Host.CreateApplicationBuilder(args);
+var builder =
+#if DEBUG
+    Host.CreateApplicationBuilder(new HostApplicationBuilderSettings() { EnvironmentName = "Development", Args = args });
+#else
+    Host.CreateApplicationBuilder(args);
+#endif
 
 MySqlConnectionStringBuilder mySqlConnectionStringBuilder = builder.Configuration.GetRequiredSection("MySqlConnectionString").Get<MySqlConnectionStringBuilder>() ?? throw new Exception();
 

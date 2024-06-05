@@ -8,6 +8,8 @@ namespace BlogPlatform.EFCore.Models.Abstractions
     [Index(nameof(SoftDeleteLevel))]
     public abstract class EntityBase
     {
+        public static readonly DateTimeOffset DefaultSoftDeletedAt = DateTimeOffset.MaxValue;
+
         /// <summary>
         /// 고유 식별자
         /// </summary>
@@ -22,7 +24,8 @@ namespace BlogPlatform.EFCore.Models.Abstractions
         /// <summary>
         /// 삭제 시각
         /// </summary>
-        public DateTimeOffset? SoftDeletedAt { get; internal set; }
+        [Required]
+        public DateTimeOffset SoftDeletedAt { get; internal set; }
 
         /// <summary>
         /// Soft Delete 레벨

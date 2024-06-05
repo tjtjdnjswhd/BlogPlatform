@@ -288,8 +288,8 @@ namespace BlogPlatform.Api.Services
             }
 
             OAuthAccount? oAuthAccount = await _blogPlatformDbContext.OAuthAccounts
-    .Where(o => o.UserId == userId && o.Provider.Name == provider)
-    .FirstOrDefaultAsync(cancellationToken);
+                .Where(o => o.UserId == userId && o.Provider.Name == provider)
+                .FirstOrDefaultAsync(cancellationToken);
 
             if (oAuthAccount is null)
             {
@@ -338,24 +338,15 @@ namespace BlogPlatform.Api.Services
 
             _logger.LogDebug("Changing user name. user id: {userId}. newName: {newName}", userId, newName);
 
-            string? oldName = await _blogPlatformDbContext.Users.Where(u => u.Id == userId).Select(u => u.Name).FirstOrDefaultAsync(cancellationToken);
-            if (oldName is null)
+            if (await _blogPlatformDbContext.Users.AnyAsync(u => u.Name == newName, cancellationToken))
             {
                 return false;
             }
 
-            int result = await _blogPlatformDbContext.Users.Where(u => u.Id == userId)
-                .ExecuteUpdateAsync(set => set.SetProperty(u => u.Name, newName), cancellationToken);
-
+            int result = await _blogPlatformDbContext.Users.Where(u => u.Id == userId).ExecuteUpdateAsync(set => set.SetProperty(u => u.Name, newName), cancellationToken);
             Debug.Assert(result <= 1);
 
-            if (result == 0)
-            {
-                return false;
-            }
-
-            _logger.LogInformation("User name changed. user id: {userId}, {oldName} -> {newName}", userId, oldName, newName);
-            return true;
+            return result != 0;
         }
 
         /// <inheritdoc/>
@@ -368,7 +359,7 @@ namespace BlogPlatform.Api.Services
             string newPasswordHash = _passwordHasher.HashPassword(null, newPassword);
 
             int result = await _blogPlatformDbContext.BasicAccounts.Where(a => a.User.Email == email).ExecuteUpdateAsync(set => set.SetProperty(a => a.PasswordHash, newPasswordHash).SetProperty(a => a.IsPasswordChangeRequired, true), cancellationToken);
-            Debug.Assert(result > 1);
+            Debug.Assert(result <= 1);
 
             return result == 0 ? null : newPassword;
         }
@@ -425,12 +416,12 @@ namespace BlogPlatform.Api.Services
                 return ECancelWithDrawResult.UserNotFound;
             }
 
-            if (userData.SoftDeletedAt is null)
+            if (userData.IsSoftDeletedAtDefault())
             {
                 return ECancelWithDrawResult.WithDrawNotRequested;
             }
 
-            if (userData.SoftDeletedAt.Value.Add(UserRestoreDuration) > _timeProvider.GetUtcNow())
+            if (userData.SoftDeletedAt.Add(UserRestoreDuration) < _timeProvider.GetUtcNow())
             {
                 return ECancelWithDrawResult.Expired;
             }
@@ -449,6 +440,11 @@ namespace BlogPlatform.Api.Services
             if (!_jwtService.TryGetUserId(user, out int userId))
             {
                 Debug.Assert(false);
+            }
+
+            if (await _blogPlatformDbContext.Users.AnyAsync(u => u.Email == newEmail, cancellationToken))
+            {
+                return false;
             }
 
             _logger.LogInformation("Changing email. user id: {userId}, new email: {newEmail}", userId, newEmail);

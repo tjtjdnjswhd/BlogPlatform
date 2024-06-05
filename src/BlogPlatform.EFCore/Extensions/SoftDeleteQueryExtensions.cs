@@ -9,7 +9,8 @@ namespace BlogPlatform.EFCore.Extensions
         public static IQueryable<T> FilterBySoftDeletedAt<T>(this IQueryable<T> query, DateTimeOffset baseTime, TimeSpan interval)
             where T : EntityBase
         {
-            return query.IgnoreSoftDeleteFilter().Where(e => !e.SoftDeletedAt.HasValue || e.SoftDeletedAt.Value.Add(interval) > baseTime);
+            DateTimeOffset date = baseTime.Subtract(interval);
+            return query.IgnoreSoftDeleteFilter().Where(e => e.SoftDeletedAt > date);
         }
 
         public static IQueryable<T> IgnoreSoftDeleteFilter<T>(this IQueryable<T> query)
