@@ -32,15 +32,17 @@ namespace BlogPlatform.Api.Services
         private readonly TimeProvider _timeProvider;
         private readonly ILogger<IdentityService> _logger;
 
-        public IdentityService(BlogPlatformDbContext blogPlatformDbContext, IJwtService jwtService, IPasswordHasher<BasicAccount> passwordHasher, CascadeSoftDelService<EntityBase> softDeleteService, IAuthenticationService authenticationService, TimeProvider timeProvider, ILogger<IdentityService> logger)
+        public IdentityService(BlogPlatformDbContext blogPlatformDbContext, IJwtService jwtService, IPasswordHasher<BasicAccount> passwordHasher, IAuthenticationService authenticationService, TimeProvider timeProvider, ILogger<IdentityService> logger)
         {
             _blogPlatformDbContext = blogPlatformDbContext;
             _passwordHasher = passwordHasher;
             _jwtService = jwtService;
-            _softDeleteService = softDeleteService;
+            _authenticationService = authenticationService;
             _logger = logger;
             _timeProvider = timeProvider;
             _authenticationService = authenticationService;
+            SoftDeleteConfigure softDeleteConf = new(_blogPlatformDbContext);
+            _softDeleteService = new(softDeleteConf);
         }
 
         /// <inheritdoc/>
@@ -230,7 +232,7 @@ namespace BlogPlatform.Api.Services
             AuthenticateResult authenticateResult = await _authenticationService.AuthenticateAsync(httpContext, null);
             Debug.Assert(authenticateResult.Succeeded); // 인증이 성공해야 함
 
-            if (!_jwtService.TryGetUserId(authenticateResult.Principal, out int userId))
+            if (!TryGetUserId(authenticateResult.Principal, out int userId))
             {
                 Debug.Assert(false);
             }
@@ -276,7 +278,7 @@ namespace BlogPlatform.Api.Services
         /// <inheritdoc/>
         public async Task<ERemoveOAuthResult> RemoveOAuthAsync(ClaimsPrincipal user, string provider, CancellationToken cancellationToken = default)
         {
-            if (!_jwtService.TryGetUserId(user, out int userId))
+            if (!TryGetUserId(user, out int userId))
             {
                 Debug.Assert(false);
             }
@@ -313,7 +315,7 @@ namespace BlogPlatform.Api.Services
         /// <inheritdoc/>
         public async Task<bool> ChangePasswordAsync(ClaimsPrincipal user, string newPassword, CancellationToken cancellationToken = default)
         {
-            if (!_jwtService.TryGetUserId(user, out int userId))
+            if (!TryGetUserId(user, out int userId))
             {
                 Debug.Assert(false);
             }
@@ -331,7 +333,7 @@ namespace BlogPlatform.Api.Services
         /// <inheritdoc/>
         public async Task<bool> ChangeNameAsync(ClaimsPrincipal user, string newName, CancellationToken cancellationToken = default)
         {
-            if (!_jwtService.TryGetUserId(user, out int userId))
+            if (!TryGetUserId(user, out int userId))
             {
                 Debug.Assert(false);
             }
@@ -380,7 +382,7 @@ namespace BlogPlatform.Api.Services
         /// <inheritdoc/>
         public async Task<bool> WithDrawAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)
         {
-            if (!_jwtService.TryGetUserId(user, out int userId))
+            if (!TryGetUserId(user, out int userId))
             {
                 Debug.Assert(false);
             }
@@ -403,7 +405,7 @@ namespace BlogPlatform.Api.Services
         /// <inheritdoc/>
         public async Task<ECancelWithDrawResult> CancelWithDrawAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)
         {
-            if (!_jwtService.TryGetUserId(user, out int userId))
+            if (!TryGetUserId(user, out int userId))
             {
                 Debug.Assert(false);
             }
@@ -416,7 +418,7 @@ namespace BlogPlatform.Api.Services
                 return ECancelWithDrawResult.UserNotFound;
             }
 
-            if (userData.IsSoftDeletedAtDefault())
+            if (userData.SoftDeleteLevel == 0)
             {
                 return ECancelWithDrawResult.WithDrawNotRequested;
             }
@@ -437,7 +439,7 @@ namespace BlogPlatform.Api.Services
         /// <inheritdoc/>
         public async Task<bool> ChangeEmailAsync(ClaimsPrincipal user, string newEmail, CancellationToken cancellationToken = default)
         {
-            if (!_jwtService.TryGetUserId(user, out int userId))
+            if (!TryGetUserId(user, out int userId))
             {
                 Debug.Assert(false);
             }
@@ -453,6 +455,11 @@ namespace BlogPlatform.Api.Services
             Debug.Assert(result <= 1);
 
             return result != 0;
+        }
+
+        public bool TryGetUserId(ClaimsPrincipal user, out int userId)
+        {
+            return _jwtService.TryGetUserId(user, out userId);
         }
 
         private IQueryable<User> GetRestorableUsers()

@@ -714,7 +714,7 @@ namespace BlogPlatform.Api.Tests.Identity
             authenticationService.Setup(a => a.AuthenticateAsync(It.IsAny<HttpContext>(), It.IsAny<string>()))
                                  .ReturnsAsync(AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(new ClaimsIdentity("authType")), "scheme")));
 
-            return new IdentityService(_setUp.DbContext, jwtService.Object, _setUp.PasswordHasher, _setUp.CascadeSoftDelService, authenticationService.Object, timeProvider, _logger);
+            return new IdentityService(_setUp.DbContext, jwtService.Object, _setUp.PasswordHasher, authenticationService.Object, timeProvider, _logger);
         }
 
         private static Mock<IJwtService> CreateJwtServiceMock(int userId, bool returns)

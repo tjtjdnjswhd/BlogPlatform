@@ -156,5 +156,13 @@ namespace BlogPlatform.Api.Identity.Services.Interfaces
         /// 
         /// </returns>
         Task<bool> ChangeEmailAsync(ClaimsPrincipal user, string newEmail, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// 유저 Id를 반환합니다.
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="userId"></param>
+        /// <returns></returns>
+        bool TryGetUserId(ClaimsPrincipal user, out int userId);
     }
 }

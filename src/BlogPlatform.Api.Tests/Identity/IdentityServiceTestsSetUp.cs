@@ -1,13 +1,10 @@
 ﻿using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Models;
-using BlogPlatform.EFCore.Models.Abstractions;
 
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 using Moq;
-
-using SoftDeleteServices.Concrete;
 
 using Xunit.Abstractions;
 
@@ -30,8 +27,6 @@ namespace BlogPlatform.Api.Tests.Identity
         public OAuthProvider OAuthProvider { get; }
 
         public IPasswordHasher<BasicAccount> PasswordHasher { get; }
-
-        public CascadeSoftDelService<EntityBase> CascadeSoftDelService { get; }
 
         public IdentityServiceTestsSetUp(DbContextMySqlMigrateFixture migrateFixture, ITestOutputHelper testOutputHelper)
         {
@@ -89,8 +84,6 @@ namespace BlogPlatform.Api.Tests.Identity
                          .Returns(PasswordVerificationResult.Failed);
 
             PasswordHasher = passwordHasher.Object;
-
-            CascadeSoftDelService = new(new SoftDeleteConfigure(DbContext));
         }
 
         public void Dispose()
