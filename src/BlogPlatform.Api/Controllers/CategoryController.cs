@@ -11,8 +11,6 @@ using Microsoft.EntityFrameworkCore;
 
 using SoftDeleteServices.Concrete;
 
-using System.Diagnostics;
-
 namespace BlogPlatform.Api.Controllers
 {
     [Route("api/[controller]")]
@@ -42,20 +40,14 @@ namespace BlogPlatform.Api.Controllers
                 return NotFound(new Error("존재하지 않는 카테고리입니다"));
             }
 
-            CategoryReadDto categoryDto = new(category.Id, category.Name, category.BlogId);
+            CategoryRead categoryDto = new(category.Id, category.Name, category.BlogId);
             return Ok(categoryDto);
         }
 
         [UserAuthorize]
         [HttpPost]
-        public async Task<IActionResult> CreateAsync([FromForm] string categoryName, CancellationToken cancellationToken)
+        public async Task<IActionResult> CreateAsync([FromForm] string categoryName, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
-            if (!_identityService.TryGetUserId(User, out int userId))
-            {
-                Debug.Assert(false);
-                throw new Exception("Invalid User");
-            }
-
             int blogId = await _dbContext.Blogs.Where(b => b.UserId == userId).Select(b => b.Id).FirstOrDefaultAsync(cancellationToken);
             if (blogId == default)
             {
@@ -73,14 +65,8 @@ namespace BlogPlatform.Api.Controllers
 
         [UserAuthorize]
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> UpdateAsync([FromRoute] int id, [FromForm] string categoryName, CancellationToken cancellationToken)
+        public async Task<IActionResult> UpdateAsync([FromRoute] int id, [FromForm] string categoryName, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
-            if (!_identityService.TryGetUserId(User, out int userId))
-            {
-                Debug.Assert(false);
-                throw new Exception("Invalid User");
-            }
-
             int blogId = await _dbContext.Blogs.Where(b => b.UserId == userId).Select(b => b.Id).FirstOrDefaultAsync(cancellationToken);
             if (blogId == default)
             {
@@ -104,14 +90,8 @@ namespace BlogPlatform.Api.Controllers
 
         [UserAuthorize]
         [HttpDelete("{id:int}")]
-        public async Task<IActionResult> DeleteAsync([FromRoute] int id, CancellationToken cancellationToken)
+        public async Task<IActionResult> DeleteAsync([FromRoute] int id, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
-            if (!_identityService.TryGetUserId(User, out int userId))
-            {
-                Debug.Assert(false);
-                throw new Exception("Invalid User");
-            }
-
             int blogId = await _dbContext.Blogs.Where(b => b.UserId == userId).Select(b => b.Id).FirstOrDefaultAsync(cancellationToken);
             if (blogId == default)
             {
@@ -135,14 +115,8 @@ namespace BlogPlatform.Api.Controllers
 
         [UserAuthorize]
         [HttpPost("restore/{id:int}")]
-        public async Task<IActionResult> RestoreAsync([FromRoute] int id, CancellationToken cancellationToken)
+        public async Task<IActionResult> RestoreAsync([FromRoute] int id, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
-            if (!_identityService.TryGetUserId(User, out int userId))
-            {
-                Debug.Assert(false);
-                throw new Exception("Invalid User");
-            }
-
             int blogId = await _dbContext.Blogs.Where(b => b.UserId == userId).Select(b => b.Id).FirstOrDefaultAsync(cancellationToken);
             if (blogId == default)
             {

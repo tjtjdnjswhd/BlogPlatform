@@ -12,7 +12,6 @@ using Microsoft.EntityFrameworkCore;
 using SoftDeleteServices.Concrete;
 
 using System.ComponentModel.DataAnnotations;
-using System.Diagnostics;
 
 namespace BlogPlatform.Api.Controllers
 {
@@ -43,20 +42,14 @@ namespace BlogPlatform.Api.Controllers
                 return NotFound(new Error("존재하지 않는 블로그입니다"));
             }
 
-            BlogReadDto blogDto = new(blog.Id, blog.Name, blog.Description, blog.UserId);
+            BlogRead blogDto = new(blog.Id, blog.Name, blog.Description, blog.UserId);
             return Ok(blogDto);
         }
 
         [UserAuthorize]
         [HttpPost]
-        public async Task<IActionResult> CreateAsync([FromForm] string blogName, [FromForm] string description, CancellationToken cancellationToken)
+        public async Task<IActionResult> CreateAsync([FromForm] string blogName, [FromForm] string description, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
-            if (!_identityService.TryGetUserId(User, out int userId))
-            {
-                Debug.Assert(false);
-                throw new Exception("Invalid User");
-            }
-
             bool isUserHasBlog = await _dbContext.Blogs.AnyAsync(b => b.UserId == userId, cancellationToken);
             if (isUserHasBlog)
             {
@@ -74,14 +67,8 @@ namespace BlogPlatform.Api.Controllers
 
         [UserAuthorize]
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> UpdateAsync([FromRoute] int id, [FromForm, Required(AllowEmptyStrings = false)] string blogName, [FromForm, Required(AllowEmptyStrings = false)] string description, CancellationToken cancellationToken)
+        public async Task<IActionResult> UpdateAsync([FromRoute] int id, [FromForm, Required(AllowEmptyStrings = false)] string blogName, [FromForm, Required(AllowEmptyStrings = false)] string description, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
-            if (!_identityService.TryGetUserId(User, out int userId))
-            {
-                Debug.Assert(false);
-                throw new Exception("Invalid User");
-            }
-
             Blog? blog = await _dbContext.Blogs.FindAsync([id], cancellationToken);
             if (blog == null)
             {
@@ -104,19 +91,13 @@ namespace BlogPlatform.Api.Controllers
 
         [UserAuthorize]
         [HttpDelete("{id:int}")]
-        public async Task<IActionResult> DeleteAsync([FromRoute] int id, CancellationToken cancellationToken)
+        public async Task<IActionResult> DeleteAsync([FromRoute] int id, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             Blog? blog = await _dbContext.Blogs.FindAsync([id], cancellationToken);
             if (blog == null)
             {
                 _logger.LogInformation("Blog with id {id} not found", id);
                 return NotFound(new Error("존재하지 않는 블로그입니다"));
-            }
-
-            if (!_identityService.TryGetUserId(User, out int userId))
-            {
-                Debug.Assert(false);
-                throw new Exception("Invalid User");
             }
 
             if (blog.UserId != userId)
@@ -134,7 +115,7 @@ namespace BlogPlatform.Api.Controllers
 
         [UserAuthorize]
         [HttpPost("restore/{id:int}")]
-        public async Task<IActionResult> RestoreAsync([FromRoute] int id, CancellationToken cancellationToken)
+        public async Task<IActionResult> RestoreAsync([FromRoute] int id, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             Blog? blog = await _dbContext.Blogs.FindAsync([id], cancellationToken);
             if (blog == null)
@@ -147,12 +128,6 @@ namespace BlogPlatform.Api.Controllers
             {
                 _logger.LogInformation("Blog with id {id} is not deleted", id);
                 return BadRequest(new Error("삭제되지 않은 블로그입니다"));
-            }
-
-            if (!_identityService.TryGetUserId(User, out int userId))
-            {
-                Debug.Assert(false);
-                throw new Exception("Invalid User");
             }
 
             if (blog.UserId != userId)
