@@ -1,4 +1,5 @@
-﻿using BlogPlatform.Api.Identity.Attributes;
+﻿using BlogPlatform.Api.Helper;
+using BlogPlatform.Api.Identity.Attributes;
 using BlogPlatform.Api.Identity.Services.Interfaces;
 using BlogPlatform.Api.Models;
 using BlogPlatform.EFCore;
@@ -144,8 +145,9 @@ namespace BlogPlatform.Api.Controllers
             }
 
             CascadeSoftDelServiceAsync<EntityBase> cascadeSoftDelService = new(_softDeleteConfigure);
-            await cascadeSoftDelService.SetCascadeSoftDeleteAsync(comment);
-            return NoContent();
+            var status = await cascadeSoftDelService.SetCascadeSoftDeleteAsync(comment);
+            _logger.LogSoftDeleteStatus(status);
+            return status.HasErrors ? BadRequest(status.Message) : NoContent();
         }
     }
 }

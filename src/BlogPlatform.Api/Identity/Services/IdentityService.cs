@@ -13,8 +13,6 @@ using Microsoft.EntityFrameworkCore;
 
 using SoftDeleteServices.Concrete;
 
-using StatusGeneric;
-
 using System.Diagnostics;
 using System.Security.Claims;
 
@@ -304,8 +302,8 @@ namespace BlogPlatform.Api.Services
                 return ERemoveOAuthResult.HasSingleAccount;
             }
 
-            IStatusGeneric<int> result = _softDeleteService.SetCascadeSoftDelete(oAuthAccount, false);
-            _logger.LogSoftDeleteStatus(result, LogLevel.Debug);
+            var status = _softDeleteService.SetCascadeSoftDelete(oAuthAccount, false);
+            _logger.LogSoftDeleteStatus(status);
 
             await _blogPlatformDbContext.SaveChangesAsync(cancellationToken);
 
@@ -395,9 +393,9 @@ namespace BlogPlatform.Api.Services
                 return false;
             }
 
-            var result = _softDeleteService.SetCascadeSoftDelete(userData, false);
-            _logger.LogSoftDeleteStatus(result, LogLevel.Debug);
-            Debug.Assert(result.IsValid);
+            var status = _softDeleteService.SetCascadeSoftDelete(userData, false);
+            _logger.LogSoftDeleteStatus(status);
+            Debug.Assert(status.IsValid);
             await _blogPlatformDbContext.SaveChangesAsync(cancellationToken);
             return true;
         }
@@ -428,9 +426,9 @@ namespace BlogPlatform.Api.Services
                 return ECancelWithDrawResult.Expired;
             }
 
-            var result = _softDeleteService.ResetCascadeSoftDelete(userData, false);
-            _logger.LogSoftDeleteStatus(result, LogLevel.Debug);
-            Debug.Assert(result.IsValid);
+            var status = _softDeleteService.ResetCascadeSoftDelete(userData, false);
+            _logger.LogSoftDeleteStatus(status);
+            Debug.Assert(status.IsValid);
 
             await _blogPlatformDbContext.SaveChangesAsync(cancellationToken);
             return ECancelWithDrawResult.Success;

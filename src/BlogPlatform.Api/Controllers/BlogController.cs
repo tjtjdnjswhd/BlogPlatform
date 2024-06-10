@@ -1,5 +1,5 @@
-﻿using BlogPlatform.Api.Identity.Attributes;
-using BlogPlatform.Api.Identity.Services.Interfaces;
+﻿using BlogPlatform.Api.Helper;
+using BlogPlatform.Api.Identity.Attributes;
 using BlogPlatform.Api.Models;
 using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Extensions;
@@ -20,14 +20,12 @@ namespace BlogPlatform.Api.Controllers
     public class BlogController : ControllerBase
     {
         private readonly BlogPlatformDbContext _dbContext;
-        private readonly IIdentityService _identityService;
         private readonly SoftDeleteConfigure _softDeleteConfigure;
         private readonly ILogger<BlogController> _logger;
 
-        public BlogController(BlogPlatformDbContext dbContext, IIdentityService identityService, ILogger<BlogController> logger)
+        public BlogController(BlogPlatformDbContext dbContext, ILogger<BlogController> logger)
         {
             _dbContext = dbContext;
-            _identityService = identityService;
             _softDeleteConfigure = new(_dbContext);
             _logger = logger;
         }
@@ -107,10 +105,9 @@ namespace BlogPlatform.Api.Controllers
             }
 
             CascadeSoftDelServiceAsync<EntityBase> softDeleteService = new(_softDeleteConfigure);
-            await softDeleteService.SetCascadeSoftDeleteAsync(blog, false);
-            _logger.LogInformation("Deleted blog with id {id}", id);
-
-            return NoContent();
+            var status = await softDeleteService.SetCascadeSoftDeleteAsync(blog);
+            _logger.LogSoftDeleteStatus(status);
+            return status.HasErrors ? BadRequest(status.Message) : Ok();
         }
 
         [UserAuthorize]
@@ -149,10 +146,9 @@ namespace BlogPlatform.Api.Controllers
             }
 
             CascadeSoftDelServiceAsync<EntityBase> softDeleteService = new(_softDeleteConfigure);
-            await softDeleteService.ResetCascadeSoftDeleteAsync(blog);
-            _logger.LogInformation("Restored blog with id {id}", id);
-
-            return NoContent();
+            var status = await softDeleteService.ResetCascadeSoftDeleteAsync(blog);
+            _logger.LogSoftDeleteStatus(status);
+            return status.HasErrors ? BadRequest(status.Message) : Ok();
         }
     }
 }

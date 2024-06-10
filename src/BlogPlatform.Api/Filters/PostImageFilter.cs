@@ -34,21 +34,21 @@ namespace BlogPlatform.Api.Filters
             {
                 if (imageFile.Length > 5 * 1024 * 1024)
                 {
-                    context.ModelState.AddModelError(ImagesParameter, "Image file size exceeds 5MB");
+                    context.ModelState.AddModelError(ImagesParameter, "이미지 최대 크기는 5MB입니다");
                     context.Result = new BadRequestObjectResult(context.ModelState);
                     return Task.CompletedTask;
                 }
 
                 if (!imageFile.ContentType.StartsWith("image/"))
                 {
-                    context.ModelState.AddModelError(ImagesParameter, "Invalid image file type");
+                    context.ModelState.AddModelError(ImagesParameter, "Content type은 image만 가능합니다");
                     context.Result = new BadRequestObjectResult(context.ModelState);
                     return Task.CompletedTask;
                 }
 
                 if (!IsImageFileValid(imageFile))
                 {
-                    context.ModelState.AddModelError(ImagesParameter, "Invalid image file");
+                    context.ModelState.AddModelError(ImagesParameter, "올바르지 않은 이미지 파일입니다");
                     context.Result = new BadRequestObjectResult(context.ModelState);
                     return Task.CompletedTask;
                 }

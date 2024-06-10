@@ -2,6 +2,7 @@
 using AngleSharp.Dom;
 
 using BlogPlatform.Api.Filters;
+using BlogPlatform.Api.Helper;
 using BlogPlatform.Api.Identity.Attributes;
 using BlogPlatform.Api.Identity.Services.Interfaces;
 using BlogPlatform.Api.Models;
@@ -249,8 +250,9 @@ namespace BlogPlatform.Api.Controllers
             }
 
             CascadeSoftDelServiceAsync<EntityBase> softDelService = new(_softDeleteConfigure);
-            await softDelService.SetCascadeSoftDeleteAsync(post);
-            return NoContent();
+            var status = await softDelService.SetCascadeSoftDeleteAsync(post);
+            _logger.LogSoftDeleteStatus(status);
+            return status.HasErrors ? BadRequest(status.Message) : NoContent();
         }
 
         [HttpPost("restore/{id:int}")]
@@ -278,8 +280,9 @@ namespace BlogPlatform.Api.Controllers
             }
 
             CascadeSoftDelServiceAsync<EntityBase> softDelService = new(_softDeleteConfigure);
-            await softDelService.ResetCascadeSoftDeleteAsync(post);
-            return NoContent();
+            var status = await softDelService.ResetCascadeSoftDeleteAsync(post);
+            _logger.LogSoftDeleteStatus(status);
+            return status.HasErrors ? BadRequest(status.Message) : NoContent();
         }
 
         [HttpPost("image")]

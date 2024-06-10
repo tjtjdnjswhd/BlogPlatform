@@ -1,4 +1,5 @@
-﻿using BlogPlatform.Api.Identity.Attributes;
+﻿using BlogPlatform.Api.Helper;
+using BlogPlatform.Api.Identity.Attributes;
 using BlogPlatform.Api.Identity.Services.Interfaces;
 using BlogPlatform.Api.Models;
 using BlogPlatform.EFCore;
@@ -107,10 +108,9 @@ namespace BlogPlatform.Api.Controllers
             }
 
             CascadeSoftDelServiceAsync<EntityBase> softDelService = new(_softDeleteConfigure);
-            await softDelService.SetCascadeSoftDeleteAsync(category, true);
-            _logger.LogInformation("Category {categoryName} deleted", category.Name);
-
-            return NoContent();
+            var status = await softDelService.SetCascadeSoftDeleteAsync(category);
+            _logger.LogSoftDeleteStatus(status);
+            return status.HasErrors ? BadRequest(status.Message) : NoContent();
         }
 
         [UserAuthorize]
@@ -138,10 +138,9 @@ namespace BlogPlatform.Api.Controllers
             }
 
             CascadeSoftDelServiceAsync<EntityBase> softDelService = new(_softDeleteConfigure);
-            await softDelService.ResetCascadeSoftDeleteAsync(category, true);
-            _logger.LogInformation("Restored category with id {id}", id);
-
-            return NoContent();
+            var status = await softDelService.ResetCascadeSoftDeleteAsync(category);
+            _logger.LogSoftDeleteStatus(status);
+            return status.HasErrors ? BadRequest(status.Message) : NoContent();
         }
     }
 }
