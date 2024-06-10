@@ -8,6 +8,7 @@ using BlogPlatform.Api.Models;
 using BlogPlatform.Api.Services;
 using BlogPlatform.Api.Services.Interfaces;
 using BlogPlatform.EFCore;
+using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
 using BlogPlatform.EFCore.Models.Abstractions;
 
@@ -105,7 +106,7 @@ namespace BlogPlatform.Api.Controllers
 
             if (search.Tags is not null)
             {
-                postQuery = postQuery.Where(p => p.Tags.Intersect(search.Tags).Count() > 0);
+                postQuery = postQuery.FilterTag(search.Tags, search.TagFilter);
             }
 
             postQuery = search.OrderBy switch
@@ -319,7 +320,8 @@ namespace BlogPlatform.Api.Controllers
             IBrowsingContext browsingContext = BrowsingContext.New(Configuration.Default);
             IDocument document = await browsingContext.OpenAsync(req => req.Content(content), cancellationToken);
             IEnumerable<string?> imageSrcs = document.Images.Select(i => i.ActualSource);
-            IEnumerable<string> serverImages = imageSrcs.Where(src => src is not null && src.StartsWith(HttpContext.GetServerVariable("baseUri")!))!;
+            string baseUrl = HttpContext.GetServerVariable("baseUri") ?? throw new InvalidOperationException("baseUri not found in server variables");
+            IEnumerable<string> serverImages = imageSrcs.Where(src => src is not null && src.StartsWith(baseUrl))!;
             return serverImages;
         }
     }

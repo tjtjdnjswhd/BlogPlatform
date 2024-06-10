@@ -113,7 +113,7 @@ namespace BlogPlatform.Api.Controllers
             Comment? comment = await _dbContext.Comments.FindAsync([id], cancellationToken);
             if (comment == null)
             {
-                return NotFound(new Error("존재하지 않은 댓글입니다"));
+                return NotFound(new Error("존재하지 않는 댓글입니다"));
             }
 
             if (comment.UserId != userId)
@@ -135,7 +135,7 @@ namespace BlogPlatform.Api.Controllers
             Comment? comment = await _dbContext.Comments.FindAsync([id], cancellationToken);
             if (comment == null)
             {
-                return NotFound(new Error("존재하지 않은 댓글입니다"));
+                return NotFound(new Error("존재하지 않는 댓글입니다"));
             }
 
             if (comment.UserId != userId)

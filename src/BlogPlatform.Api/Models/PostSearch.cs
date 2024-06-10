@@ -1,33 +1,19 @@
-﻿using System.ComponentModel;
+﻿using BlogPlatform.EFCore.Extensions;
+
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 
 namespace BlogPlatform.Api.Models
 {
-    public class PostSearch : IValidatableObject
+    public record PostSearch(int? BlogId, int? CategoryId, string? Title, string? Content, DateTimeOffset? CreatedAtStart, DateTimeOffset? CreatedAtEnd, DateTimeOffset? UpdatedAtStart, DateTimeOffset? UpdatedAtEnd, IEnumerable<string>? Tags) : IValidatableObject
     {
-        public int? BlogId { get; set; }
+        public TagFilterOption TagFilter { get; init; } = TagFilterOption.All;
 
-        public int? CategoryId { get; set; }
+        public EPostSearchOrderBy OrderBy { get; init; } = EPostSearchOrderBy.CreatedAt;
 
-        public string? Title { get; set; }
+        public ListSortDirection OrderDirection { get; init; } = ListSortDirection.Ascending;
 
-        public string? Content { get; set; }
-
-        public DateTimeOffset? CreatedAtStart { get; set; }
-
-        public DateTimeOffset? CreatedAtEnd { get; set; }
-
-        public DateTimeOffset? UpdatedAtStart { get; set; }
-
-        public DateTimeOffset? UpdatedAtEnd { get; set; }
-
-        public IEnumerable<string>? Tags { get; set; }
-
-        public EPostSearchOrderBy OrderBy { get; set; } = EPostSearchOrderBy.CreatedAt;
-
-        public ListSortDirection OrderDirection { get; set; } = ListSortDirection.Ascending;
-
-        public int Page { get; set; } = 1;
+        public int Page { get; init; } = 1;
 
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
