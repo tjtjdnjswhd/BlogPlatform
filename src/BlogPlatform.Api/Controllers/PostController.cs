@@ -4,22 +4,18 @@ using AngleSharp.Dom;
 using BlogPlatform.Api.Filters;
 using BlogPlatform.Api.Helper;
 using BlogPlatform.Api.Identity.Attributes;
-using BlogPlatform.Api.Identity.Services.Interfaces;
 using BlogPlatform.Api.Models;
 using BlogPlatform.Api.Services;
 using BlogPlatform.Api.Services.Interfaces;
 using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
-using BlogPlatform.EFCore.Models.Abstractions;
 
 using Ganss.Xss;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
-
-using SoftDeleteServices.Concrete;
 
 using System.ComponentModel;
 
@@ -30,17 +26,15 @@ namespace BlogPlatform.Api.Controllers
     public class PostController : ControllerBase
     {
         private readonly BlogPlatformDbContext _dbContext;
-        private readonly IIdentityService _identityService;
-        private readonly SoftDeleteConfigure _softDeleteConfigure;
+        private readonly ICascadeSoftDeleteService _softDeleteService;
         private readonly IPostImageService _imageService;
         private readonly IDistributedCache _distributedCache;
         private readonly ILogger<PostController> _logger;
 
-        public PostController(BlogPlatformDbContext dbContext, IIdentityService identityService, IPostImageService imageService, IDistributedCache distributedCache, ILogger<PostController> logger)
+        public PostController(BlogPlatformDbContext dbContext, ICascadeSoftDeleteService softDeleteService, IPostImageService imageService, IDistributedCache distributedCache, ILogger<PostController> logger)
         {
             _dbContext = dbContext;
-            _identityService = identityService;
-            _softDeleteConfigure = new(_dbContext);
+            _softDeleteService = softDeleteService;
             _imageService = imageService;
             _distributedCache = distributedCache;
             _logger = logger;
@@ -249,9 +243,8 @@ namespace BlogPlatform.Api.Controllers
                 return Forbid();
             }
 
-            CascadeSoftDelServiceAsync<EntityBase> softDelService = new(_softDeleteConfigure);
-            var status = await softDelService.SetCascadeSoftDeleteAsync(post);
-            _logger.LogSoftDeleteStatus(status);
+            var status = await _softDeleteService.SetSoftDeleteAsync(post, true);
+            _logger.LogStatusGeneric(status);
             return status.HasErrors ? BadRequest(status.Message) : NoContent();
         }
 
@@ -279,9 +272,8 @@ namespace BlogPlatform.Api.Controllers
                 return Forbid();
             }
 
-            CascadeSoftDelServiceAsync<EntityBase> softDelService = new(_softDeleteConfigure);
-            var status = await softDelService.ResetCascadeSoftDeleteAsync(post);
-            _logger.LogSoftDeleteStatus(status);
+            var status = await _softDeleteService.ResetSoftDeleteAsync(post, true);
+            _logger.LogStatusGeneric(status);
             return status.HasErrors ? BadRequest(status.Message) : NoContent();
         }
 

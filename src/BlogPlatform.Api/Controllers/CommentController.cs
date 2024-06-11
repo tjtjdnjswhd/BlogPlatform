@@ -1,16 +1,11 @@
 ﻿using BlogPlatform.Api.Helper;
 using BlogPlatform.Api.Identity.Attributes;
-using BlogPlatform.Api.Identity.Services.Interfaces;
 using BlogPlatform.Api.Models;
 using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Models;
-using BlogPlatform.EFCore.Models.Abstractions;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Distributed;
-
-using SoftDeleteServices.Concrete;
 
 namespace BlogPlatform.Api.Controllers
 {
@@ -19,17 +14,13 @@ namespace BlogPlatform.Api.Controllers
     public class CommentController : ControllerBase
     {
         private readonly BlogPlatformDbContext _dbContext;
-        private readonly IIdentityService _identityService;
-        private readonly SoftDeleteConfigure _softDeleteConfigure;
-        private readonly IDistributedCache _distributedCache;
+        private readonly ICascadeSoftDeleteService _softDeleteService;
         private readonly ILogger<CommentController> _logger;
 
-        public CommentController(BlogPlatformDbContext dbContext, IIdentityService identityService, SoftDeleteConfigure softDeleteConfigure, IDistributedCache distributedCache, ILogger<CommentController> logger)
+        public CommentController(BlogPlatformDbContext dbContext, ICascadeSoftDeleteService softDeleteService, ILogger<CommentController> logger)
         {
             _dbContext = dbContext;
-            _identityService = identityService;
-            _softDeleteConfigure = softDeleteConfigure;
-            _distributedCache = distributedCache;
+            _softDeleteService = softDeleteService;
             _logger = logger;
         }
 
@@ -144,9 +135,8 @@ namespace BlogPlatform.Api.Controllers
                 return Forbid();
             }
 
-            CascadeSoftDelServiceAsync<EntityBase> cascadeSoftDelService = new(_softDeleteConfigure);
-            var status = await cascadeSoftDelService.SetCascadeSoftDeleteAsync(comment);
-            _logger.LogSoftDeleteStatus(status);
+            var status = await _softDeleteService.SetSoftDeleteAsync(comment, true);
+            _logger.LogStatusGeneric(status);
             return status.HasErrors ? BadRequest(status.Message) : NoContent();
         }
     }

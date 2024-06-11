@@ -5,13 +5,10 @@ using BlogPlatform.Api.Services.Interfaces;
 using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
-using BlogPlatform.EFCore.Models.Abstractions;
 
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-
-using SoftDeleteServices.Concrete;
 
 using System.Diagnostics;
 using System.Security.Claims;
@@ -25,22 +22,20 @@ namespace BlogPlatform.Api.Services
         private readonly BlogPlatformDbContext _blogPlatformDbContext;
         private readonly IJwtService _jwtService;
         private readonly IPasswordHasher<BasicAccount> _passwordHasher;
-        private readonly CascadeSoftDelService<EntityBase> _softDeleteService;
+        private readonly ICascadeSoftDeleteService _softDeleteService;
         private readonly IAuthenticationService _authenticationService;
         private readonly TimeProvider _timeProvider;
         private readonly ILogger<IdentityService> _logger;
 
-        public IdentityService(BlogPlatformDbContext blogPlatformDbContext, IJwtService jwtService, IPasswordHasher<BasicAccount> passwordHasher, IAuthenticationService authenticationService, TimeProvider timeProvider, ILogger<IdentityService> logger)
+        public IdentityService(BlogPlatformDbContext blogPlatformDbContext, IJwtService jwtService, IPasswordHasher<BasicAccount> passwordHasher, ICascadeSoftDeleteService softDeleteService, IAuthenticationService authenticationService, TimeProvider timeProvider, ILogger<IdentityService> logger)
         {
             _blogPlatformDbContext = blogPlatformDbContext;
             _passwordHasher = passwordHasher;
+            _softDeleteService = softDeleteService;
             _jwtService = jwtService;
-            _authenticationService = authenticationService;
             _logger = logger;
             _timeProvider = timeProvider;
             _authenticationService = authenticationService;
-            SoftDeleteConfigure softDeleteConf = new(_blogPlatformDbContext);
-            _softDeleteService = new(softDeleteConf);
         }
 
         /// <inheritdoc/>
@@ -302,10 +297,8 @@ namespace BlogPlatform.Api.Services
                 return ERemoveOAuthResult.HasSingleAccount;
             }
 
-            var status = _softDeleteService.SetCascadeSoftDelete(oAuthAccount, false);
-            _logger.LogSoftDeleteStatus(status);
-
-            await _blogPlatformDbContext.SaveChangesAsync(cancellationToken);
+            var status = await _softDeleteService.SetSoftDeleteAsync(oAuthAccount, true);
+            _logger.LogStatusGeneric(status);
 
             return ERemoveOAuthResult.Success;
         }
@@ -393,10 +386,9 @@ namespace BlogPlatform.Api.Services
                 return false;
             }
 
-            var status = _softDeleteService.SetCascadeSoftDelete(userData, false);
-            _logger.LogSoftDeleteStatus(status);
+            var status = await _softDeleteService.SetSoftDeleteAsync(userData, true);
+            _logger.LogStatusGeneric(status);
             Debug.Assert(status.IsValid);
-            await _blogPlatformDbContext.SaveChangesAsync(cancellationToken);
             return true;
         }
 
@@ -426,11 +418,9 @@ namespace BlogPlatform.Api.Services
                 return ECancelWithDrawResult.Expired;
             }
 
-            var status = _softDeleteService.ResetCascadeSoftDelete(userData, false);
-            _logger.LogSoftDeleteStatus(status);
+            var status = await _softDeleteService.ResetSoftDeleteAsync(userData, true);
+            _logger.LogStatusGeneric(status);
             Debug.Assert(status.IsValid);
-
-            await _blogPlatformDbContext.SaveChangesAsync(cancellationToken);
             return ECancelWithDrawResult.Success;
         }
 

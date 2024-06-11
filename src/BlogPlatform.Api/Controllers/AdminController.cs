@@ -92,8 +92,8 @@ namespace BlogPlatform.Api.Controllers
 
             CascadeSoftDelServiceAsync<EntityBase> softDelService = new(_softDeleteConfigure);
             var status = await softDelService.SetCascadeSoftDeleteAsync(user);
-            _logger.LogSoftDeleteStatus(status);
-            return status.HasErrors ? BadRequest(status.Message) : Ok();
+            _logger.LogStatusGeneric(status);
+            return status.HasErrors ? BadRequest(status.Message) : NoContent();
         }
 
         [HttpPost("user/restore")]
@@ -109,7 +109,7 @@ namespace BlogPlatform.Api.Controllers
 
             CascadeSoftDelServiceAsync<EntityBase> softDelService = new(_softDeleteConfigure);
             var status = await softDelService.ResetCascadeSoftDeleteAsync(user);
-            _logger.LogSoftDeleteStatus(status);
+            _logger.LogStatusGeneric(status);
             return status.HasErrors ? BadRequest(status.Message) : Ok();
         }
 
@@ -160,8 +160,8 @@ namespace BlogPlatform.Api.Controllers
 
             CascadeSoftDelServiceAsync<EntityBase> softDelService = new(_softDeleteConfigure);
             var status = await softDelService.SetCascadeSoftDeleteAsync(post);
-            _logger.LogSoftDeleteStatus(status);
-            return status.HasErrors ? BadRequest(status.Message) : Ok();
+            _logger.LogStatusGeneric(status);
+            return status.HasErrors ? BadRequest(status.Message) : NoContent();
         }
 
         [HttpPost("post/{id:int}/restore")]
@@ -177,7 +177,7 @@ namespace BlogPlatform.Api.Controllers
 
             CascadeSoftDelServiceAsync<EntityBase> softDelService = new(_softDeleteConfigure);
             var status = await softDelService.ResetCascadeSoftDeleteAsync(post);
-            _logger.LogSoftDeleteStatus(status);
+            _logger.LogStatusGeneric(status);
             return status.HasErrors ? BadRequest(status.Message) : Ok();
         }
 
@@ -194,8 +194,8 @@ namespace BlogPlatform.Api.Controllers
 
             CascadeSoftDelServiceAsync<EntityBase> softDelService = new(_softDeleteConfigure);
             var status = await softDelService.SetCascadeSoftDeleteAsync(comment);
-            _logger.LogSoftDeleteStatus(status);
-            return status.HasErrors ? BadRequest(status.Message) : Ok();
+            _logger.LogStatusGeneric(status);
+            return status.HasErrors ? BadRequest(status.Message) : NoContent();
         }
 
         [HttpPost("comment/{id:int}/restore")]
@@ -211,7 +211,7 @@ namespace BlogPlatform.Api.Controllers
 
             CascadeSoftDelServiceAsync<EntityBase> softDelService = new(_softDeleteConfigure);
             var status = await softDelService.ResetCascadeSoftDeleteAsync(comment);
-            _logger.LogSoftDeleteStatus(status);
+            _logger.LogStatusGeneric(status);
             return status.HasErrors ? BadRequest(status.Message) : Ok();
         }
     }

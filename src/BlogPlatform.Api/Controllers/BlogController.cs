@@ -4,12 +4,9 @@ using BlogPlatform.Api.Models;
 using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
-using BlogPlatform.EFCore.Models.Abstractions;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-
-using SoftDeleteServices.Concrete;
 
 using System.ComponentModel.DataAnnotations;
 
@@ -20,13 +17,13 @@ namespace BlogPlatform.Api.Controllers
     public class BlogController : ControllerBase
     {
         private readonly BlogPlatformDbContext _dbContext;
-        private readonly SoftDeleteConfigure _softDeleteConfigure;
+        private readonly ICascadeSoftDeleteService _softDeleteService;
         private readonly ILogger<BlogController> _logger;
 
-        public BlogController(BlogPlatformDbContext dbContext, ILogger<BlogController> logger)
+        public BlogController(BlogPlatformDbContext dbContext, ICascadeSoftDeleteService softDeleteService, ILogger<BlogController> logger)
         {
             _dbContext = dbContext;
-            _softDeleteConfigure = new(_dbContext);
+            _softDeleteService = softDeleteService;
             _logger = logger;
         }
 
@@ -60,7 +57,7 @@ namespace BlogPlatform.Api.Controllers
             await _dbContext.SaveChangesAsync(cancellationToken);
             _logger.LogInformation("Created blog with id {id}", blog.Id);
 
-            return CreatedAtAction("Get", "Blog", routeValues: new { id = blog.Id }, null);
+            return CreatedAtAction(nameof(GetAsync), "Blog", routeValues: new { id = blog.Id }, null);
         }
 
         [UserAuthorize]
@@ -104,10 +101,9 @@ namespace BlogPlatform.Api.Controllers
                 return Forbid();
             }
 
-            CascadeSoftDelServiceAsync<EntityBase> softDeleteService = new(_softDeleteConfigure);
-            var status = await softDeleteService.SetCascadeSoftDeleteAsync(blog);
-            _logger.LogSoftDeleteStatus(status);
-            return status.HasErrors ? BadRequest(status.Message) : Ok();
+            var status = await _softDeleteService.SetSoftDeleteAsync(blog, true);
+            _logger.LogStatusGeneric(status);
+            return status.HasErrors ? BadRequest(status.Message) : NoContent();
         }
 
         [UserAuthorize]
@@ -145,10 +141,9 @@ namespace BlogPlatform.Api.Controllers
                 return BadRequest(new Error("복원할 수 없는 블로그입니다"));
             }
 
-            CascadeSoftDelServiceAsync<EntityBase> softDeleteService = new(_softDeleteConfigure);
-            var status = await softDeleteService.ResetCascadeSoftDeleteAsync(blog);
-            _logger.LogSoftDeleteStatus(status);
-            return status.HasErrors ? BadRequest(status.Message) : Ok();
+            var status = await _softDeleteService.ResetSoftDeleteAsync(blog, true);
+            _logger.LogStatusGeneric(status);
+            return status.HasErrors ? BadRequest(status.Message) : NoContent();
         }
     }
 }

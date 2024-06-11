@@ -13,23 +13,23 @@ namespace BlogPlatform.EFCore
 {
     public class BlogPlatformDbContext : DbContext
     {
-        public DbSet<Blog> Blogs { get; private set; }
+        public virtual DbSet<Blog> Blogs { get; private set; }
 
-        public DbSet<Category> Categories { get; private set; }
+        public virtual DbSet<Category> Categories { get; private set; }
 
-        public DbSet<Post> Posts { get; private set; }
+        public virtual DbSet<Post> Posts { get; private set; }
 
-        public DbSet<Comment> Comments { get; private set; }
+        public virtual DbSet<Comment> Comments { get; private set; }
 
-        public DbSet<User> Users { get; private set; }
+        public virtual DbSet<User> Users { get; private set; }
 
-        public DbSet<BasicAccount> BasicAccounts { get; private set; }
+        public virtual DbSet<BasicAccount> BasicAccounts { get; private set; }
 
-        public DbSet<OAuthAccount> OAuthAccounts { get; private set; }
+        public virtual DbSet<OAuthAccount> OAuthAccounts { get; private set; }
 
-        public DbSet<OAuthProvider> OAuthProviders { get; private set; }
+        public virtual DbSet<OAuthProvider> OAuthProviders { get; private set; }
 
-        public DbSet<Role> Roles { get; private set; }
+        public virtual DbSet<Role> Roles { get; private set; }
 
         public BlogPlatformDbContext(DbContextOptions<BlogPlatformDbContext> options) : base(options)
         {

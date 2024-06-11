@@ -13,13 +13,13 @@ namespace BlogPlatform.EFCore.Models.Abstractions
         /// <summary>
         /// 고유 식별자
         /// </summary>
-        public int Id { get; private set; }
+        public int Id { get; internal set; }
 
         /// <summary>
         /// 생성 시각
         /// </summary>
         [Required]
-        public DateTimeOffset CreatedAt { get; private set; }
+        public DateTimeOffset CreatedAt { get; internal set; }
 
         /// <summary>
         /// 삭제 시각

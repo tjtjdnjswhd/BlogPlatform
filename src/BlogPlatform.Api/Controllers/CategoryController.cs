@@ -1,16 +1,12 @@
 ﻿using BlogPlatform.Api.Helper;
 using BlogPlatform.Api.Identity.Attributes;
-using BlogPlatform.Api.Identity.Services.Interfaces;
 using BlogPlatform.Api.Models;
 using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
-using BlogPlatform.EFCore.Models.Abstractions;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-
-using SoftDeleteServices.Concrete;
 
 namespace BlogPlatform.Api.Controllers
 {
@@ -19,15 +15,13 @@ namespace BlogPlatform.Api.Controllers
     public class CategoryController : ControllerBase
     {
         private readonly BlogPlatformDbContext _dbContext;
-        private readonly IIdentityService _identityService;
-        private readonly SoftDeleteConfigure _softDeleteConfigure;
-        private ILogger<CategoryController> _logger;
+        private readonly ICascadeSoftDeleteService _softDeleteService;
+        private readonly ILogger<CategoryController> _logger;
 
-        public CategoryController(BlogPlatformDbContext dbContext, IIdentityService identityService, SoftDeleteConfigure softDeleteConfigure, ILogger<CategoryController> logger)
+        public CategoryController(BlogPlatformDbContext dbContext, ICascadeSoftDeleteService softDeleteService, ILogger<CategoryController> logger)
         {
             _dbContext = dbContext;
-            _identityService = identityService;
-            _softDeleteConfigure = softDeleteConfigure;
+            _softDeleteService = softDeleteService;
             _logger = logger;
         }
 
@@ -107,9 +101,8 @@ namespace BlogPlatform.Api.Controllers
                 return NotFound(new Error("존재하지 않는 카테고리입니다"));
             }
 
-            CascadeSoftDelServiceAsync<EntityBase> softDelService = new(_softDeleteConfigure);
-            var status = await softDelService.SetCascadeSoftDeleteAsync(category);
-            _logger.LogSoftDeleteStatus(status);
+            var status = await _softDeleteService.SetSoftDeleteAsync(category, true);
+            _logger.LogStatusGeneric(status);
             return status.HasErrors ? BadRequest(status.Message) : NoContent();
         }
 
@@ -124,7 +117,7 @@ namespace BlogPlatform.Api.Controllers
                 return BadRequest(new Error("블로그를 먼저 생성해주세요"));
             }
 
-            Category? category = await _dbContext.Categories.FirstOrDefaultAsync(c => c.BlogId == blogId, cancellationToken);
+            Category? category = await _dbContext.Categories.IgnoreSoftDeleteFilter().FirstOrDefaultAsync(c => c.Id == id && c.BlogId == blogId, cancellationToken);
             if (category == null)
             {
                 _logger.LogInformation("Category for blog with id {blogId} not found", blogId);
@@ -137,9 +130,8 @@ namespace BlogPlatform.Api.Controllers
                 return BadRequest(new Error("삭제되지 않은 카테고리입니다"));
             }
 
-            CascadeSoftDelServiceAsync<EntityBase> softDelService = new(_softDeleteConfigure);
-            var status = await softDelService.ResetCascadeSoftDeleteAsync(category);
-            _logger.LogSoftDeleteStatus(status);
+            var status = await _softDeleteService.ResetSoftDeleteAsync(category, true);
+            _logger.LogStatusGeneric(status);
             return status.HasErrors ? BadRequest(status.Message) : NoContent();
         }
     }
