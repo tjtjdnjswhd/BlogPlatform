@@ -1,6 +1,7 @@
 ﻿using BlogPlatform.Api.Identity.Models;
 using BlogPlatform.Api.Services;
 using BlogPlatform.Api.Services.Interfaces;
+using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
 using BlogPlatform.EFCore.Models.Abstractions;
@@ -21,12 +22,12 @@ namespace BlogPlatform.Api.Tests.Identity
     public class IdentityServiceTests : IDisposable, IClassFixture<DbContextMySqlMigrateFixture>
     {
         private readonly SetUp _setUp;
-        private readonly XUnitLogger<IdentityService> _logger;
+        private readonly ITestOutputHelper _outputHelper;
 
         public IdentityServiceTests(DbContextMySqlMigrateFixture migrateFixture, ITestOutputHelper outputHelper)
         {
             _setUp = new(migrateFixture, outputHelper);
-            _logger = new(outputHelper);
+            _outputHelper = outputHelper;
         }
 
         [Fact]
@@ -714,7 +715,11 @@ namespace BlogPlatform.Api.Tests.Identity
             authenticationService.Setup(a => a.AuthenticateAsync(It.IsAny<HttpContext>(), It.IsAny<string>()))
                                  .ReturnsAsync(AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(new ClaimsIdentity("authType")), "scheme")));
 
-            return new IdentityService(_setUp.DbContext, jwtService.Object, _setUp.PasswordHasher, authenticationService.Object, timeProvider, _logger);
+            XUnitLogger<IdentityService> serviceLogger = new(_outputHelper);
+            XUnitLogger<CascadeSoftDeleteService> deleteLogger = new(_outputHelper);
+            CascadeSoftDeleteService softDeleteService = new(_setUp.DbContext, deleteLogger);
+
+            return new IdentityService(_setUp.DbContext, jwtService.Object, _setUp.PasswordHasher, softDeleteService, authenticationService.Object, timeProvider, serviceLogger);
         }
 
         private static Mock<IJwtService> CreateJwtServiceMock(int userId, bool returns)
