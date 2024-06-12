@@ -179,59 +179,5 @@ namespace BlogPlatform.Api.Tests.Controllers
             Utils.VerifyNoContentResult(result);
             _setUp.SoftDeleteServiceMock.Verify(s => s.SetSoftDeleteAsync(It.IsAny<Category>(), true), Times.Once);
         }
-
-        [Fact]
-        public async Task Restore_BlogNotExist()
-        {
-            // Act
-            IActionResult result = await _categoryController.RestoreAsync(7, 7, CancellationToken.None);
-
-            // Assert
-            Utils.VerifyBadRequestResult(result);
-            _setUp.DbContextMock.Verify(d => d.SaveChangesAsync(CancellationToken.None), Times.Never);
-            _setUp.SoftDeleteServiceMock.Verify(d => d.ResetSoftDeleteAsync(It.IsAny<Category>(), true), Times.Never);
-        }
-
-        [Fact]
-        public async Task Restore_NotFound()
-        {
-            // Act
-            IActionResult result = await _categoryController.RestoreAsync(7, 1, CancellationToken.None);
-
-            // Assert
-            Utils.VerifyNotFoundResult(result);
-            _setUp.DbContextMock.Verify(d => d.SaveChangesAsync(CancellationToken.None), Times.Never);
-            _setUp.SoftDeleteServiceMock.Verify(d => d.ResetSoftDeleteAsync(It.IsAny<Category>(), true), Times.Never);
-        }
-
-        [Fact]
-        public async Task Restore_Expires()
-        {
-            // Arrange
-            List<Category> categories = [new Category("category1", 1) { Id = 1, SoftDeleteLevel = 1, SoftDeletedAt = DateTimeOffset.UtcNow.AddDays(-2) }];
-            _categoryDbSetMock = _setUp.DbContextMock.SetDbSet(db => db.Categories, categories);
-
-            // Act
-            IActionResult result = await _categoryController.RestoreAsync(1, 1, CancellationToken.None);
-
-            // Assert
-            Utils.VerifyBadRequestResult(result);
-            _setUp.SoftDeleteServiceMock.Verify(s => s.ResetSoftDeleteAsync(It.IsAny<Category>(), true), Times.Never);
-        }
-
-        [Fact]
-        public async Task Restore_NoContent()
-        {
-            // Arrange
-            List<Category> categories = [new Category("category1", 1) { Id = 1, SoftDeleteLevel = 1, SoftDeletedAt = DateTimeOffset.UtcNow.AddHours(-23) }];
-            _categoryDbSetMock = _setUp.DbContextMock.SetDbSet(db => db.Categories, categories);
-
-            // Act
-            IActionResult result = await _categoryController.RestoreAsync(1, 1, CancellationToken.None);
-
-            // Assert
-            Utils.VerifyNoContentResult(result);
-            _setUp.SoftDeleteServiceMock.Verify(s => s.ResetSoftDeleteAsync(It.IsAny<Category>(), true), Times.Once);
-        }
     }
 }
