@@ -101,7 +101,7 @@ namespace BlogPlatform.Api.Controllers
 
             if (search.Tags is not null)
             {
-                postQuery = postQuery.FilterTag(search.Tags, search.TagFilter);
+                postQuery = postQuery.FilterTag(search.Tags, search.TagFilterOption);
             }
 
             postQuery = search.OrderBy switch
@@ -127,7 +127,7 @@ namespace BlogPlatform.Api.Controllers
                 _ => throw new InvalidEnumArgumentException(nameof(search.OrderBy), (int)search.OrderBy, typeof(EPostSearchOrderBy))
             };
 
-            postQuery = postQuery.Skip((search.Page - 1) * 20).Take(20);
+            postQuery = postQuery.Skip((search.Page - 1) * search.PageSize).Take(search.PageSize);
 
             IQueryable<PostSearchResult> result = postQuery.Select(p => new PostSearchResult(p.Id, p.Title, p.CategoryId));
 
@@ -169,7 +169,7 @@ namespace BlogPlatform.Api.Controllers
             await _dbContext.SaveChangesAsync(cancellationToken);
             transaction.Commit();
 
-            return CreatedAtAction(nameof(GetAsync), new { id = post.Id }, post);
+            return CreatedAtAction(nameof(GetAsync), "Post", new { id = post.Id }, null);
         }
 
         [HttpPut("{id:int}")]
@@ -222,7 +222,7 @@ namespace BlogPlatform.Api.Controllers
             await _dbContext.SaveChangesAsync(cancellationToken);
             transaction.Commit();
 
-            return Ok();
+            return NoContent();
         }
 
         [HttpDelete("{id:int}")]
@@ -245,21 +245,21 @@ namespace BlogPlatform.Api.Controllers
 
             var status = await _softDeleteService.SetSoftDeleteAsync(post, true);
             _logger.LogStatusGeneric(status);
-            return status.HasErrors ? BadRequest(status.Message) : NoContent();
+            return status.HasErrors ? BadRequest(new Error(status.Message)) : NoContent();
         }
 
         [HttpPost("restore/{id:int}")]
         [UserAuthorize]
         public async Task<IActionResult> RestoreAsync([FromRoute] int id, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
-            Post? post = await _dbContext.Posts.FindAsync([id], cancellationToken);
+            Post? post = await _dbContext.Posts.IgnoreSoftDeleteFilter().FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
             if (post == null)
             {
                 _logger.LogInformation("Post with id {id} not found", id);
                 return NotFound(new Error("존재하지 않는 포스트입니다"));
             }
 
-            if (post.SoftDeleteLevel == 0)
+            if (post.IsSoftDeletedAtDefault())
             {
                 _logger.LogInformation("Post with id {id} is not deleted", id);
                 return BadRequest(new Error("삭제되지 않은 포스트입니다"));

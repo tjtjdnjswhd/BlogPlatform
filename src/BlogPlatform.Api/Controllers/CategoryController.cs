@@ -103,7 +103,7 @@ namespace BlogPlatform.Api.Controllers
 
             var status = await _softDeleteService.SetSoftDeleteAsync(category, true);
             _logger.LogStatusGeneric(status);
-            return status.HasErrors ? BadRequest(status.Message) : NoContent();
+            return status.HasErrors ? BadRequest(new Error(status.Message)) : NoContent();
         }
 
         [UserAuthorize]

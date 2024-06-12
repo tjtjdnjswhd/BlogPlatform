@@ -9,6 +9,8 @@ using Microsoft.EntityFrameworkCore;
 
 using Moq;
 
+using StatusGeneric;
+
 using Xunit.Abstractions;
 
 using Utils = BlogPlatform.Api.Tests.Controllers.ControllerTestsUtils;
@@ -149,6 +151,22 @@ namespace BlogPlatform.Api.Tests.Controllers
             Utils.VerifyNotFoundResult(result);
             _setUp.DbContextMock.Verify(d => d.SaveChangesAsync(CancellationToken.None), Times.Never);
             _setUp.SoftDeleteServiceMock.Verify(s => s.SetSoftDeleteAsync(It.IsAny<Category>(), true), Times.Never);
+        }
+
+        [Fact]
+        public async Task Delete_BadRequest()
+        {
+            // Arrange
+            StatusGenericHandler<int> errorStatus = new();
+            errorStatus.AddError("error");
+            _setUp.SoftDeleteServiceMock.Setup(s => s.SetSoftDeleteAsync(It.IsAny<Category>(), It.IsAny<bool>()))
+                .ReturnsAsync(errorStatus);
+
+            // Act
+            IActionResult result = await _categoryController.DeleteAsync(1, 1, CancellationToken.None);
+
+            // Assert
+            Utils.VerifyBadRequestResult(result);
         }
 
         [Fact]

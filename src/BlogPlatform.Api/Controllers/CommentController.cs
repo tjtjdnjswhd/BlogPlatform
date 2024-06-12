@@ -25,19 +25,19 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpGet("{id:int}")]
-        public async Task<IActionResult> GetAsync([FromRoute] int id)
+        public async Task<IActionResult> GetAsync([FromRoute] int id, CancellationToken cancellationToken)
         {
-            Comment? comment = await _dbContext.Comments.FindAsync(id);
+            Comment? comment = await _dbContext.Comments.FindAsync([id], cancellationToken);
             if (comment == null)
             {
-                return NotFound();
+                return NotFound(new Error("존재하지 않는 댓글입니다"));
             }
 
             return Ok(new CommentRead(comment.Id, comment.Content, comment.CreatedAt, comment.LastUpdatedAt, comment.PostId, comment.UserId, comment.ParentCommentId));
         }
 
         [HttpGet("post/{postId:int}")]
-        public IAsyncEnumerable<CommentRead> GetByPostAsync([FromRoute] int postId, [FromQuery] int page)
+        public IAsyncEnumerable<CommentRead> GetByPost([FromRoute] int postId, [FromQuery] int page)
         {
             IAsyncEnumerable<CommentRead> queryResult = _dbContext.Comments
                 .Where(c => c.PostId == postId)
@@ -53,7 +53,8 @@ namespace BlogPlatform.Api.Controllers
         public IAsyncEnumerable<CommentSearchResult> GetAsync([FromQuery] CommentSearch commentSearch)
         {
             IQueryable<Comment> query = _dbContext.Comments;
-            if (!string.IsNullOrWhiteSpace(commentSearch.Content))
+
+            if (commentSearch.Content is not null)
             {
                 query = query.Where(c => c.Content.Contains(commentSearch.Content));
             }
@@ -81,7 +82,7 @@ namespace BlogPlatform.Api.Controllers
         [UserAuthorize]
         public async Task<IActionResult> CreateAsync([FromForm] string content, [FromForm] int postId, [FromForm] int? parentCommentId, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
-            if (await _dbContext.Posts.AnyAsync(p => p.Id == postId, cancellationToken))
+            if (!await _dbContext.Posts.AnyAsync(p => p.Id == postId, cancellationToken))
             {
                 return NotFound(new Error("존재하지 않는 게시글입니다"));
             }
@@ -117,7 +118,7 @@ namespace BlogPlatform.Api.Controllers
             comment.LastUpdatedAt = DateTimeOffset.UtcNow;
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            return Ok();
+            return NoContent();
         }
 
         [HttpDelete("{id:int}")]
@@ -137,7 +138,7 @@ namespace BlogPlatform.Api.Controllers
 
             var status = await _softDeleteService.SetSoftDeleteAsync(comment, true);
             _logger.LogStatusGeneric(status);
-            return status.HasErrors ? BadRequest(status.Message) : NoContent();
+            return status.HasErrors ? BadRequest(new Error(status.Message)) : NoContent();
         }
     }
 }

@@ -5,16 +5,23 @@ using System.ComponentModel.DataAnnotations;
 
 namespace BlogPlatform.Api.Models
 {
-    public record PostSearch(int? BlogId, int? CategoryId, string? Title, string? Content, DateTimeOffset? CreatedAtStart, DateTimeOffset? CreatedAtEnd, DateTimeOffset? UpdatedAtStart, DateTimeOffset? UpdatedAtEnd, IEnumerable<string>? Tags) : IValidatableObject
+    public record PostSearch(int? BlogId,
+                             int? CategoryId,
+                             string? Title,
+                             string? Content,
+                             DateTimeOffset? CreatedAtStart,
+                             DateTimeOffset? CreatedAtEnd,
+                             DateTimeOffset? UpdatedAtStart,
+                             DateTimeOffset? UpdatedAtEnd,
+                             IEnumerable<string>? Tags,
+                             TagFilterOption TagFilterOption = TagFilterOption.All,
+                             EPostSearchOrderBy OrderBy = EPostSearchOrderBy.CreatedAt,
+                             ListSortDirection OrderDirection = ListSortDirection.Ascending,
+                             int Page = 1,
+                             [Range(1, 100)]
+                             int PageSize = 50)
+        : IValidatableObject
     {
-        public TagFilterOption TagFilter { get; init; } = TagFilterOption.All;
-
-        public EPostSearchOrderBy OrderBy { get; init; } = EPostSearchOrderBy.CreatedAt;
-
-        public ListSortDirection OrderDirection { get; init; } = ListSortDirection.Ascending;
-
-        public int Page { get; init; } = 1;
-
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
             if (CategoryId is null && BlogId == default)

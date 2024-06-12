@@ -9,6 +9,8 @@ using Microsoft.EntityFrameworkCore;
 
 using Moq;
 
+using StatusGeneric;
+
 using Xunit.Abstractions;
 
 using Utils = BlogPlatform.Api.Tests.Controllers.ControllerTestsUtils;
@@ -147,6 +149,22 @@ namespace BlogPlatform.Api.Tests.Controllers
         }
 
         [Fact]
+        public async Task Delete_BadRequest()
+        {
+            // Arrange
+            StatusGenericHandler<int> errorStatus = new();
+            errorStatus.AddError("error");
+            _setUp.SoftDeleteServiceMock.Setup(s => s.SetSoftDeleteAsync(It.IsAny<Blog>(), It.IsAny<bool>()))
+                .ReturnsAsync(errorStatus);
+
+            // Act
+            IActionResult result = await _blogController.DeleteAsync(1, 1, CancellationToken.None);
+
+            // Assert
+            Utils.VerifyBadRequestResult(result);
+        }
+
+        [Fact]
         public async Task Delete_NoContent()
         {
             // Act
@@ -166,7 +184,6 @@ namespace BlogPlatform.Api.Tests.Controllers
 
             // Assert
             Utils.VerifyNotFoundResult(result);
-            _blogDbSetMock.Verify(d => d.FindAsync(new object[] { 5 }, CancellationToken.None), Times.Once);
         }
 
         [Fact]
@@ -177,7 +194,6 @@ namespace BlogPlatform.Api.Tests.Controllers
 
             // Assert
             Utils.VerifyBadRequestResult(result);
-            _blogDbSetMock.Verify(d => d.FindAsync(new object[] { 1 }, CancellationToken.None), Times.Once);
         }
 
         [Fact]
@@ -189,12 +205,13 @@ namespace BlogPlatform.Api.Tests.Controllers
                 new("blog1", "description1", 1) { Id = 1, SoftDeletedAt = DateTimeOffset.UtcNow.AddDays(-2) }
             ];
 
+            _blogDbSetMock = _setUp.DbContextMock.SetDbSet(db => db.Blogs, blogs);
+
             // Act
             IActionResult result = await _blogController.RestoreAsync(1, 1, CancellationToken.None);
 
             // Assert
             Utils.VerifyBadRequestResult(result);
-            _blogDbSetMock.Verify(d => d.FindAsync(new object[] { 1 }, CancellationToken.None), Times.Once);
         }
 
         [Fact]
@@ -213,7 +230,6 @@ namespace BlogPlatform.Api.Tests.Controllers
 
             // Assert
             Utils.VerifyForbidResult(result);
-            _blogDbSetMock.Verify(d => d.FindAsync(new object[] { 1 }, CancellationToken.None), Times.Once);
         }
 
         [Fact]

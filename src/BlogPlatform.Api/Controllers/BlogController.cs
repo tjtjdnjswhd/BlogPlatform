@@ -103,14 +103,14 @@ namespace BlogPlatform.Api.Controllers
 
             var status = await _softDeleteService.SetSoftDeleteAsync(blog, true);
             _logger.LogStatusGeneric(status);
-            return status.HasErrors ? BadRequest(status.Message) : NoContent();
+            return status.HasErrors ? BadRequest(new Error(status.Message)) : NoContent();
         }
 
         [UserAuthorize]
         [HttpPost("restore/{id:int}")]
         public async Task<IActionResult> RestoreAsync([FromRoute] int id, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
-            Blog? blog = await _dbContext.Blogs.FindAsync([id], cancellationToken);
+            Blog? blog = await _dbContext.Blogs.IgnoreSoftDeleteFilter().FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
             if (blog == null)
             {
                 _logger.LogInformation("Blog with id {id} not found", id);
