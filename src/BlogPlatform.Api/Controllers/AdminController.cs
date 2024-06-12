@@ -5,12 +5,9 @@ using BlogPlatform.Api.Services.Interfaces;
 using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
-using BlogPlatform.EFCore.Models.Abstractions;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-
-using SoftDeleteServices.Concrete;
 
 namespace BlogPlatform.Api.Controllers
 {
@@ -20,24 +17,25 @@ namespace BlogPlatform.Api.Controllers
     public class AdminController : ControllerBase
     {
         private readonly BlogPlatformDbContext _dbContext;
-        private readonly SoftDeleteConfigure _softDeleteConfigure;
+        private readonly ICascadeSoftDeleteService _softDeleteService;
         private readonly IMailSender _mailSender;
         private readonly ILogger<AdminController> _logger;
 
-        public AdminController(BlogPlatformDbContext dbContext, SoftDeleteConfigure softDeleteConfigure, IMailSender mailSender, ILogger<AdminController> logger)
+        public AdminController(BlogPlatformDbContext dbContext, ICascadeSoftDeleteService softDeleteService, IMailSender mailSender, ILogger<AdminController> logger)
         {
             _dbContext = dbContext;
-            _softDeleteConfigure = softDeleteConfigure;
+            _softDeleteService = softDeleteService;
             _mailSender = mailSender;
             _logger = logger;
         }
 
         [HttpPost("send-email")]
-        public async Task<IActionResult> SendEmails([FromForm] string subject, [FromForm] string body, [FromForm] List<string>? addresses, CancellationToken cancellationToken)
+        public async Task<IActionResult> SendEmails([FromForm] string subject, [FromForm] string body, [FromForm] List<int>? userIds, CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Sending emails to {Addresses}", addresses);
+            _logger.LogInformation("Sending emails to {userIds}", userIds);
 
-            addresses ??= await _dbContext.Users.Select(u => u.Email).ToListAsync(cancellationToken);
+            List<string> addresses = userIds is null ? await _dbContext.Users.Select(u => u.Email).ToListAsync(cancellationToken) : await _dbContext.Users.Where(u => userIds.Contains(u.Id)).Select(u => u.Email).ToListAsync(cancellationToken);
+
             addresses.AsParallel().ForAll(address =>
             {
                 _mailSender.Send("no-reply", address, subject, body, cancellationToken);
@@ -68,7 +66,7 @@ namespace BlogPlatform.Api.Controllers
             UserRead? userRead = await users.Select(u => new UserRead(u.Id, u.BasicAccounts.First().AccountId, u.Name, u.Email, u.CreatedAt, u.Blog.First().Id)).FirstOrDefaultAsync(cancellationToken);
             if (userRead is null)
             {
-                return NotFound();
+                return NotFound(new Error("존재하지 않는 유저입니다"));
             }
 
             if (userRead.BlogId is not null)
@@ -87,13 +85,12 @@ namespace BlogPlatform.Api.Controllers
             User? user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
             if (user is null)
             {
-                return NotFound();
+                return NotFound(new Error("존재하지 않는 유저입니다"));
             }
 
-            CascadeSoftDelServiceAsync<EntityBase> softDelService = new(_softDeleteConfigure);
-            var status = await softDelService.SetCascadeSoftDeleteAsync(user);
+            var status = await _softDeleteService.SetSoftDeleteAsync(user, true);
             _logger.LogStatusGeneric(status);
-            return status.HasErrors ? BadRequest(status.Message) : NoContent();
+            return status.HasErrors ? StatusCode(StatusCodes.Status500InternalServerError, new Error(status.Message)) : NoContent();
         }
 
         [HttpPost("user/restore")]
@@ -104,13 +101,13 @@ namespace BlogPlatform.Api.Controllers
             User? user = await _dbContext.Users.IgnoreSoftDeleteFilter().FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
             if (user is null)
             {
-                return NotFound();
+                return NotFound(new Error("존재하지 않는 유저입니다"));
             }
 
-            CascadeSoftDelServiceAsync<EntityBase> softDelService = new(_softDeleteConfigure);
-            var status = await softDelService.ResetCascadeSoftDeleteAsync(user);
+            var status = await _softDeleteService.ResetSoftDeleteAsync(user, true);
             _logger.LogStatusGeneric(status);
-            return status.HasErrors ? BadRequest(status.Message) : Ok();
+
+            return status.HasErrors ? StatusCode(StatusCodes.Status500InternalServerError, new Error(status.Message)) : NoContent();
         }
 
         [HttpPost("user/ban")]
@@ -121,7 +118,7 @@ namespace BlogPlatform.Api.Controllers
             User? user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
             if (user is null)
             {
-                return NotFound();
+                return NotFound(new Error("존재하지 않는 유저입니다"));
             }
 
             user.BanExpiresAt = DateTimeOffset.UtcNow.Add(banDuration);
@@ -138,7 +135,7 @@ namespace BlogPlatform.Api.Controllers
             User? user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
             if (user is null)
             {
-                return NotFound();
+                return NotFound(new Error("존재하지 않는 유저입니다"));
             }
 
             user.BanExpiresAt = null;
@@ -155,13 +152,12 @@ namespace BlogPlatform.Api.Controllers
             Post? post = await _dbContext.Posts.FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
             if (post is null)
             {
-                return NotFound();
+                return NotFound(new Error("존재하지 않는 게시글입니다"));
             }
 
-            CascadeSoftDelServiceAsync<EntityBase> softDelService = new(_softDeleteConfigure);
-            var status = await softDelService.SetCascadeSoftDeleteAsync(post);
+            var status = await _softDeleteService.SetSoftDeleteAsync(post, true);
             _logger.LogStatusGeneric(status);
-            return status.HasErrors ? BadRequest(status.Message) : NoContent();
+            return status.HasErrors ? StatusCode(StatusCodes.Status500InternalServerError, new Error(status.Message)) : NoContent();
         }
 
         [HttpPost("post/{id:int}/restore")]
@@ -172,13 +168,12 @@ namespace BlogPlatform.Api.Controllers
             Post? post = await _dbContext.Posts.IgnoreSoftDeleteFilter().FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
             if (post is null)
             {
-                return NotFound();
+                return NotFound(new Error("존재하지 않는 게시글입니다"));
             }
 
-            CascadeSoftDelServiceAsync<EntityBase> softDelService = new(_softDeleteConfigure);
-            var status = await softDelService.ResetCascadeSoftDeleteAsync(post);
+            var status = await _softDeleteService.ResetSoftDeleteAsync(post, true);
             _logger.LogStatusGeneric(status);
-            return status.HasErrors ? BadRequest(status.Message) : Ok();
+            return status.HasErrors ? StatusCode(StatusCodes.Status500InternalServerError, new Error(status.Message)) : NoContent();
         }
 
         [HttpDelete("comment/{id:int}")]
@@ -189,13 +184,12 @@ namespace BlogPlatform.Api.Controllers
             Comment? comment = await _dbContext.Comments.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
             if (comment is null)
             {
-                return NotFound();
+                return NotFound(new Error("존재하지 않는 댓글입니다"));
             }
 
-            CascadeSoftDelServiceAsync<EntityBase> softDelService = new(_softDeleteConfigure);
-            var status = await softDelService.SetCascadeSoftDeleteAsync(comment);
+            var status = await _softDeleteService.SetSoftDeleteAsync(comment, true);
             _logger.LogStatusGeneric(status);
-            return status.HasErrors ? BadRequest(status.Message) : NoContent();
+            return status.HasErrors ? StatusCode(StatusCodes.Status500InternalServerError, new Error(status.Message)) : NoContent();
         }
 
         [HttpPost("comment/{id:int}/restore")]
@@ -206,13 +200,12 @@ namespace BlogPlatform.Api.Controllers
             Comment? comment = await _dbContext.Comments.IgnoreSoftDeleteFilter().FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
             if (comment is null)
             {
-                return NotFound();
+                return NotFound(new Error("존재하지 않는 댓글입니다"));
             }
 
-            CascadeSoftDelServiceAsync<EntityBase> softDelService = new(_softDeleteConfigure);
-            var status = await softDelService.ResetCascadeSoftDeleteAsync(comment);
+            var status = await _softDeleteService.ResetSoftDeleteAsync(comment, true);
             _logger.LogStatusGeneric(status);
-            return status.HasErrors ? BadRequest(status.Message) : Ok();
+            return status.HasErrors ? StatusCode(StatusCodes.Status500InternalServerError, new Error(status.Message)) : NoContent();
         }
     }
 }

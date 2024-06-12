@@ -259,7 +259,7 @@ namespace BlogPlatform.Api.Tests.Controllers
         }
 
         [Fact]
-        public async Task Delete_BadRequest()
+        public async Task Delete_InternalServerError()
         {
             // Arrange
             StatusGenericHandler<int> errorStatus = new();
@@ -271,7 +271,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             IActionResult result = await _postController.DeleteAsync(1, 1, CancellationToken.None);
 
             // Assert
-            Utils.VerifyBadRequestResult(result);
+            Utils.VerifyInternalServerError(result);
         }
 
         [Fact]

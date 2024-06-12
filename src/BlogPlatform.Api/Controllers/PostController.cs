@@ -159,7 +159,7 @@ namespace BlogPlatform.Api.Controllers
             {
                 _logger.LogWarning("Some images not found in cache. Post creation aborted.");
                 transaction.Rollback();
-                return BadRequest(new Error("이미지를 저장하는데 실패했습니다"));
+                return StatusCode(StatusCodes.Status500InternalServerError, new Error("이미지를 저장하는데 실패했습니다"));
             }
 
             Post post = new(title, content, categoryInfo.Id);
@@ -208,7 +208,7 @@ namespace BlogPlatform.Api.Controllers
             {
                 _logger.LogWarning("Some images not found in cache. Post update aborted.");
                 transaction.Rollback();
-                return BadRequest(new Error("이미지를 저장하는데 실패했습니다"));
+                return StatusCode(StatusCodes.Status500InternalServerError, new Error("이미지를 저장하는데 실패했습니다"));
             }
 
             await imageServiceWithTransaction.RemoveImageFromDatabaseAsync(deletedImgSrcs, cancellationToken);
@@ -245,7 +245,7 @@ namespace BlogPlatform.Api.Controllers
 
             var status = await _softDeleteService.SetSoftDeleteAsync(post, true);
             _logger.LogStatusGeneric(status);
-            return status.HasErrors ? BadRequest(new Error(status.Message)) : NoContent();
+            return status.HasErrors ? StatusCode(StatusCodes.Status500InternalServerError, new Error(status.Message)) : NoContent();
         }
 
         [HttpPost("restore/{id:int}")]
@@ -274,7 +274,7 @@ namespace BlogPlatform.Api.Controllers
 
             var status = await _softDeleteService.ResetSoftDeleteAsync(post, true);
             _logger.LogStatusGeneric(status);
-            return status.HasErrors ? BadRequest(status.Message) : NoContent();
+            return status.HasErrors ? StatusCode(StatusCodes.Status500InternalServerError, new Error(status.Message)) : NoContent();
         }
 
         [HttpPost("image")]

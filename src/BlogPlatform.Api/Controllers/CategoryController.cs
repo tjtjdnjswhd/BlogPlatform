@@ -103,7 +103,7 @@ namespace BlogPlatform.Api.Controllers
 
             var status = await _softDeleteService.SetSoftDeleteAsync(category, true);
             _logger.LogStatusGeneric(status);
-            return status.HasErrors ? BadRequest(new Error(status.Message)) : NoContent();
+            return status.HasErrors ? StatusCode(StatusCodes.Status500InternalServerError, new Error(status.Message)) : NoContent();
         }
 
         [UserAuthorize]
@@ -132,7 +132,7 @@ namespace BlogPlatform.Api.Controllers
 
             var status = await _softDeleteService.ResetSoftDeleteAsync(category, true);
             _logger.LogStatusGeneric(status);
-            return status.HasErrors ? BadRequest(status.Message) : NoContent();
+            return status.HasErrors ? StatusCode(StatusCodes.Status500InternalServerError, new Error(status.Message)) : NoContent();
         }
     }
 }

@@ -138,7 +138,7 @@ namespace BlogPlatform.Api.Controllers
 
             var status = await _softDeleteService.SetSoftDeleteAsync(comment, true);
             _logger.LogStatusGeneric(status);
-            return status.HasErrors ? BadRequest(new Error(status.Message)) : NoContent();
+            return status.HasErrors ? StatusCode(StatusCodes.Status500InternalServerError, new Error(status.Message)) : NoContent();
         }
     }
 }

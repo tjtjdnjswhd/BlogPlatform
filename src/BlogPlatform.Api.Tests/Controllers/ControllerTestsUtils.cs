@@ -35,6 +35,13 @@ namespace BlogPlatform.Api.Tests.Controllers
             return VerifyErrorResult(objectResult);
         }
 
+        public static Error VerifyInternalServerError(IActionResult actionResult)
+        {
+            ObjectResult statusCodeResult = Assert.IsType<ObjectResult>(actionResult);
+            Assert.Equal(500, statusCodeResult.StatusCode);
+            return VerifyErrorResult(statusCodeResult);
+        }
+
         public static void VerifyNoContentResult(IActionResult actionResult)
         {
             Assert.IsType<NoContentResult>(actionResult);
