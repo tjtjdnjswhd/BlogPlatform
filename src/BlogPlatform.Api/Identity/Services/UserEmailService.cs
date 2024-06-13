@@ -1,5 +1,6 @@
 ﻿using BlogPlatform.Api.Identity.Options;
 using BlogPlatform.Api.Identity.Services.Interfaces;
+using BlogPlatform.Api.Services;
 using BlogPlatform.Api.Services.Interfaces;
 
 using Microsoft.Extensions.Caching.Distributed;
@@ -7,27 +8,46 @@ using Microsoft.Extensions.Options;
 
 namespace BlogPlatform.Api.Identity.Services
 {
-    public class VerifyEmailService : IVerifyEmailService
+    public class UserEmailService : IUserEmailService
     {
-        private static readonly DistributedCacheEntryOptions CacheExipirationOption = new()
-        {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10),
-        };
-
         private const string VerificationCodePrefix = "EmailVerificationCode";
         private const string VerifiedEmailPrefix = "VerifiedEmail";
 
         private readonly IMailSender _mailSender;
         private readonly IDistributedCache _cache;
-        private readonly VerifyEmailOptions _verifyEmailOptions;
-        private readonly ILogger<VerifyEmailService> _logger;
+        private readonly UserEmailOptions _options;
+        private readonly ILogger<UserEmailService> _logger;
+        private readonly DistributedCacheEntryOptions _verifyExpiration;
 
-        public VerifyEmailService(IMailSender mailSender, IDistributedCache cache, IOptions<VerifyEmailOptions> verifyEmailOptions, ILogger<VerifyEmailService> logger)
+        public UserEmailService(IMailSender mailSender, IDistributedCache cache, IOptions<UserEmailOptions> options, ILogger<UserEmailService> logger)
         {
             _mailSender = mailSender;
             _cache = cache;
-            _verifyEmailOptions = verifyEmailOptions.Value;
+            _options = options.Value;
             _logger = logger;
+
+            _verifyExpiration = new()
+            {
+                AbsoluteExpirationRelativeToNow = options.Value.EmailVerifyExpiration,
+            };
+        }
+
+        /// <inheritdoc/>
+        public void SendPasswordResetMail(string email, string newPassword, CancellationToken cancellationToken = default)
+        {
+            _logger.LogDebug("Sending password reset email for {email}: {password}", email, newPassword);
+            MailSendContext context = new(null, "user", email, _options.PasswordResetSubject, string.Format(_options.PasswordResetSubject, newPassword));
+            _mailSender.Send(context, cancellationToken);
+            _logger.LogInformation("Password reset email for {email} is sent", email);
+        }
+
+        /// <inheritdoc/>
+        public void SendAccountIdMail(string email, string accountId, CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation("Email for account ID {accountId} is sent to {email}", accountId, email);
+            MailSendContext context = new(null, "user", email, _options.AccountIdSubject, string.Format(_options.AccountIdBody, accountId));
+            _mailSender.Send(context, cancellationToken);
+            _logger.LogInformation("Account ID email for {email} is sent", email);
         }
 
         /// <inheritdoc/>
@@ -35,8 +55,11 @@ namespace BlogPlatform.Api.Identity.Services
         {
             string code = Random.Shared.Next(0, 99999999).ToString("D8");
             string cacheKey = GetVerificationCodeKey(code);
-            await _cache.SetStringAsync(cacheKey, email, CacheExipirationOption, cancellationToken);
-            _mailSender.Send(_verifyEmailOptions.From, email, _verifyEmailOptions.Subject, _verifyEmailOptions.BodyFactory(code), CancellationToken.None);
+            _logger.LogDebug("Sending email verification code {code} to {email}", code, email);
+            await _cache.SetStringAsync(cacheKey, email, _verifyExpiration, cancellationToken);
+
+            MailSendContext context = new(null, "user", email, _options.EmailVerifySubject, string.Format(_options.EmailVerifyBody, code));
+            _mailSender.Send(context, cancellationToken);
 
             _logger.LogInformation("Email verification code {code} for {email} is sent", code, email);
         }
@@ -52,7 +75,7 @@ namespace BlogPlatform.Api.Identity.Services
             if (email is not null)
             {
                 string verifiedEmailKey = GetVerifiedEmailKey(email);
-                await _cache.SetStringAsync(verifiedEmailKey, string.Empty, CacheExipirationOption, cancellationToken);
+                await _cache.SetStringAsync(verifiedEmailKey, string.Empty, _verifyExpiration, cancellationToken);
                 await _cache.RemoveAsync(cacheKey, cancellationToken);
 
                 _logger.LogInformation("Email {email} is verified", email);

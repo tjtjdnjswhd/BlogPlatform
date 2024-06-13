@@ -29,8 +29,8 @@ namespace BlogPlatform.Api.Identity.Filters
             Debug.Assert(info is not null);
 
             using var scope = context.HttpContext.RequestServices.CreateScope();
-            IVerifyEmailService verifyEmailService = scope.ServiceProvider.GetRequiredService<IVerifyEmailService>();
-            bool isVerified = await verifyEmailService.IsVerifyAsync(info.Email, cancellationToken);
+            IUserEmailService userEmailService = scope.ServiceProvider.GetRequiredService<IUserEmailService>();
+            bool isVerified = await userEmailService.IsVerifyAsync(info.Email, cancellationToken);
             if (!isVerified)
             {
                 context.Result = new ForbidResult();

@@ -20,17 +20,13 @@ namespace BlogPlatform.Api.Controllers
     public class IdentityController : ControllerBase
     {
         private readonly IIdentityService _identityService;
-        private readonly IVerifyEmailService _verifyEmailService;
-        private readonly IPasswordResetMailService _passwordResetService;
-        private readonly IFindAccountIdMailService _findAccountIdMailService;
+        private readonly IUserEmailService _userEmailService;
         private readonly ILogger<IdentityController> _logger;
 
-        public IdentityController(IIdentityService identityService, IVerifyEmailService verifyEmailService, IPasswordResetMailService passwordResetService, IFindAccountIdMailService findAccountIdMailService, ILogger<IdentityController> logger)
+        public IdentityController(IIdentityService identityService, IUserEmailService userEmailService, ILogger<IdentityController> logger)
         {
             _identityService = identityService;
-            _verifyEmailService = verifyEmailService;
-            _passwordResetService = passwordResetService;
-            _findAccountIdMailService = findAccountIdMailService;
+            _userEmailService = userEmailService;
             _logger = logger;
         }
 
@@ -54,14 +50,14 @@ namespace BlogPlatform.Api.Controllers
         [HttpPost("signup/basic/email")]
         public async Task<IActionResult> SendVerifyEmailAsync([FromForm, EmailAddress] string email, CancellationToken cancellationToken)
         {
-            await _verifyEmailService.SendEmailVerificationAsync(email, cancellationToken);
+            await _userEmailService.SendEmailVerificationAsync(email, cancellationToken);
             return Ok();
         }
 
         [HttpGet("signup/basic/email")]
         public async Task<IActionResult> VerifyEmailAsync([FromQuery] string code, CancellationToken cancellationToken)
         {
-            string? email = await _verifyEmailService.VerifyEmailCodeAsync(code, cancellationToken);
+            string? email = await _userEmailService.VerifyEmailCodeAsync(code, cancellationToken);
             return email is not null ? Ok() : BadRequest(new Error("잘못된 코드입니다."));
         }
 
@@ -203,7 +199,7 @@ namespace BlogPlatform.Api.Controllers
                 return NotFound(new Error("존재하지 않는 계정의 이메일입니다."));
             }
 
-            _passwordResetService.SendResetPasswordEmail(email, newPassword);
+            _userEmailService.SendPasswordResetMail(email, newPassword, CancellationToken.None);
             return Ok();
         }
 
@@ -224,7 +220,7 @@ namespace BlogPlatform.Api.Controllers
                 return NotFound();
             }
 
-            _findAccountIdMailService.SendMail(email, accountId);
+            _userEmailService.SendAccountIdMail(email, accountId, cancellationToken);
             return Ok();
         }
 
@@ -255,7 +251,7 @@ namespace BlogPlatform.Api.Controllers
         [UserAuthorize]
         public async Task<IActionResult> ChangeEmailAsync([FromForm, EmailAddress] string newEmail, CancellationToken cancellationToken)
         {
-            await _verifyEmailService.SendEmailVerificationAsync(newEmail, cancellationToken);
+            await _userEmailService.SendEmailVerificationAsync(newEmail, cancellationToken);
             return Ok();
         }
 
@@ -263,7 +259,7 @@ namespace BlogPlatform.Api.Controllers
         [UserAuthorize]
         public async Task<IActionResult> ConfirmChangeEmailAsync([FromQuery] string code, CancellationToken cancellationToken)
         {
-            string? email = await _verifyEmailService.VerifyEmailCodeAsync(code, cancellationToken);
+            string? email = await _userEmailService.VerifyEmailCodeAsync(code, cancellationToken);
             if (email is null)
             {
                 return BadRequest(new Error("잘못된 코드입니다."));

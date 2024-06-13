@@ -1,6 +1,7 @@
 ﻿using BlogPlatform.Api.Helper;
 using BlogPlatform.Api.Identity.Attributes;
 using BlogPlatform.Api.Models;
+using BlogPlatform.Api.Services;
 using BlogPlatform.Api.Services.Interfaces;
 using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Extensions;
@@ -38,7 +39,8 @@ namespace BlogPlatform.Api.Controllers
 
             addresses.AsParallel().ForAll(address =>
             {
-                _mailSender.Send("no-reply", address, subject, body, cancellationToken);
+                MailSendContext context = new("admin", "user", address, subject, body);
+                _mailSender.Send(context, cancellationToken);
             });
 
             return Ok();

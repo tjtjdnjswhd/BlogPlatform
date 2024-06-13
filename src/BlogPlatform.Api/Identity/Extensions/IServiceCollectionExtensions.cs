@@ -4,6 +4,7 @@ using AspNet.Security.OAuth.Naver;
 using BlogPlatform.Api.Identity.Constants;
 using BlogPlatform.Api.Identity.Filters;
 using BlogPlatform.Api.Identity.Options;
+using BlogPlatform.Api.Identity.Services;
 using BlogPlatform.Api.Identity.Services.Interfaces;
 using BlogPlatform.Api.Services;
 using BlogPlatform.Api.Services.Interfaces;
@@ -20,26 +21,31 @@ using System.Text;
 
 namespace BlogPlatform.Api.Identity.Extensions
 {
-    public static class WebApplicationBuilderExtensions
+    public static class IServiceCollectionExtensions
     {
-        public static WebApplicationBuilder AddJwtIdentity(this WebApplicationBuilder builder)
+        public static IServiceCollection AddIdentity(this IServiceCollection services, IConfigurationSection optionsSection, IConfigurationSection oauthProviderSection)
         {
-            builder.Services.AddScoped<IIdentityService, IdentityService>();
-            builder.Services.AddScoped<IJwtService, JwtService>();
-            builder.Services.AddScoped<IPasswordHasher<BasicAccount>, PasswordHasher<BasicAccount>>();
+            services.AddScoped<IIdentityService, IdentityService>();
+            services.AddScoped<IJwtService, JwtService>();
+            services.AddScoped<IUserEmailService, UserEmailService>();
+            services.AddScoped<IPasswordHasher<BasicAccount>, PasswordHasher<BasicAccount>>();
 
-            JwtOptions jwtOptions = builder.Configuration.GetRequiredSection("JwtOptions").Get<JwtOptions>() ?? throw new Exception();
+            IConfigurationSection jwtOptionsSection = optionsSection.GetRequiredSection("Jwt");
+            services.AddOptions<JwtOptions>().Bind(jwtOptionsSection).ValidateOnStart().ValidateDataAnnotations();
 
-            builder.Services.AddOptions<JwtOptions>().BindConfiguration("JwtOptions").ValidateOnStart().ValidateDataAnnotations();
-            builder.Services.AddOptions<AccountOptions>().BindConfiguration("AccountOptions").ValidateOnStart().ValidateDataAnnotations();
+            IConfigurationSection accountOptionsSection = optionsSection.GetRequiredSection("Account");
+            services.AddOptions<AccountOptions>().Bind(accountOptionsSection).ValidateOnStart().ValidateDataAnnotations();
 
-            builder.Services.AddScoped<UserBanFilter>();
-            builder.Services.Configure<MvcOptions>(m =>
+            IConfigurationSection userEmailOptionsSection = optionsSection.GetRequiredSection("UserEmail");
+            services.AddOptions<UserEmailOptions>().Bind(userEmailOptionsSection).ValidateOnStart().ValidateDataAnnotations();
+
+            services.AddScoped<UserBanFilter>();
+            services.Configure<MvcOptions>(m =>
             {
                 m.Filters.AddService<UserBanFilter>();
             });
 
-            builder.Services.AddAuthorization(options =>
+            services.AddAuthorization(options =>
             {
                 AuthorizationPolicyBuilder userPolicyBuilder = new(JwtBearerDefaults.AuthenticationScheme);
                 userPolicyBuilder.RequireRole(PolicyConstants.UserPolicy);
@@ -55,7 +61,8 @@ namespace BlogPlatform.Api.Identity.Extensions
                 oauthPolicyBuilder.RequireAuthenticatedUser();
             });
 
-            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            JwtOptions jwtOptions = jwtOptionsSection.Get<JwtOptions>() ?? throw new Exception();
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
                 {
                     options.SaveToken = false;
@@ -74,21 +81,22 @@ namespace BlogPlatform.Api.Identity.Extensions
                 })
                 .AddGoogle(options =>
                 {
-                    options.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? throw new Exception();
-                    options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? throw new Exception();
+
+                    options.ClientId = oauthProviderSection["Google:ClientSecret"] ?? throw new Exception();
+                    options.ClientSecret = oauthProviderSection["Google:ClientSecret"] ?? throw new Exception();
                 })
                 .AddKakaoTalk(options =>
                 {
-                    options.ClientId = builder.Configuration["Authentication:KakaoTalk:ClientId"] ?? throw new Exception();
-                    options.ClientSecret = builder.Configuration["Authentication:KakaoTalk:ClientSecret"] ?? throw new Exception();
+                    options.ClientId = oauthProviderSection["KakaoTalk:ClientId"] ?? throw new Exception();
+                    options.ClientSecret = oauthProviderSection["KakaoTalk:ClientSecret"] ?? throw new Exception();
                 })
                 .AddNaver(options =>
                 {
-                    options.ClientId = builder.Configuration["Authentication:Naver:ClientId"] ?? throw new Exception();
-                    options.ClientSecret = builder.Configuration["Authentication:Naver:ClientSecret"] ?? throw new Exception();
+                    options.ClientId = oauthProviderSection["Naver:ClientId"] ?? throw new Exception();
+                    options.ClientSecret = oauthProviderSection["Naver:ClientSecret"] ?? throw new Exception();
                 });
 
-            return builder;
+            return services;
         }
     }
 }

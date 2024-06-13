@@ -1,3 +1,11 @@
+using BlogPlatform.Api.Identity.Extensions;
+using BlogPlatform.Api.Options;
+using BlogPlatform.Api.Services;
+using BlogPlatform.Api.Services.Interfaces;
+using BlogPlatform.EFCore;
+
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -6,6 +14,27 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddDistributedMemoryCache();
+
+IConfigurationSection optionsSection = builder.Configuration.GetRequiredSection("Options");
+IConfigurationSection oauthProviderSection = builder.Configuration.GetRequiredSection("OAuthProviders");
+builder.Services.AddIdentity(optionsSection, oauthProviderSection);
+
+builder.Services.AddDbContext<BlogPlatformDbContext>(options =>
+{
+    options.UseMySql(builder.Configuration.GetConnectionString("BlogPlatform"), MySqlServerVersion.LatestSupportedServerVersion);
+});
+
+builder.Services.AddDbContext<BlogPlatformImgDbContext>(options =>
+{
+    options.UseMySql(builder.Configuration.GetConnectionString("BlogPlatformImg"), MySqlServerVersion.LatestSupportedServerVersion);
+});
+
+builder.Services.AddScoped<IMailSender, MailSender>();
+builder.Services.Configure<MailSenderOptions>(optionsSection.GetRequiredSection("MailSender"));
+
+builder.Services.AddScoped<IPostImageService, PostImageService>();
 
 var app = builder.Build();
 
@@ -19,6 +48,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
+app.UseAuthentication();
 
 app.MapControllers();
 

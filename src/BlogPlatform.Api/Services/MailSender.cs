@@ -21,8 +21,12 @@ namespace BlogPlatform.Api.Services
         }
 
         /// <inheritdoc/>
-        public void Send(string from, string to, string subject, string body, CancellationToken cancellationToken = default)
+        public void Send(MailSendContext context, CancellationToken cancellationToken = default)
         {
+            MailboxAddress fromAddress = new(_mailOptions.SenderName, $"{context.FromId ?? "noreply"}@{_mailOptions.Domain}");
+            MailboxAddress toAddress = new(context.ReceiverName, context.To);
+            MimeEntity bodyHtml = new TextPart("html") { Text = context.Body };
+
             _logger.LogInformation(
                 """
                 Sending email.
@@ -32,15 +36,9 @@ namespace BlogPlatform.Api.Services
                 body:
                 {body}
                 """,
-                from, to, subject, body);
+                fromAddress, toAddress, context.Subject, bodyHtml);
 
-            MimeMessage message = new();
-            message.From.Add(new MailboxAddress("no-reply", from));
-            message.To.Add(new MailboxAddress("user", to));
-            message.Subject = subject;
-            message.Body = new TextPart("html") { Text = body };
-
-            _logger.LogDebug("MimeMessage: {message}", message);
+            MimeMessage message = new([fromAddress], [toAddress], context.Subject, bodyHtml);
 
             using SmtpClient smtpClient = new();
             smtpClient.Connect(_mailOptions.Host, _mailOptions.Port, true, cancellationToken);
@@ -48,7 +46,7 @@ namespace BlogPlatform.Api.Services
             string responseText = smtpClient.Send(message, cancellationToken);
             smtpClient.Disconnect(true, CancellationToken.None);
 
-            _logger.LogDebug("Email sent. response: {responseText}", responseText);
+            _logger.LogInformation("Email sent. response: {responseText}", responseText);
         }
     }
 }
