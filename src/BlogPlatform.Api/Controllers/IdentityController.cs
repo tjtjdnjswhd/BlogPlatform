@@ -33,6 +33,10 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpPost("login/basic")]
         [PasswordChangeRequiredFilter(nameof(loginInfo))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> BasicLoginAsync([FromBody] BasicLoginInfo loginInfo, CancellationToken cancellationToken, [TokenSetCookie] bool setCookie = false)
         {
             (ELoginResult loginResult, User? user) = await _identityService.LoginAsync(loginInfo, cancellationToken);
@@ -41,6 +45,9 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpPost("signup/basic")]
         [SignUpEmailVerificationFilter(nameof(signUpInfo))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status409Conflict)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> BasicSignUpAsync([FromBody] BasicSignUpInfo signUpInfo, CancellationToken cancellationToken, [TokenSetCookie] bool setCookie = false)
         {
             (ESignUpResult signUpResult, User? user) = await _identityService.SignUpAsync(signUpInfo, cancellationToken);
@@ -49,6 +56,8 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpPost("signup/basic/email")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> SendVerifyEmailAsync([FromBody, EmailAddress] string email, CancellationToken cancellationToken)
         {
             string? verifyUri = Url.ActionLink(nameof(VerifyEmailAsync), "Identity");
@@ -58,6 +67,9 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpGet("signup/basic/email")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status400BadRequest)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> VerifyEmailAsync([FromQuery] string code, CancellationToken cancellationToken)
         {
             string? email = await _userEmailService.VerifyEmailCodeAsync(code, cancellationToken);
@@ -65,6 +77,10 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpPost("login/oauth")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesDefaultResponseType]
         public IActionResult OAuthLogin([FromForm] string provider, [TokenSetCookie] bool setCookie = false)
         {
             AuthenticationProperties authenticationProperties = new()
@@ -81,6 +97,10 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpGet("login/oauth")]
         [OAuthAuthorize]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> OAuthLoginCallbackAsync([FromSpecial] OAuthLoginInfo loginInfo, [FromQuery] bool setCookie, CancellationToken cancellationToken)
         {
             (ELoginResult loginResult, User? user) = await _identityService.LoginAsync(loginInfo, cancellationToken);
@@ -104,6 +124,10 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpGet("signup/oauth")]
         [OAuthAuthorize]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status409Conflict)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> OAuthSignUpCallbackAsync([FromSpecial] OAuthSignUpInfo signUpInfo, [FromQuery] bool setCookie, CancellationToken cancellationToken)
         {
             (ESignUpResult signUpResult, User? user) = await _identityService.SignUpAsync(signUpInfo, cancellationToken);
@@ -128,6 +152,10 @@ namespace BlogPlatform.Api.Controllers
         [HttpPost("oauth")]
         [OAuthAuthorize]
         [UserAuthorize]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status409Conflict)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> AddOAuthCallbackAsync([FromSpecial] OAuthLoginInfo info, CancellationToken cancellationToken)
         {
             EAddOAuthResult addOAuthResult = await _identityService.AddOAuthAsync(HttpContext, info, cancellationToken);
@@ -156,6 +184,11 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpDelete("oauth/{provider:alpha}")]
         [UserAuthorize]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status409Conflict)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> RemoveOAuthAsync([FromRoute] string provider, CancellationToken cancellationToken)
         {
             ERemoveOAuthResult removeOAuthResult = await _identityService.RemoveOAuthAsync(User, provider, cancellationToken);
@@ -180,13 +213,23 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpPost("logout")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesDefaultResponseType]
         public LogoutResult Logout() => new();
 
         [HttpPost("refresh")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesDefaultResponseType]
         public RefreshResult Refresh() => new();
 
         [HttpPost("password/change")]
         [UserAuthorize]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status401Unauthorized)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> ChangePasswordAsync([FromForm, AccountPasswordValidate] string newPassword, CancellationToken cancellationToken)
         {
             bool isUserExist = await _identityService.ChangePasswordAsync(User, newPassword, cancellationToken);
@@ -194,6 +237,9 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpPost("password/reset")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> ResetPasswordAsync(string email, CancellationToken cancellationToken)
         {
             string? newPassword = await _identityService.ResetPasswordAsync(email, cancellationToken);
@@ -208,6 +254,9 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpPost("name")]
         [UserAuthorize]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status401Unauthorized)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> ChangeNameAsync([FromForm, UserNameValidate] string name, CancellationToken cancellationToken)
         {
             bool isExist = await _identityService.ChangeNameAsync(User, name, cancellationToken);
@@ -215,6 +264,9 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpPost("id/find")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> FindIdAsync([FromForm, EmailAddress] string email, CancellationToken cancellationToken)
         {
             string? accountId = await _identityService.FindAccountIdAsync(email, cancellationToken);
@@ -229,6 +281,9 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpPost("withdraw")]
         [UserAuthorize]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status401Unauthorized)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> WithDrawAsync(CancellationToken cancellationToken)
         {
             bool isExist = await _identityService.WithDrawAsync(User, cancellationToken);
@@ -237,6 +292,10 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpPost("withdraw/cancel")]
         [UserAuthorize]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status401Unauthorized)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> CancelWithDrawAsync(CancellationToken cancellationToken)
         {
             ECancelWithDrawResult result = await _identityService.CancelWithDrawAsync(User, cancellationToken);
@@ -252,6 +311,8 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpPost("email/change")]
         [UserAuthorize]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> ChangeEmailAsync([FromForm, EmailAddress] string newEmail, CancellationToken cancellationToken)
         {
             string? confirmUri = Url.ActionLink(nameof(ConfirmChangeEmailAsync), "Identity");
@@ -262,6 +323,9 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpGet("email/change/confirm")]
         [UserAuthorize]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status400BadRequest)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> ConfirmChangeEmailAsync([FromQuery] string code, CancellationToken cancellationToken)
         {
             string? email = await _userEmailService.VerifyEmailCodeAsync(code, cancellationToken);

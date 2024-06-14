@@ -26,6 +26,9 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpGet("{id:int}")]
+        [ProducesResponseType(typeof(CategoryRead), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> GetAsync([FromRoute] int id, CancellationToken cancellationToken)
         {
             Category? category = await _dbContext.Categories.FindAsync([id], cancellationToken);
@@ -41,6 +44,9 @@ namespace BlogPlatform.Api.Controllers
 
         [UserAuthorize]
         [HttpPost]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status400BadRequest)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> CreateAsync([FromForm] string categoryName, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             int blogId = await _dbContext.Blogs.Where(b => b.UserId == userId).Select(b => b.Id).FirstOrDefaultAsync(cancellationToken);
@@ -60,6 +66,10 @@ namespace BlogPlatform.Api.Controllers
 
         [UserAuthorize]
         [HttpPut("{id:int}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> UpdateAsync([FromRoute] int id, [FromForm] string categoryName, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             int blogId = await _dbContext.Blogs.Where(b => b.UserId == userId).Select(b => b.Id).FirstOrDefaultAsync(cancellationToken);
@@ -85,6 +95,11 @@ namespace BlogPlatform.Api.Controllers
 
         [UserAuthorize]
         [HttpDelete("{id:int}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status500InternalServerError)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> DeleteAsync([FromRoute] int id, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             int blogId = await _dbContext.Blogs.Where(b => b.UserId == userId).Select(b => b.Id).FirstOrDefaultAsync(cancellationToken);
@@ -108,6 +123,11 @@ namespace BlogPlatform.Api.Controllers
 
         [UserAuthorize]
         [HttpPost("restore/{id:int}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status500InternalServerError)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> RestoreAsync([FromRoute] int id, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             int blogId = await _dbContext.Blogs.Where(b => b.UserId == userId).Select(b => b.Id).FirstOrDefaultAsync(cancellationToken);

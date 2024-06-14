@@ -41,6 +41,9 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpGet("{id:int}")]
+        [ProducesResponseType(typeof(PostRead), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> GetAsync([FromRoute] int id, CancellationToken cancellationToken)
         {
             HtmlSanitizer htmlSanitizer = new();
@@ -136,6 +139,11 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpPost]
         [UserAuthorize]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status500InternalServerError)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> CreateAsync([FromForm] string title, [FromForm] string content, [FromForm] string categoryName, [FromForm] List<string> tags, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             var categoryInfo = await _dbContext.Categories.Where(c => c.Name == categoryName).Select(c => new { c.Id, c.Blog.UserId }).FirstOrDefaultAsync(cancellationToken);
@@ -174,6 +182,11 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpPut("{id:int}")]
         [UserAuthorize]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status500InternalServerError)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> UpdateAsync([FromRoute] int id, [FromForm] string title, [FromForm] string content, [FromForm] string categoryName, [FromForm] List<string> tags, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             var categoryInfo = await _dbContext.Categories.Where(c => c.Name == categoryName).Select(c => new { c.Id, c.Blog.UserId }).FirstOrDefaultAsync(cancellationToken);
@@ -227,6 +240,11 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpDelete("{id:int}")]
         [UserAuthorize]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status500InternalServerError)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> DeleteAsync([FromRoute] int id, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             Post? post = await _dbContext.Posts.FindAsync([id], cancellationToken);
@@ -250,6 +268,11 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpPost("restore/{id:int}")]
         [UserAuthorize]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> RestoreAsync([FromRoute] int id, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             Post? post = await _dbContext.Posts.IgnoreSoftDeleteFilter().FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
@@ -280,7 +303,7 @@ namespace BlogPlatform.Api.Controllers
         [HttpPost("image")]
         [UserAuthorize]
         [PostImageFilter(nameof(images))]
-        public async Task<IActionResult> CacheImagesAsync([FromForm] List<IFormFile> images, CancellationToken cancellationToken)
+        public async Task<IEnumerable<string>> CacheImagesAsync([FromForm] List<IFormFile> images, CancellationToken cancellationToken)
         {
             DistributedCacheEntryOptions imageCacheOptions = new()
             {
@@ -300,10 +323,13 @@ namespace BlogPlatform.Api.Controllers
             }));
 
             _logger.LogInformation("Caching images. file names: [{fileNames}]", fileNames);
-            return Ok(fileNames);
+            return fileNames;
         }
 
         [HttpGet("image/{fileName}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> GetImageAsync([FromRoute] string fileName, CancellationToken cancellationToken)
         {
             ImageInfo? image = await _imageService.GetImageAsync(fileName, EGetImageMode.CacheThenDatabase, cancellationToken);

@@ -31,6 +31,8 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpPost("send-email")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> SendEmails([FromForm] string subject, [FromForm] string body, [FromForm] List<int>? userIds, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Sending emails to {userIds}", userIds);
@@ -47,6 +49,9 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpGet("user")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> GetUserAsync([FromQuery] SearchUser search, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Searching for user with {search}", search);
@@ -80,6 +85,10 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpDelete("user")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status500InternalServerError)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> DeleteUserAsync([FromForm] string email, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Deleting user with email {email}", email);
@@ -96,6 +105,10 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpPost("user/restore")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status500InternalServerError)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> RestoreUserAsync([FromForm] string email, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Restoring user with email {Email}", email);
@@ -113,6 +126,9 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpPost("user/ban")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> BanUserAsync([FromForm] string email, [FromForm] TimeSpan banDuration, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Banning user with email {Email}", email);
@@ -130,6 +146,9 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpPost("user/unban")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> UnbanUserAsync([FromForm] string email, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Unbanning user with email {Email}", email);
@@ -147,6 +166,9 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpDelete("post/{id:int}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> DeletePostAsync([FromRoute] int id, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Deleting post with id {postId}", id);
@@ -163,6 +185,9 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpPost("post/{id:int}/restore")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> RestorePostAsync([FromRoute] int id, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Restoring post with id {postId}", id);
@@ -179,6 +204,10 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpDelete("comment/{id:int}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status500InternalServerError)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> DeleteCommentAsync([FromRoute] int id, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Deleting comment with id {commentId}", id);
@@ -195,6 +224,10 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpPost("comment/{id:int}/restore")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status500InternalServerError)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> RestoreCommentAsync([FromRoute] int id, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Restoring comment with id {commentId}", id);

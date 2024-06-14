@@ -28,6 +28,9 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpGet("{id:int}")]
+        [ProducesResponseType(typeof(BlogRead), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> GetAsync([FromRoute] int id, CancellationToken cancellationToken)
         {
             Blog? blog = await _dbContext.Blogs.FindAsync([id], cancellationToken);
@@ -43,6 +46,9 @@ namespace BlogPlatform.Api.Controllers
 
         [UserAuthorize]
         [HttpPost]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status409Conflict)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> CreateAsync([FromForm] string blogName, [FromForm] string description, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             bool isUserHasBlog = await _dbContext.Blogs.AnyAsync(b => b.UserId == userId, cancellationToken);
@@ -62,6 +68,9 @@ namespace BlogPlatform.Api.Controllers
 
         [UserAuthorize]
         [HttpPut("{id:int}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> UpdateAsync([FromRoute] int id, [FromForm, Required(AllowEmptyStrings = false)] string blogName, [FromForm, Required(AllowEmptyStrings = false)] string description, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             Blog? blog = await _dbContext.Blogs.FindAsync([id], cancellationToken);
@@ -86,6 +95,10 @@ namespace BlogPlatform.Api.Controllers
 
         [UserAuthorize]
         [HttpDelete("{id:int}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status500InternalServerError)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> DeleteAsync([FromRoute] int id, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             Blog? blog = await _dbContext.Blogs.FindAsync([id], cancellationToken);
@@ -108,6 +121,13 @@ namespace BlogPlatform.Api.Controllers
 
         [UserAuthorize]
         [HttpPost("restore/{id:int}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status500InternalServerError)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> RestoreAsync([FromRoute] int id, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             Blog? blog = await _dbContext.Blogs.IgnoreSoftDeleteFilter().FirstOrDefaultAsync(b => b.Id == id, cancellationToken);

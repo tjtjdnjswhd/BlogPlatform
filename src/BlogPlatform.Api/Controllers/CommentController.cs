@@ -25,6 +25,9 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpGet("{id:int}")]
+        [ProducesResponseType(typeof(CommentRead), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> GetAsync([FromRoute] int id, CancellationToken cancellationToken)
         {
             Comment? comment = await _dbContext.Comments.FindAsync([id], cancellationToken);
@@ -80,6 +83,9 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpPost]
         [UserAuthorize]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> CreateAsync([FromForm] string content, [FromForm] int postId, [FromForm] int? parentCommentId, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             if (!await _dbContext.Posts.AnyAsync(p => p.Id == postId, cancellationToken))
@@ -101,6 +107,10 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpPut("{id:int}")]
         [UserAuthorize]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> UpdateAsync([FromRoute] int id, [FromForm] string content, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             Comment? comment = await _dbContext.Comments.FindAsync([id], cancellationToken);
@@ -123,6 +133,11 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpDelete("{id:int}")]
         [UserAuthorize]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status500InternalServerError)]
+        [ProducesDefaultResponseType]
         public async Task<IActionResult> DeleteAsync([FromRoute] int id, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             Comment? comment = await _dbContext.Comments.FindAsync([id], cancellationToken);

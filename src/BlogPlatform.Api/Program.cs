@@ -1,19 +1,31 @@
 using BlogPlatform.Api.Identity.Extensions;
+using BlogPlatform.Api.Json;
 using BlogPlatform.Api.Options;
 using BlogPlatform.Api.Services;
 using BlogPlatform.Api.Services.Interfaces;
 using BlogPlatform.EFCore;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Any;
+using Microsoft.OpenApi.Models;
+
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddControllers().AddJsonOptions(json =>
+{
+    json.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    json.JsonSerializerOptions.Converters.Add(new JsonTimeSpanConverter());
+});
 
-builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.MapType<TimeSpan>(() => new OpenApiSchema { Type = "string", Example = new OpenApiString("-d.hh:mm:ss.ffffff") });
+});
 
 builder.Services.AddDistributedMemoryCache();
 

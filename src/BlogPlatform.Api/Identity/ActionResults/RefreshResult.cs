@@ -41,7 +41,7 @@ namespace BlogPlatform.Api.Identity.ActionResults
             if (newToken is null)
             {
                 logger.LogInformation("Refresh token is expired.");
-                context.HttpContext.Response.StatusCode = StatusCodes.Status204NoContent;
+                context.HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
                 await context.HttpContext.Response.WriteAsJsonAsync(new Error("토큰이 만료됬습니다. 다시 로그인 해 주시기 바랍니다."), cancellationToken);
                 return;
             }
