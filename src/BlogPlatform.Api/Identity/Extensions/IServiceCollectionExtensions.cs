@@ -81,7 +81,6 @@ namespace BlogPlatform.Api.Identity.Extensions
                 })
                 .AddGoogle(options =>
                 {
-
                     options.ClientId = oauthProviderSection["Google:ClientSecret"] ?? throw new Exception();
                     options.ClientSecret = oauthProviderSection["Google:ClientSecret"] ?? throw new Exception();
                 })

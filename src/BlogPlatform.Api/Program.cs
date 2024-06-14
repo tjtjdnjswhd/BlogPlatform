@@ -36,6 +36,8 @@ builder.Services.Configure<MailSenderOptions>(optionsSection.GetRequiredSection(
 
 builder.Services.AddScoped<IPostImageService, PostImageService>();
 
+builder.Services.AddScoped<ICascadeSoftDeleteService, CascadeSoftDeleteService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -53,3 +55,5 @@ app.UseAuthentication();
 app.MapControllers();
 
 app.Run();
+
+public partial class Program { }

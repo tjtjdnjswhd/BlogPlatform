@@ -29,7 +29,7 @@ namespace BlogPlatform.Api.Identity.Attributes
                 return new ValidationResult($"이름의 길이는 {accountOptions.MinNameLength}에서 {accountOptions.MaxNameLength} 사이여야 합니다.", [validationContext.MemberName]);
             }
 
-            return base.IsValid(value, validationContext);
+            return null;
         }
     }
 }

@@ -10,8 +10,8 @@ namespace BlogPlatform.Api.Identity.Services
 {
     public class UserEmailService : IUserEmailService
     {
-        private const string VerificationCodePrefix = "EmailVerificationCode";
-        private const string VerifiedEmailPrefix = "VerifiedEmail";
+        internal const string VerificationCodePrefix = "EmailVerificationCode";
+        internal const string VerifiedEmailPrefix = "VerifiedEmail";
 
         private readonly IMailSender _mailSender;
         private readonly IDistributedCache _cache;
@@ -51,14 +51,15 @@ namespace BlogPlatform.Api.Identity.Services
         }
 
         /// <inheritdoc/>
-        public async Task SendEmailVerificationAsync(string email, CancellationToken cancellationToken = default)
+        public async Task SendEmailVerificationAsync(string email, Func<string, string> verifyUriFunc, CancellationToken cancellationToken = default)
         {
             string code = Random.Shared.Next(0, 99999999).ToString("D8");
             string cacheKey = GetVerificationCodeKey(code);
             _logger.LogDebug("Sending email verification code {code} to {email}", code, email);
             await _cache.SetStringAsync(cacheKey, email, _verifyExpiration, cancellationToken);
 
-            MailSendContext context = new(null, "user", email, _options.EmailVerifySubject, string.Format(_options.EmailVerifyBody, code));
+            string uri = verifyUriFunc(code);
+            MailSendContext context = new(null, "user", email, _options.EmailVerifySubject, string.Format(_options.EmailVerifyBody, uri));
             _mailSender.Send(context, cancellationToken);
 
             _logger.LogInformation("Email verification code {code} for {email} is sent", code, email);

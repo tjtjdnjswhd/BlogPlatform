@@ -1,5 +1,4 @@
-﻿using BlogPlatform.Api.Identity.Models;
-using BlogPlatform.Api.Identity.Options;
+﻿using BlogPlatform.Api.Identity.Options;
 
 using Microsoft.Extensions.Options;
 
@@ -17,20 +16,20 @@ namespace BlogPlatform.Api.Identity.Attributes
     {
         protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
         {
-            if (value is not BasicSignUpInfo basicSignUpInfo)
+            if (value is not string accountId)
             {
                 Debug.Assert(false);
                 throw new ArgumentException("BasicSignUpInfo 타입이 아닙니다.");
             }
 
-            AccountOptions accountOptions = validationContext.GetRequiredService<IOptionsMonitor<AccountOptions>>().CurrentValue;
+            AccountOptions accountOptions = validationContext.GetRequiredService<IOptions<AccountOptions>>().Value;
 
-            if (basicSignUpInfo.Id.Length < accountOptions.MinIdLength || basicSignUpInfo.Id.Length > accountOptions.MaxIdLength)
+            if (accountId.Length < accountOptions.MinIdLength || accountId.Length > accountOptions.MaxIdLength)
             {
-                return new ValidationResult($"Id의 길이는 {accountOptions.MinIdLength}에서 {accountOptions.MaxIdLength} 사이여야 합니다.", [nameof(BasicSignUpInfo.Id)]);
+                return new ValidationResult($"Id의 길이는 {accountOptions.MinIdLength}에서 {accountOptions.MaxIdLength} 사이여야 합니다.");
             }
 
-            return base.IsValid(value, validationContext);
+            return null;
         }
     }
 }

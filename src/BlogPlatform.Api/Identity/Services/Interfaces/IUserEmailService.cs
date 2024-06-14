@@ -25,10 +25,11 @@
         /// 이메일 인증 메일을 전송합니다
         /// </summary>
         /// <param name="email"></param>
+        /// <param name="verifyUriFunc"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         /// <exception cref="OperationCanceledException"/>
-        Task SendEmailVerificationAsync(string email, CancellationToken cancellationToken = default);
+        Task SendEmailVerificationAsync(string email, Func<string, string> verifyUriFunc, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// 인증 코드를 확인합니다

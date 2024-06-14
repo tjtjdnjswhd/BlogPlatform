@@ -10,11 +10,12 @@ namespace BlogPlatform.Api.Identity.ActionResults
     /// <summary>
     /// 로그인 성공 시 반환하는 <see cref="IActionResult"/>
     /// </summary>
-    public class LoginResult : IActionResult
+    public class LoginResult : IActionResult, IStatusCodeHttpResult
     {
         public User User { get; }
 
         public bool SetCookie { get; }
+        public int? StatusCode => StatusCodes.Status200OK;
 
         public LoginResult(User user, bool setCookie)
         {
@@ -46,7 +47,6 @@ namespace BlogPlatform.Api.Identity.ActionResults
                 logger.LogDebug("Writing token to response: {token}", token);
                 await jwtService.SetBodyTokenAsync(context.HttpContext.Response, token, cancellationToken);
             }
-            context.HttpContext.Response.StatusCode = StatusCodes.Status200OK;
         }
     }
 }

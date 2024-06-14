@@ -1,4 +1,5 @@
-﻿using BlogPlatform.Api.Identity.ActionResults;
+﻿using BlogPlatform.Api.Attributes;
+using BlogPlatform.Api.Identity.ActionResults;
 using BlogPlatform.Api.Identity.Attributes;
 using BlogPlatform.Api.Identity.Filters;
 using BlogPlatform.Api.Identity.Models;
@@ -48,9 +49,11 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpPost("signup/basic/email")]
-        public async Task<IActionResult> SendVerifyEmailAsync([FromForm, EmailAddress] string email, CancellationToken cancellationToken)
+        public async Task<IActionResult> SendVerifyEmailAsync([FromBody, EmailAddress] string email, CancellationToken cancellationToken)
         {
-            await _userEmailService.SendEmailVerificationAsync(email, cancellationToken);
+            string? verifyUri = Url.ActionLink(nameof(VerifyEmailAsync), "Identity");
+            Debug.Assert(verifyUri is not null); // VerifyEmailAsync가 존재하므로 null이 아니어야 함
+            await _userEmailService.SendEmailVerificationAsync(email, code => $"{verifyUri}&code={code}", cancellationToken);
             return Ok();
         }
 
@@ -78,7 +81,7 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpGet("login/oauth")]
         [OAuthAuthorize]
-        public async Task<IActionResult> OAuthLoginCallbackAsync(OAuthLoginInfo loginInfo, [FromQuery] bool setCookie, CancellationToken cancellationToken)
+        public async Task<IActionResult> OAuthLoginCallbackAsync([FromSpecial] OAuthLoginInfo loginInfo, [FromQuery] bool setCookie, CancellationToken cancellationToken)
         {
             (ELoginResult loginResult, User? user) = await _identityService.LoginAsync(loginInfo, cancellationToken);
             Debug.Assert(loginResult != ELoginResult.WrongPassword); // OAuth 로그인 시 비밀번호가 틀릴 수 없음
@@ -101,7 +104,7 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpGet("signup/oauth")]
         [OAuthAuthorize]
-        public async Task<IActionResult> OAuthSignUpCallbackAsync(OAuthSignUpInfo signUpInfo, [FromQuery] bool setCookie, CancellationToken cancellationToken)
+        public async Task<IActionResult> OAuthSignUpCallbackAsync([FromSpecial] OAuthSignUpInfo signUpInfo, [FromQuery] bool setCookie, CancellationToken cancellationToken)
         {
             (ESignUpResult signUpResult, User? user) = await _identityService.SignUpAsync(signUpInfo, cancellationToken);
             return HandleSignUp(signUpResult, user, setCookie);
@@ -109,7 +112,7 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpGet("oauth")]
         [UserAuthorize]
-        public IActionResult AddOAuth([FromForm] string provider)
+        public IActionResult AddOAuth([FromQuery] string provider)
         {
             AuthenticationProperties authenticationProperties = new()
             {
@@ -125,7 +128,7 @@ namespace BlogPlatform.Api.Controllers
         [HttpPost("oauth")]
         [OAuthAuthorize]
         [UserAuthorize]
-        public async Task<IActionResult> AddOAuthCallbackAsync(OAuthLoginInfo info, CancellationToken cancellationToken)
+        public async Task<IActionResult> AddOAuthCallbackAsync([FromSpecial] OAuthLoginInfo info, CancellationToken cancellationToken)
         {
             EAddOAuthResult addOAuthResult = await _identityService.AddOAuthAsync(HttpContext, info, cancellationToken);
             switch (addOAuthResult)
@@ -151,9 +154,9 @@ namespace BlogPlatform.Api.Controllers
             }
         }
 
-        [HttpDelete("oauth")]
+        [HttpDelete("oauth/{provider:alpha}")]
         [UserAuthorize]
-        public async Task<IActionResult> RemoveOAuthAsync([FromForm] string provider, CancellationToken cancellationToken)
+        public async Task<IActionResult> RemoveOAuthAsync([FromRoute] string provider, CancellationToken cancellationToken)
         {
             ERemoveOAuthResult removeOAuthResult = await _identityService.RemoveOAuthAsync(User, provider, cancellationToken);
             switch (removeOAuthResult)
@@ -251,7 +254,9 @@ namespace BlogPlatform.Api.Controllers
         [UserAuthorize]
         public async Task<IActionResult> ChangeEmailAsync([FromForm, EmailAddress] string newEmail, CancellationToken cancellationToken)
         {
-            await _userEmailService.SendEmailVerificationAsync(newEmail, cancellationToken);
+            string? confirmUri = Url.ActionLink(nameof(ConfirmChangeEmailAsync), "Identity");
+            Debug.Assert(confirmUri is not null); // ConfirmChangeEmailAsync가 존재하므로 null이 아니어야 함
+            await _userEmailService.SendEmailVerificationAsync(newEmail, code => $"{confirmUri}&code={code}", cancellationToken);
             return Ok();
         }
 
