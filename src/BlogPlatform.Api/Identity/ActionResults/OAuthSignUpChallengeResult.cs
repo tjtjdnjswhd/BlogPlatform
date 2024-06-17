@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Authentication;
+﻿using BlogPlatform.Api.Models;
+
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BlogPlatform.Api.Identity.ActionResults
@@ -8,9 +10,9 @@ namespace BlogPlatform.Api.Identity.ActionResults
     /// </summary>
     public class OAuthSignUpChallengeResult : ChallengeResult
     {
-        public OAuthSignUpChallengeResult(AuthenticationProperties properties, string scheme, string name) : base(scheme, properties)
+        public OAuthSignUpChallengeResult(AuthenticationProperties properties, OAuthSignUpModel signUpModel) : base(signUpModel.Provider.ToLower(), properties)
         {
-            Properties!.Items.Add("name", name);
+            Properties!.Items.Add("name", signUpModel.Name);
         }
     }
 }

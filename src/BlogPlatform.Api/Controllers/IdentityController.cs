@@ -11,7 +11,6 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 
 namespace BlogPlatform.Api.Controllers
@@ -58,11 +57,11 @@ namespace BlogPlatform.Api.Controllers
         [HttpPost("signup/basic/email")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> SendVerifyEmailAsync([FromBody, EmailAddress] string email, CancellationToken cancellationToken)
+        public async Task<IActionResult> SendVerifyEmailAsync([FromBody] EmailModel newEmail, CancellationToken cancellationToken)
         {
-            string? verifyUri = Url.ActionLink(nameof(VerifyEmailAsync), "Identity");
+            string? verifyUri = Url.ActionLink("VerifyEmail", "Identity");
             Debug.Assert(verifyUri is not null); // VerifyEmailAsync가 존재하므로 null이 아니어야 함
-            await _userEmailService.SendEmailVerificationAsync(email, code => $"{verifyUri}&code={code}", cancellationToken);
+            await _userEmailService.SendEmailVerificationAsync(newEmail.Email, code => $"{verifyUri}&code={code}", cancellationToken);
             return Ok();
         }
 
@@ -73,7 +72,7 @@ namespace BlogPlatform.Api.Controllers
         public async Task<IActionResult> VerifyEmailAsync([FromQuery] string code, CancellationToken cancellationToken)
         {
             string? email = await _userEmailService.VerifyEmailCodeAsync(code, cancellationToken);
-            return email is not null ? Ok() : BadRequest(new Error("잘못된 코드입니다."));
+            return email is not null ? Ok() : BadRequest(new Error("잘못된 코드입니다"));
         }
 
         [HttpPost("login/oauth")]
@@ -81,7 +80,7 @@ namespace BlogPlatform.Api.Controllers
         [ProducesResponseType(typeof(Error), StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
         [ProducesDefaultResponseType]
-        public IActionResult OAuthLogin([FromForm] string provider, [TokenSetCookie] bool setCookie = false)
+        public IActionResult OAuthLogin([FromBody] Models.OAuthProvider provider, [TokenSetCookie] bool setCookie = false)
         {
             AuthenticationProperties authenticationProperties = new()
             {
@@ -91,8 +90,8 @@ namespace BlogPlatform.Api.Controllers
                 IssuedUtc = DateTimeOffset.UtcNow,
             };
 
-            _logger.LogDebug("Login with OAuth. provider: {provider} SetCookie: {setCookie}", provider, setCookie);
-            return Challenge(authenticationProperties, provider);
+            _logger.LogDebug("Login with OAuth. provider: {provider} SetCookie: {setCookie}", provider.Provider, setCookie);
+            return Challenge(authenticationProperties, provider.Provider.ToLower());
         }
 
         [HttpGet("login/oauth")]
@@ -109,7 +108,7 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpPost("signup/oauth")]
-        public IActionResult OAuthSignUp([FromForm] string provider, [FromForm] string name, [TokenSetCookie] bool setCookie = false)
+        public IActionResult OAuthSignUp([FromBody] OAuthSignUpModel signUpModel, [TokenSetCookie] bool setCookie = false)
         {
             AuthenticationProperties authenticationProperties = new()
             {
@@ -119,7 +118,7 @@ namespace BlogPlatform.Api.Controllers
                 IssuedUtc = DateTimeOffset.UtcNow,
             };
 
-            return new OAuthSignUpChallengeResult(authenticationProperties, provider, name);
+            return new OAuthSignUpChallengeResult(authenticationProperties, signUpModel);
         }
 
         [HttpGet("signup/oauth")]
@@ -146,7 +145,7 @@ namespace BlogPlatform.Api.Controllers
                 IssuedUtc = DateTimeOffset.UtcNow,
             };
 
-            return Challenge(authenticationProperties, provider);
+            return Challenge(authenticationProperties, provider.ToLower());
         }
 
         [HttpPost("oauth")]
@@ -168,13 +167,13 @@ namespace BlogPlatform.Api.Controllers
                     return new AuthenticatedUserDataNotFoundResult();
 
                 case EAddOAuthResult.UserAlreadyHasOAuth:
-                    return Conflict(new Error("동일한 OAuth 제공자를 가지고 있습니다."));
+                    return Conflict(new Error("동일한 OAuth 제공자를 가지고 있습니다"));
 
                 case EAddOAuthResult.OAuthAlreadyExists:
-                    return Conflict(new Error("이미 사용하는 OAuth 계정입니다."));
+                    return Conflict(new Error("이미 사용하는 OAuth 계정입니다"));
 
                 case EAddOAuthResult.ProviderNotFound:
-                    return NotFound(new Error("잘못된 OAuth 제공자입니다."));
+                    return NotFound(new Error("잘못된 OAuth 제공자입니다"));
 
                 default:
                     Debug.Assert(false);
@@ -198,13 +197,13 @@ namespace BlogPlatform.Api.Controllers
                     return Ok();
 
                 case ERemoveOAuthResult.HasSingleAccount:
-                    return Conflict(new Error("연결 계정이 1개일 경우 삭제할 수 없습니다."));
+                    return Conflict(new Error("연결 계정이 1개일 경우 삭제할 수 없습니다"));
 
                 case ERemoveOAuthResult.UserNotFound:
                     return new AuthenticatedUserDataNotFoundResult();
 
                 case ERemoveOAuthResult.OAuthNotFound:
-                    return NotFound(new Error("해당 OAuth 제공자를 사용하고 있지 않습니다."));
+                    return NotFound(new Error("해당 OAuth 제공자를 사용하고 있지 않습니다"));
 
                 default:
                     Debug.Assert(false);
@@ -230,9 +229,9 @@ namespace BlogPlatform.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status401Unauthorized)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> ChangePasswordAsync([FromForm, AccountPasswordValidate] string newPassword, CancellationToken cancellationToken)
+        public async Task<IActionResult> ChangePasswordAsync([FromBody] PasswordModel password, CancellationToken cancellationToken)
         {
-            bool isUserExist = await _identityService.ChangePasswordAsync(User, newPassword, cancellationToken);
+            bool isUserExist = await _identityService.ChangePasswordAsync(User, password.Password, cancellationToken);
             return isUserExist ? Ok() : new AuthenticatedUserDataNotFoundResult();
         }
 
@@ -240,15 +239,15 @@ namespace BlogPlatform.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> ResetPasswordAsync(string email, CancellationToken cancellationToken)
+        public async Task<IActionResult> ResetPasswordAsync([FromBody] EmailModel email, CancellationToken cancellationToken)
         {
-            string? newPassword = await _identityService.ResetPasswordAsync(email, cancellationToken);
+            string? newPassword = await _identityService.ResetPasswordAsync(email.Email, cancellationToken);
             if (newPassword is null)
             {
-                return NotFound(new Error("존재하지 않는 계정의 이메일입니다."));
+                return NotFound(new Error("존재하지 않는 계정의 이메일입니다"));
             }
 
-            _userEmailService.SendPasswordResetMail(email, newPassword, CancellationToken.None);
+            _userEmailService.SendPasswordResetMail(email.Email, newPassword, CancellationToken.None);
             return Ok();
         }
 
@@ -257,9 +256,9 @@ namespace BlogPlatform.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status401Unauthorized)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> ChangeNameAsync([FromForm, UserNameValidate] string name, CancellationToken cancellationToken)
+        public async Task<IActionResult> ChangeNameAsync([FromBody] UserNameModel name, CancellationToken cancellationToken)
         {
-            bool isExist = await _identityService.ChangeNameAsync(User, name, cancellationToken);
+            bool isExist = await _identityService.ChangeNameAsync(User, name.Name, cancellationToken);
             return isExist ? Ok() : new AuthenticatedUserDataNotFoundResult();
         }
 
@@ -267,15 +266,15 @@ namespace BlogPlatform.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> FindIdAsync([FromForm, EmailAddress] string email, CancellationToken cancellationToken)
+        public async Task<IActionResult> FindIdAsync([FromBody] EmailModel email, CancellationToken cancellationToken)
         {
-            string? accountId = await _identityService.FindAccountIdAsync(email, cancellationToken);
+            string? accountId = await _identityService.FindAccountIdAsync(email.Email, cancellationToken);
             if (accountId is null)
             {
                 return NotFound();
             }
 
-            _userEmailService.SendAccountIdMail(email, accountId, cancellationToken);
+            _userEmailService.SendAccountIdMail(email.Email, accountId, cancellationToken);
             return Ok();
         }
 
@@ -303,8 +302,8 @@ namespace BlogPlatform.Api.Controllers
             {
                 ECancelWithDrawResult.Success => Ok(),
                 ECancelWithDrawResult.UserNotFound => new AuthenticatedUserDataNotFoundResult(),
-                ECancelWithDrawResult.Expired => BadRequest(new Error("탈퇴 요청이 만료되었습니다.")),
-                ECancelWithDrawResult.WithDrawNotRequested => BadRequest(new Error("탈퇴하지 않은 계정입니다.")),
+                ECancelWithDrawResult.Expired => BadRequest(new Error("탈퇴 요청이 만료되었습니다")),
+                ECancelWithDrawResult.WithDrawNotRequested => BadRequest(new Error("탈퇴하지 않은 계정입니다")),
                 _ => throw new InvalidEnumArgumentException(nameof(result), (int)result, typeof(ECancelWithDrawResult))
             };
         }
@@ -313,11 +312,11 @@ namespace BlogPlatform.Api.Controllers
         [UserAuthorize]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> ChangeEmailAsync([FromForm, EmailAddress] string newEmail, CancellationToken cancellationToken)
+        public async Task<IActionResult> ChangeEmailAsync([FromBody] EmailModel email, CancellationToken cancellationToken)
         {
-            string? confirmUri = Url.ActionLink(nameof(ConfirmChangeEmailAsync), "Identity");
+            string? confirmUri = Url.Action("ConfirmChangeEmail", "Identity");
             Debug.Assert(confirmUri is not null); // ConfirmChangeEmailAsync가 존재하므로 null이 아니어야 함
-            await _userEmailService.SendEmailVerificationAsync(newEmail, code => $"{confirmUri}&code={code}", cancellationToken);
+            await _userEmailService.SendEmailVerificationAsync(email.Email, code => $"{confirmUri}&code={code}", cancellationToken);
             return Ok();
         }
 
@@ -331,7 +330,7 @@ namespace BlogPlatform.Api.Controllers
             string? email = await _userEmailService.VerifyEmailCodeAsync(code, cancellationToken);
             if (email is null)
             {
-                return BadRequest(new Error("잘못된 코드입니다."));
+                return BadRequest(new Error("잘못된 코드입니다"));
             }
 
             bool isExist = await _identityService.ChangeEmailAsync(User, email, cancellationToken);
@@ -367,19 +366,19 @@ namespace BlogPlatform.Api.Controllers
                     return new LoginResult(user, setCookie);
 
                 case ESignUpResult.UserIdAlreadyExists:
-                    return Conflict(new Error("중복된 Id입니다."));
+                    return Conflict(new Error("중복된 Id입니다"));
 
                 case ESignUpResult.NameAlreadyExists:
-                    return Conflict(new Error("중복된 이름입니다."));
+                    return Conflict(new Error("중복된 이름입니다"));
 
                 case ESignUpResult.EmailAlreadyExists:
-                    return Conflict(new Error("중복된 이메일입니다."));
+                    return Conflict(new Error("중복된 이메일입니다"));
 
                 case ESignUpResult.OAuthAlreadyExists:
-                    return Conflict(new Error("이미 존재하는 계정입니다."));
+                    return Conflict(new Error("이미 존재하는 계정입니다"));
 
                 case ESignUpResult.ProviderNotFound:
-                    return NotFound(new Error("잘못된 OAuth 제공자입니다."));
+                    return NotFound(new Error("잘못된 OAuth 제공자입니다"));
 
                 default:
                     Debug.Assert(false);

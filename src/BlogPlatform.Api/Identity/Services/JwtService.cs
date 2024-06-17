@@ -25,13 +25,15 @@ namespace BlogPlatform.Api.Services
         private readonly BlogPlatformDbContext _blogPlatformDbContext;
         private readonly JwtOptions _jwtOptions;
         private readonly IDistributedCache _cache;
+        private readonly TimeProvider _timeProvider;
         private readonly ILogger<JwtService> _logger;
 
-        public JwtService(BlogPlatformDbContext blogPlatformDbContext, IOptions<JwtOptions> jwtOptions, IDistributedCache cache, ILogger<JwtService> logger)
+        public JwtService(BlogPlatformDbContext blogPlatformDbContext, IOptions<JwtOptions> jwtOptions, IDistributedCache cache, TimeProvider timeProvider, ILogger<JwtService> logger)
         {
             _blogPlatformDbContext = blogPlatformDbContext;
             _jwtOptions = jwtOptions.Value;
             _cache = cache;
+            _timeProvider = timeProvider;
             _logger = logger;
         }
 
@@ -185,8 +187,8 @@ namespace BlogPlatform.Api.Services
                 _jwtOptions.Issuer,
                 _jwtOptions.Audience,
                 claimsIdentity.Claims,
-                DateTime.UtcNow,
-                DateTime.UtcNow.Add(_jwtOptions.AccessTokenExpiration),
+                _timeProvider.GetUtcNow().UtcDateTime,
+                _timeProvider.GetUtcNow().UtcDateTime.Add(_jwtOptions.AccessTokenExpiration),
                 signingCredentials);
 
             string accessToken = _jwtSecurityTokenHandler.WriteToken(securityToken);

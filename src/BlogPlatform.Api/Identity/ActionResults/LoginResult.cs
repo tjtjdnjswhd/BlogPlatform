@@ -4,17 +4,19 @@ using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Models;
 
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 
 namespace BlogPlatform.Api.Identity.ActionResults
 {
     /// <summary>
     /// 로그인 성공 시 반환하는 <see cref="IActionResult"/>
     /// </summary>
-    public class LoginResult : IActionResult, IStatusCodeHttpResult
+    public class LoginResult : IActionResult, IStatusCodeActionResult
     {
         public User User { get; }
 
         public bool SetCookie { get; }
+
         public int? StatusCode => StatusCodes.Status200OK;
 
         public LoginResult(User user, bool setCookie)
@@ -37,6 +39,7 @@ namespace BlogPlatform.Api.Identity.ActionResults
             AuthorizeToken token = await jwtService.GenerateTokenAsync(User, cancellationToken);
             await jwtService.SetCacheTokenAsync(token, cancellationToken);
 
+            context.HttpContext.Response.StatusCode = StatusCode!.Value;
             if (SetCookie)
             {
                 logger.LogDebug("Setting cookie token: {token}", token);

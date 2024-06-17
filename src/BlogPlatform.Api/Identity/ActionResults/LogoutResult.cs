@@ -19,12 +19,12 @@ namespace BlogPlatform.Api.Identity.ActionResults
             switch (token)
             {
                 case null:
-                    logger.LogInformation("No token found in request.");
+                    logger.LogInformation("No token found in cookie.");
                     context.HttpContext.Response.StatusCode = StatusCodes.Status204NoContent;
                     break;
                 default:
                     logger.LogInformation("Removing cached token: {token}", token);
-                    await jwtService.RemoveCachedTokenAsync(token.RefreshToken, context.HttpContext.RequestAborted);
+                    await jwtService.RemoveCachedTokenAsync(token.RefreshToken, CancellationToken.None);
                     context.HttpContext.Response.StatusCode = StatusCodes.Status200OK;
                     break;
             }

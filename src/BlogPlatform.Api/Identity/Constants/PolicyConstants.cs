@@ -8,16 +8,16 @@
         /// <summary>
         /// OAuth 인증 policy 이름
         /// </summary>
-        public const string OAuthPolicy = "oauth";
+        public const string OAuthPolicy = "Oauth";
 
         /// <summary>
         /// User 인증 policy 이름
         /// </summary>
-        public const string UserPolicy = "user";
+        public const string UserPolicy = "User";
 
         /// <summary>
         /// Admin 인증 policy 이름
         /// </summary>
-        public const string AdminPolicy = "admin";
+        public const string AdminPolicy = "Admin";
     }
 }

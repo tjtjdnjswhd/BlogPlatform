@@ -95,8 +95,8 @@ namespace BlogPlatform.Api.Identity.Services
             return isExist;
         }
 
-        private static string GetVerificationCodeKey(string code) => $"{VerificationCodePrefix}_{code}";
+        internal static string GetVerificationCodeKey(string code) => $"{VerificationCodePrefix}_{code}";
 
-        private static string GetVerifiedEmailKey(string email) => $"{VerifiedEmailPrefix}_{email}";
+        internal static string GetVerifiedEmailKey(string email) => $"{VerifiedEmailPrefix}_{email}";
     }
 }

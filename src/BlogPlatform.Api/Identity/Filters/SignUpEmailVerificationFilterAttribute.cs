@@ -1,6 +1,5 @@
 ﻿using BlogPlatform.Api.Identity.Models;
 using BlogPlatform.Api.Identity.Services.Interfaces;
-using BlogPlatform.Api.Models;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
@@ -23,6 +22,9 @@ namespace BlogPlatform.Api.Identity.Filters
 
         public override async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
         {
+            ILoggerFactory loggerFactory = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>();
+            ILogger<SignUpEmailVerificationFilterAttribute> logger = loggerFactory.CreateLogger<SignUpEmailVerificationFilterAttribute>();
+
             CancellationToken cancellationToken = context.HttpContext.RequestAborted;
             BasicSignUpInfo? info = context.ActionArguments[InfoArgumentName] as BasicSignUpInfo;
 
@@ -33,11 +35,12 @@ namespace BlogPlatform.Api.Identity.Filters
             bool isVerified = await userEmailService.IsVerifyAsync(info.Email, cancellationToken);
             if (!isVerified)
             {
+                logger.LogInformation("User {email} is not verified for signup", info.Email);
                 context.Result = new ForbidResult();
-                await context.HttpContext.Response.WriteAsJsonAsync(new Error("이메일 인증 후 가입해야 합니다."), cancellationToken: CancellationToken.None);
                 return;
             }
 
+            logger.LogInformation("User {email} is verified for signup", info.Email);
             await next();
         }
     }

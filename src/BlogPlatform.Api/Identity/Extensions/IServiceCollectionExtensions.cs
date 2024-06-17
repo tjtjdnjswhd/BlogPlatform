@@ -66,6 +66,7 @@ namespace BlogPlatform.Api.Identity.Extensions
                 .AddJwtBearer(options =>
                 {
                     options.SaveToken = false;
+                    options.MapInboundClaims = false;
 
                     options.ClaimsIssuer = jwtOptions.Issuer;
                     options.Audience = jwtOptions.Audience;
@@ -73,23 +74,34 @@ namespace BlogPlatform.Api.Identity.Extensions
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
                         ValidateIssuer = true,
+                        ValidIssuer = jwtOptions.Issuer,
                         ValidateAudience = true,
+                        ValidAudience = jwtOptions.Audience,
                         ValidateLifetime = true,
                         ValidateIssuerSigningKey = true,
                         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SecretKey)),
                     };
+
+                    options.Events = new()
+                    {
+                        OnMessageReceived = context =>
+                        {
+                            context.Token = context.Request.Cookies[jwtOptions.AccessTokenName];
+                            return Task.CompletedTask;
+                        }
+                    };
                 })
-                .AddGoogle(options =>
+                .AddGoogle("google", options =>
                 {
                     options.ClientId = oauthProviderSection["Google:ClientSecret"] ?? throw new Exception();
                     options.ClientSecret = oauthProviderSection["Google:ClientSecret"] ?? throw new Exception();
                 })
-                .AddKakaoTalk(options =>
+                .AddKakaoTalk("kakaotalk", options =>
                 {
                     options.ClientId = oauthProviderSection["KakaoTalk:ClientId"] ?? throw new Exception();
                     options.ClientSecret = oauthProviderSection["KakaoTalk:ClientSecret"] ?? throw new Exception();
                 })
-                .AddNaver(options =>
+                .AddNaver("naver", options =>
                 {
                     options.ClientId = oauthProviderSection["Naver:ClientId"] ?? throw new Exception();
                     options.ClientSecret = oauthProviderSection["Naver:ClientSecret"] ?? throw new Exception();
