@@ -163,14 +163,14 @@ namespace BlogPlatform.Api.Tests.Controllers
         {
             // Arrange
             Mock<IUserEmailService> userEmailService = new();
-            userEmailService.Setup(v => v.SendEmailVerificationAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+            userEmailService.Setup(v => v.SendEmailVerificationAsync(It.IsAny<string>(), It.IsAny<Func<string, string>>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
             IdentityController controller = CreateMockController();
 
             string email = "test@example.com";
 
             // Act
-            IActionResult result = await controller.SendVerifyEmailAsync(email, CancellationToken.None);
+            IActionResult result = await controller.SendVerifyEmailAsync(new(email), CancellationToken.None);
 
             // Assert
             Assert.IsType<OkResult>(result);
@@ -188,7 +188,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             string email = "test@example.com";
 
             // Act
-            IActionResult result = await controller.SendVerifyEmailAsync(email, CancellationToken.None);
+            IActionResult result = await controller.SendVerifyEmailAsync(new(email), CancellationToken.None);
 
             // Assert
             Assert.IsType<OkResult>(result);
@@ -220,7 +220,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             IdentityController identityController = CreateMockController();
 
             // Act
-            IActionResult result = identityController.OAuthLogin("provider");
+            IActionResult result = identityController.OAuthLogin(new("provider"));
 
             // Assert
             Assert.IsType<ChallengeResult>(result);
@@ -283,7 +283,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             IdentityController identityController = CreateMockController();
 
             // Act
-            IActionResult result = identityController.OAuthSignUp("provider", "name");
+            IActionResult result = identityController.OAuthSignUp(new("provider", "name"));
 
             // Assert
             Assert.IsType<OAuthSignUpChallengeResult>(result);
@@ -516,7 +516,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             IdentityController identityController = CreateMockController(identityServiceMock);
 
             // Act
-            IActionResult result = await identityController.ChangePasswordAsync("newPassword", CancellationToken.None);
+            IActionResult result = await identityController.ChangePasswordAsync(new("newPassword"), CancellationToken.None);
 
             // Assert
             Assert.IsType<OkResult>(result);
@@ -531,7 +531,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             IdentityController identityController = CreateMockController(identityServiceMock);
 
             // Act
-            IActionResult result = await identityController.ChangePasswordAsync("newPassword", CancellationToken.None);
+            IActionResult result = await identityController.ChangePasswordAsync(new("newPassword"), CancellationToken.None);
 
             // Assert
             Assert.IsType<AuthenticatedUserDataNotFoundResult>(result);
@@ -549,7 +549,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             string email = "email@email.com";
 
             // Act
-            IActionResult result = await controller.ResetPasswordAsync(email, CancellationToken.None);
+            IActionResult result = await controller.ResetPasswordAsync(new(email), CancellationToken.None);
 
             // Assert
             Assert.IsType<OkResult>(result);
@@ -567,7 +567,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             string email = "email@email.com";
 
             // Act
-            IActionResult result = await controller.ResetPasswordAsync(email, CancellationToken.None);
+            IActionResult result = await controller.ResetPasswordAsync(new(email), CancellationToken.None);
 
             // Assert
             var actionResult = Assert.IsType<NotFoundObjectResult>(result);
@@ -586,7 +586,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             string newName = "NewName";
 
             // Act
-            IActionResult result = await controller.ChangeNameAsync(newName, CancellationToken.None);
+            IActionResult result = await controller.ChangeNameAsync(new(newName), CancellationToken.None);
 
             // Assert
             Assert.IsType<OkResult>(result);
@@ -604,7 +604,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             string newName = "NewName";
 
             // Act
-            IActionResult result = await controller.ChangeNameAsync(newName, CancellationToken.None);
+            IActionResult result = await controller.ChangeNameAsync(new(newName), CancellationToken.None);
 
             // Assert
             Assert.IsType<AuthenticatedUserDataNotFoundResult>(result);
@@ -702,7 +702,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             string newEmail = "new@example.com";
 
             // Act
-            IActionResult result = await controller.ChangeEmailAsync(newEmail, CancellationToken.None);
+            IActionResult result = await controller.ChangeEmailAsync(new(newEmail), CancellationToken.None);
 
             // Assert
             Assert.IsType<OkResult>(result);
