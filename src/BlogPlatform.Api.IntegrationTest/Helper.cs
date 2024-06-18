@@ -2,10 +2,12 @@
 using BlogPlatform.Api.Identity.Services.Interfaces;
 using BlogPlatform.Api.Services.Interfaces;
 using BlogPlatform.EFCore;
+using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
 using BlogPlatform.EFCore.Models.Abstractions;
 
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 using System.Linq.Expressions;
@@ -20,11 +22,20 @@ namespace BlogPlatform.Api.IntegrationTest
 
         public const string REFRESH_TOKEN_NAME = "refresh_token";
 
-        public static User GetFirstUser(WebApplicationFactory<Program> applicationFactory)
+        public static T GetFirstEntity<T>(WebApplicationFactory<Program> applicationFactory, bool ignoreSoftDelete = false)
+            where T : EntityBase
         {
             using var scope = applicationFactory.Services.CreateScope();
             BlogPlatformDbContext dbContext = scope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
-            return dbContext.Users.First();
+            return ignoreSoftDelete ? dbContext.Set<T>().IgnoreSoftDeleteFilter().First() : dbContext.Set<T>().First();
+        }
+
+        public static T GetFirstEntity<T>(WebApplicationFactory<Program> applicationFactory, Expression<Func<T, bool>> predicate, bool ignoreSoftDelete = false)
+            where T : EntityBase
+        {
+            using var scope = applicationFactory.Services.CreateScope();
+            BlogPlatformDbContext dbContext = scope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
+            return ignoreSoftDelete ? dbContext.Set<T>().IgnoreSoftDeleteFilter().First(predicate) : dbContext.Set<T>().First(predicate);
         }
 
         public static async Task<AuthorizeToken> GetAuthorizeTokenAsync(WebApplicationFactory<Program> applicationFactory, User user)
@@ -42,6 +53,16 @@ namespace BlogPlatform.Api.IntegrationTest
         public static void SetAuthorizeTokenCookie(HttpClient client, AuthorizeToken token)
         {
             client.DefaultRequestHeaders.Add("cookie", $"{ACCESS_TOKEN_NAME}={token.AccessToken}; {REFRESH_TOKEN_NAME}={token.RefreshToken}");
+        }
+
+        public static void ResetAuthorizationHeader(HttpClient client)
+        {
+            client.DefaultRequestHeaders.Authorization = null;
+        }
+
+        public static void ResetAuthorizeTokenCookie(HttpClient client)
+        {
+            client.DefaultRequestHeaders.Remove("cookie");
         }
 
         public static async Task SetAuthorizeTokenCache(WebApplicationFactory<Program> applicationFactory, AuthorizeToken authorizeToken)
@@ -76,11 +97,12 @@ namespace BlogPlatform.Api.IntegrationTest
             dbContext.Entry(entity).Reload();
         }
 
-        public static void UpdateEntity(WebApplicationFactory<Program> webApplicationFactory, User user)
+        public static void UpdateEntity<T>(WebApplicationFactory<Program> webApplicationFactory, T entity)
+            where T : EntityBase
         {
             using var scope = webApplicationFactory.Services.CreateScope();
             BlogPlatformDbContext dbContext = scope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
-            dbContext.Update(user);
+            dbContext.Update(entity);
             dbContext.SaveChanges();
         }
 
@@ -91,7 +113,7 @@ namespace BlogPlatform.Api.IntegrationTest
             await emailVerifyService.SetVerifyCodeAsync(email, code, CancellationToken.None);
         }
 
-        public static async Task SetVerifiedEmail(WebApplicationFactory<Program> applicationFactory, string email)
+        public static async Task SetVerifiedEmailAsync(WebApplicationFactory<Program> applicationFactory, string email)
         {
             using var scope = applicationFactory.Services.CreateScope();
             IEmailVerifyService emailVerifyService = scope.ServiceProvider.GetRequiredService<IEmailVerifyService>();
@@ -101,11 +123,11 @@ namespace BlogPlatform.Api.IntegrationTest
 
         public static void LoadCollection<T, V>(WebApplicationFactory<Program> applicationFactory, T entity, Expression<Func<T, IEnumerable<V>>> navigationExp)
             where T : EntityBase
-            where V : class
+            where V : EntityBase
         {
             using var scope = applicationFactory.Services.CreateScope();
             BlogPlatformDbContext dbContext = scope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
-            dbContext.Set<T>().Entry(entity).Collection(navigationExp).Load();
+            dbContext.Set<T>().Entry(entity).Collection(navigationExp).Query().IgnoreSoftDeleteFilter().Load();
         }
     }
 }

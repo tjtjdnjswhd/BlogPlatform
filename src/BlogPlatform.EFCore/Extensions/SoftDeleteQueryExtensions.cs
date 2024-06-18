@@ -18,5 +18,11 @@ namespace BlogPlatform.EFCore.Extensions
         {
             return query.IgnoreQueryFilters();
         }
+
+        public static IQueryable<T> FilterSoftDeletedEntity<T>(this IQueryable<T> query)
+            where T : EntityBase
+        {
+            return query.Where(e => e.SoftDeleteLevel == 0);
+        }
     }
 }

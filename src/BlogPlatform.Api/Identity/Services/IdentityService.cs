@@ -66,7 +66,7 @@ namespace BlogPlatform.Api.Services
         {
             _logger.LogDebug("Signing up with {signUpInfo}", signUpInfo);
 
-            IQueryable<User> users = _blogPlatformDbContext.Users.Union(GetRestorableUsers());
+            IQueryable<User> users = _blogPlatformDbContext.Users.FilterSoftDeletedEntity().Union(GetRestorableUsers()); // Union 사용 시 Global query filter가 적용되지 않음. 수동으로 필터링
             IQueryable<BasicAccount> accounts = users.SelectMany(u => u.BasicAccounts);
 
             bool isAccountIdExist = await accounts.AnyAsync(b => b.AccountId == signUpInfo.Id, cancellationToken);
@@ -160,7 +160,7 @@ namespace BlogPlatform.Api.Services
                 return (ESignUpResult.ProviderNotFound, null);
             }
 
-            IQueryable<User> users = _blogPlatformDbContext.Users.Union(GetRestorableUsers());
+            IQueryable<User> users = _blogPlatformDbContext.Users.FilterSoftDeletedEntity().Union(GetRestorableUsers()); // Union 사용 시 Global query filter가 적용되지 않음. 수동으로 필터링
             IQueryable<OAuthAccount> oAuthAccounts = users.SelectMany(u => u.OAuthAccounts);
 
             bool isAccountExist = await oAuthAccounts.AnyAsync(o => o.Provider.Name == signUpInfo.Provider && o.NameIdentifier == signUpInfo.NameIdentifier, cancellationToken);
@@ -246,7 +246,7 @@ namespace BlogPlatform.Api.Services
                 return EAddOAuthResult.ProviderNotFound;
             }
 
-            IQueryable<User> users = _blogPlatformDbContext.Users.Union(GetRestorableUsers());
+            IQueryable<User> users = _blogPlatformDbContext.Users.FilterSoftDeletedEntity().Union(GetRestorableUsers()); // Union 사용 시 Global query filter가 적용되지 않음. 수동으로 필터링
             IQueryable<OAuthAccount> oAuthAccounts = users.SelectMany(u => u.OAuthAccounts);
 
             bool isOAuthAlreadyExist = await oAuthAccounts.Where(o => o.NameIdentifier == oAuthInfo.NameIdentifier && o.ProviderId == providerId).AnyAsync(cancellationToken);
