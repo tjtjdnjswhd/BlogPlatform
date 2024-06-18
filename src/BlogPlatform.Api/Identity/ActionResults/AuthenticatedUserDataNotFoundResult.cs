@@ -12,7 +12,7 @@ namespace BlogPlatform.Api.Identity.ActionResults
     {
         public int? StatusCode => StatusCodes.Status401Unauthorized;
 
-        public async Task ExecuteResultAsync(ActionContext context)
+        public Task ExecuteResultAsync(ActionContext context)
         {
             using var scope = context.HttpContext.RequestServices.CreateScope();
             IJwtService jwtService = scope.ServiceProvider.GetRequiredService<IJwtService>();
@@ -23,6 +23,7 @@ namespace BlogPlatform.Api.Identity.ActionResults
 
             jwtService.RemoveCookieToken(context.HttpContext.Request, context.HttpContext.Response);
             context.HttpContext.Response.StatusCode = StatusCode!.Value;
+            return Task.CompletedTask;
         }
     }
 }

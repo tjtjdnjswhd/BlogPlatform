@@ -19,7 +19,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.PostAsync("/api/identity/withdraw", null);
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         }
 
@@ -32,13 +31,12 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(client, authorizeToken);
-            Helper.SoftDelete(WebApplicationFactory, user, TestOutputHelper);
+            Helper.SoftDelete(WebApplicationFactory, user);
 
             // Act
             HttpResponseMessage response = await client.PostAsync("/api/identity/withdraw", null);
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         }
 
@@ -56,7 +54,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.PostAsync("/api/identity/withdraw", null);
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
 
@@ -73,7 +70,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
 
             HttpResponseMessage withDrawResponse = await client.PostAsync("/api/identity/withdraw", null);
             withDrawResponse.EnsureSuccessStatusCode();
-            PrintResponse(withDrawResponse);
             Helper.ResetAuthorizationHeader(client);
 
             string email = "user55@user.com";
@@ -83,7 +79,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/basic", new BasicSignUpInfo(basicAccount.AccountId, "user55pw", "user55", email));
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
             Helper.ReloadEntity(WebApplicationFactory, user);
             Assert.Equal(1, user.SoftDeleteLevel);
@@ -103,7 +98,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
 
             HttpResponseMessage withDrawResponse = await client.PostAsync("/api/identity/withdraw", null);
             withDrawResponse.EnsureSuccessStatusCode();
-            PrintResponse(withDrawResponse);
             Helper.ResetAuthorizationHeader(client);
 
             string email = user.Email;
@@ -113,7 +107,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/basic", new BasicSignUpInfo("user55Id", "user55pw", "user55", email));
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
             Helper.ReloadEntity(WebApplicationFactory, user);
             Assert.Equal(1, user.SoftDeleteLevel);
@@ -132,7 +125,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
 
             HttpResponseMessage withDrawResponse = await client.PostAsync("/api/identity/withdraw", null);
             withDrawResponse.EnsureSuccessStatusCode();
-            PrintResponse(withDrawResponse);
 
             user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Id == user.Id, true);
             user.SoftDeletedAt = DateTimeOffset.UtcNow.AddDays(-2);
@@ -148,7 +140,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/basic", new BasicSignUpInfo(basicAccount.AccountId, "user55pw", "user55", email));
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Helper.ReloadEntity(WebApplicationFactory, user);
             Assert.Equal(1, user.SoftDeleteLevel);
@@ -174,7 +165,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await httpClient.PostAsync("/api/identity/withdraw/cancel", null);
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         }
 
@@ -187,7 +177,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(httpClient, authorizeToken);
-            Helper.SoftDelete(WebApplicationFactory, user, TestOutputHelper);
+            Helper.SoftDelete(WebApplicationFactory, user);
             user.SoftDeletedAt = DateTimeOffset.UtcNow.AddDays(-2);
             Helper.UpdateEntity(WebApplicationFactory, user);
 
@@ -195,7 +185,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await httpClient.PostAsync("/api/identity/withdraw/cancel", null);
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
@@ -213,7 +202,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await httpClient.PostAsync("/api/identity/withdraw/cancel", null);
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
@@ -227,7 +215,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await httpClient.PostAsync("/api/identity/withdraw/cancel", null);
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         }
 
@@ -240,13 +227,12 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(httpClient, authorizeToken); ;
-            Helper.SoftDelete(WebApplicationFactory, user, TestOutputHelper);
+            Helper.SoftDelete(WebApplicationFactory, user);
 
             // Act
             HttpResponseMessage response = await httpClient.PostAsync("/api/identity/withdraw/cancel", null);
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Helper.ReloadEntity(WebApplicationFactory, user);
             Assert.Equal(0, user.SoftDeleteLevel);

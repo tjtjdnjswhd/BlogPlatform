@@ -24,7 +24,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/login/basic", new BasicLoginInfo("notexist", "password"));
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
 
@@ -38,7 +37,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/login/basic", new BasicLoginInfo("user1Id", "wrongpassword"));
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         }
 
@@ -54,7 +52,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/login/basic", basicLoginInfo);
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
@@ -70,7 +67,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/login/basic", basicLoginInfo);
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
@@ -84,7 +80,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/login/basic", new BasicLoginInfo("user1Id", "user1pw"));
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             AuthorizeToken? authorizeToken = await response.Content.ReadFromJsonAsync<AuthorizeToken>();
@@ -104,7 +99,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/login/basic", new BasicLoginInfo("user1Id", "user1pw"));
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             await Assert.ThrowsAsync<JsonException>(async () => await response.Content.ReadFromJsonAsync<AuthorizeToken>());
@@ -123,7 +117,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/basic", new BasicSignUpInfo("user55", "user55pw", "user55", "user55@user.com"));
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
         }
 
@@ -141,7 +134,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/basic", new BasicSignUpInfo(basicAccount.AccountId, "user55pw", "user55", email));
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
             Error? error = await response.Content.ReadFromJsonAsync<Error>();
             Assert.NotNull(error);
@@ -161,7 +153,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/basic", new BasicSignUpInfo("user55Id", "user55pw", user.Name, email));
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
             Error? error = await response.Content.ReadFromJsonAsync<Error>();
             Assert.NotNull(error);
@@ -180,7 +171,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/basic", new BasicSignUpInfo("user55Id", "user55pw", "user55", user.Email));
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
             Error? error = await response.Content.ReadFromJsonAsync<Error>();
             Assert.NotNull(error);
@@ -201,7 +191,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/basic", new BasicSignUpInfo("user55Id", "user55pw", "user55", email));
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             await Assert.ThrowsAnyAsync<JsonException>(async () => await response.Content.ReadFromJsonAsync<AuthorizeToken>());
@@ -228,7 +217,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/basic", new BasicSignUpInfo("user55Id", "user55pw", "user55", email));
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             AuthorizeToken? authorizeToken = await response.Content.ReadFromJsonAsync<AuthorizeToken>();
@@ -249,7 +237,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/basic/email", new EmailModel("user@user.com"));
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
 
@@ -263,7 +250,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.GetAsync("/api/identity/signup/basic/email?code=123456");
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
@@ -280,7 +266,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.GetAsync("/api/identity/signup/basic/email?code=123456");
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
     }

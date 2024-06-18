@@ -22,7 +22,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/password/change", new PasswordModel("newPassword"));
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         }
 
@@ -35,13 +34,12 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(client, authorizeToken);
-            Helper.SoftDelete(WebApplicationFactory, user, TestOutputHelper);
+            Helper.SoftDelete(WebApplicationFactory, user);
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/password/change", new PasswordModel("newPassword"));
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         }
 
@@ -63,7 +61,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/password/change", new PasswordModel("abc"));
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
             Assert.Equal(oldPasswordHash, dbContext.BasicAccounts.First(b => b.UserId == user.Id).PasswordHash);
         }
@@ -87,7 +84,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/password/change", new PasswordModel("newPassword"));
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Helper.ReloadEntity(WebApplicationFactory, basicAccount);
             Assert.NotEqual(oldPasswordHash, basicAccount.PasswordHash);
@@ -103,7 +99,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/password/reset", new EmailModel("notExist@notExist"));
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
 
@@ -119,7 +114,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/password/reset", new EmailModel(user.Email));
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
 
@@ -132,13 +126,12 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(client, authorizeToken);
-            Helper.SoftDelete(WebApplicationFactory, user, TestOutputHelper);
+            Helper.SoftDelete(WebApplicationFactory, user);
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/name", new UserNameModel("newName"));
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         }
 
@@ -156,7 +149,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/name", new UserNameModel("ab"));
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
@@ -174,7 +166,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/name", new UserNameModel("newName"));
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
 
@@ -188,7 +179,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await httpClient.PostAsJsonAsync("/api/identity/email/change", new EmailModel("newEmail@email.com"));
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         }
 
@@ -207,7 +197,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await httpClient.PostAsJsonAsync("/api/identity/email/change", new EmailModel("newEmail@email.com"));
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
 
@@ -225,7 +214,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await httpClient.GetAsync("/api/identity/email/change/confirm?code=wrongCode");
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
@@ -238,7 +226,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(httpClient, authorizeToken);
-            Helper.SoftDelete(WebApplicationFactory, user, TestOutputHelper);
+            Helper.SoftDelete(WebApplicationFactory, user);
 
             string newEmail = "newEmail@email.com";
             await Helper.SetEmailVerifyCodeAsync(WebApplicationFactory, "verifyCode", newEmail);
@@ -247,7 +235,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await httpClient.GetAsync("/api/identity/email/change/confirm?code=verifyCode");
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         }
 
@@ -268,7 +255,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await httpClient.GetAsync("/api/identity/email/change/confirm?code=verifyCode");
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Helper.ReloadEntity(WebApplicationFactory, user);
             Assert.Equal(newEmail, user.Email);

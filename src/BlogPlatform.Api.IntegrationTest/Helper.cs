@@ -12,8 +12,6 @@ using Microsoft.Extensions.DependencyInjection;
 
 using System.Linq.Expressions;
 
-using Xunit.Abstractions;
-
 namespace BlogPlatform.Api.IntegrationTest
 {
     public static class Helper
@@ -21,6 +19,16 @@ namespace BlogPlatform.Api.IntegrationTest
         public const string ACCESS_TOKEN_NAME = "access_token";
 
         public const string REFRESH_TOKEN_NAME = "refresh_token";
+
+        public static T AddEntity<T>(WebApplicationFactory<Program> applicationFactory, T entity)
+            where T : EntityBase
+        {
+            using var scope = applicationFactory.Services.CreateScope();
+            BlogPlatformDbContext dbContext = scope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
+            dbContext.Add(entity);
+            dbContext.SaveChanges();
+            return entity;
+        }
 
         public static T GetFirstEntity<T>(WebApplicationFactory<Program> applicationFactory, bool ignoreSoftDelete = false)
             where T : EntityBase
@@ -72,7 +80,7 @@ namespace BlogPlatform.Api.IntegrationTest
             await jwtService.SetCacheTokenAsync(authorizeToken, CancellationToken.None);
         }
 
-        public static void SoftDelete<T>(WebApplicationFactory<Program> applicationFactory, T entity, ITestOutputHelper testOutputHelper)
+        public static void SoftDelete<T>(WebApplicationFactory<Program> applicationFactory, T entity)
             where T : EntityBase
         {
             using var scope = applicationFactory.Services.CreateScope();

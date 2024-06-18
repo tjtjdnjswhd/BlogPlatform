@@ -27,7 +27,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.PostAsync("/api/identity/logout", null);
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
         }
 
@@ -44,7 +43,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.PostAsync("/api/identity/logout", null);
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
 
@@ -58,7 +56,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.PostAsync("/api/identity/refresh", null);
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
@@ -72,7 +69,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/refresh", new AuthorizeToken("InvalidToken", "InvalidToken"), CancellationToken.None);
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
@@ -94,7 +90,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
              ------------------------------
              */
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
 
@@ -119,7 +114,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/refresh", authorizeToken, CancellationToken.None);
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
@@ -133,7 +127,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/id/find", new EmailModel("notExist@user.com"));
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
 
@@ -148,7 +141,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/id/find", new EmailModel("user1@user.com"));
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
     }

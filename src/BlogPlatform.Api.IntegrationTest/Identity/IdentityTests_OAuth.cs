@@ -4,7 +4,6 @@ using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
 
-using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 
 using System.Net;
@@ -18,13 +17,12 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task OAuthLogin_Challenge()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient(new WebApplicationFactoryClientOptions() { AllowAutoRedirect = false });
+            HttpClient client = CreateClient();
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/login/oauth", new Models.OAuthProvider("Google"));
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
         }
 
@@ -32,13 +30,12 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task OAuthSignUp_InvalidUserName()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient(new WebApplicationFactoryClientOptions() { AllowAutoRedirect = false });
+            HttpClient client = CreateClient();
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/oauth", new OAuthSignUpModel("Google", "ab"));
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
@@ -46,13 +43,12 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task OAuthSignUp_Challenge()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient(new WebApplicationFactoryClientOptions() { AllowAutoRedirect = false });
+            HttpClient client = CreateClient();
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/oauth", new OAuthSignUpModel("Google", "userName"));
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
         }
 
@@ -66,7 +62,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.GetAsync("/api/identity/oauth?provider=google");
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         }
 
@@ -74,7 +69,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task AddOAuth_Challenge_Header()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient(new WebApplicationFactoryClientOptions() { AllowAutoRedirect = false });
+            HttpClient client = CreateClient();
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(client, authorizeToken);
@@ -83,7 +78,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.GetAsync("/api/identity/oauth?provider=google");
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
         }
 
@@ -91,7 +85,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task AddOAuth_Challenge_Cookie()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient(new WebApplicationFactoryClientOptions() { AllowAutoRedirect = false });
+            HttpClient client = CreateClient();
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizeTokenCookie(client, authorizeToken);
@@ -100,7 +94,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.GetAsync("/api/identity/oauth?provider=google");
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
         }
 
@@ -114,7 +107,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.DeleteAsync("/api/identity/oauth/google");
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         }
 
@@ -143,7 +135,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.DeleteAsync("/api/identity/oauth/google");
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
             Assert.True(dbContext.OAuthAccounts.Any(o => o.Id == oAuthAccount.Id));
         }
@@ -169,13 +160,12 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, oauthUser);
             Helper.SetAuthorizationHeader(client, authorizeToken);
 
-            Helper.SoftDelete(WebApplicationFactory, oauthUser, TestOutputHelper);
+            Helper.SoftDelete(WebApplicationFactory, oauthUser);
 
             // Act
             HttpResponseMessage response = await client.DeleteAsync("/api/identity/oauth/google");
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
             Assert.True(dbContext.OAuthAccounts.IgnoreSoftDeleteFilter().Any(o => o.Id == oAuthAccount.Id));
         }
@@ -205,7 +195,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.DeleteAsync("/api/identity/oauth/notexist");
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
             Assert.True(dbContext.OAuthAccounts.Any(o => o.Id == oAuthAccount.Id));
         }
@@ -237,7 +226,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.DeleteAsync("/api/identity/oauth/google");
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.True(dbContext.OAuthAccounts.IgnoreSoftDeleteFilter().Any(o => o.Id == googleAccount.Id));
             Assert.False(dbContext.OAuthAccounts.Any(o => o.Id == googleAccount.Id));
@@ -272,7 +260,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpResponseMessage response = await client.DeleteAsync("/api/identity/oauth/google");
 
             // Assert
-            PrintResponse(response);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.False(dbContext.OAuthAccounts.Any(o => o.Id == googleAccount.Id));
             Assert.True(dbContext.OAuthAccounts.IgnoreSoftDeleteFilter().Any(o => o.Id == googleAccount.Id));
