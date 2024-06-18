@@ -31,8 +31,8 @@ namespace BlogPlatform.Api.Identity.Filters
             Debug.Assert(info is not null);
 
             using var scope = context.HttpContext.RequestServices.CreateScope();
-            IUserEmailService userEmailService = scope.ServiceProvider.GetRequiredService<IUserEmailService>();
-            bool isVerified = await userEmailService.IsVerifyAsync(info.Email, cancellationToken);
+            IEmailVerifyService verifyService = scope.ServiceProvider.GetRequiredService<IEmailVerifyService>();
+            bool isVerified = await verifyService.IsEmailVerifiedAsync(info.Email, cancellationToken);
             if (!isVerified)
             {
                 logger.LogInformation("User {email} is not verified for signup", info.Email);

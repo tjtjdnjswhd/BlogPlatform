@@ -1,5 +1,4 @@
-﻿using BlogPlatform.Api.Helper;
-using BlogPlatform.Api.Identity.Models;
+﻿using BlogPlatform.Api.Identity.Models;
 using BlogPlatform.Api.Identity.Options;
 using BlogPlatform.Api.Services.Interfaces;
 using BlogPlatform.EFCore;
@@ -12,9 +11,9 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 using System.IdentityModel.Tokens.Jwt;
-using System.IO.Pipelines;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 
 namespace BlogPlatform.Api.Services
 {
@@ -170,9 +169,19 @@ namespace BlogPlatform.Api.Services
         /// <inheritdoc/>
         public async Task<AuthorizeToken?> GetBodyTokenAsync(HttpRequest request, CancellationToken cancellationToken = default)
         {
-            PipeReader pipeReader = request.BodyReader;
-            AuthorizeToken? authorizeToken = await pipeReader.DeserializeJsonAsync<AuthorizeToken>(cancellationToken);
-            return authorizeToken;
+            StreamReader reader = new(request.Body);
+            string bodyToken = await reader.ReadToEndAsync(cancellationToken);
+
+            try
+            {
+                AuthorizeToken? authorizeToken = JsonSerializer.Deserialize<AuthorizeToken>(bodyToken);
+                return authorizeToken;
+            }
+            catch (Exception e)
+            {
+                _logger.LogInformation(e, "Invalid json: {bodyToken}", bodyToken);
+                return null;
+            }
         }
 
         /// <inheritdoc/>

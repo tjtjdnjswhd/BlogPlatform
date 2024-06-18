@@ -12,6 +12,15 @@ namespace BlogPlatform.Api.Identity.ActionResults
     /// </summary>
     public class RefreshResult : IActionResult
     {
+        private readonly AuthorizeToken _authorizeToken;
+        private readonly bool _setCookie;
+
+        public RefreshResult(AuthorizeToken authorizeToken, bool setCookie)
+        {
+            _setCookie = setCookie;
+            _authorizeToken = authorizeToken;
+        }
+
         public async Task ExecuteResultAsync(ActionContext context)
         {
             using var serviceScope = context.HttpContext.RequestServices.CreateScope();
@@ -20,24 +29,7 @@ namespace BlogPlatform.Api.Identity.ActionResults
             ILogger<RefreshResult> logger = serviceScope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger<RefreshResult>();
             IJwtService jwtService = serviceScope.ServiceProvider.GetRequiredService<IJwtService>();
 
-            bool isCookieToken = true;
-
-            AuthorizeToken? oldToken = jwtService.GetCookieToken(context.HttpContext.Request);
-            if (oldToken is null)
-            {
-                logger.LogInformation("No token found in request cookie.");
-                oldToken = await jwtService.GetBodyTokenAsync(context.HttpContext.Request, cancellationToken);
-                isCookieToken = false;
-                if (oldToken is null)
-                {
-                    logger.LogInformation("No token found in request body.");
-                    context.HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
-                    await context.HttpContext.Response.WriteAsJsonAsync(new Error("토큰이 필요합니다."));
-                    return;
-                }
-            }
-
-            AuthorizeToken? newToken = await jwtService.RefreshAsync(oldToken, cancellationToken);
+            AuthorizeToken? newToken = await jwtService.RefreshAsync(_authorizeToken, cancellationToken);
             if (newToken is null)
             {
                 logger.LogInformation("Refresh token is expired.");
@@ -47,7 +39,7 @@ namespace BlogPlatform.Api.Identity.ActionResults
             }
 
             await jwtService.SetCacheTokenAsync(newToken, cancellationToken);
-            if (isCookieToken)
+            if (_setCookie)
             {
                 logger.LogDebug("Setting cookie token: {token}", newToken);
                 jwtService.SetCookieToken(context.HttpContext.Response, newToken);

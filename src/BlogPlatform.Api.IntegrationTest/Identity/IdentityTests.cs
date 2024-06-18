@@ -3,10 +3,10 @@ using BlogPlatform.Api.Identity.Models;
 using BlogPlatform.Api.Identity.Options;
 using BlogPlatform.Api.Identity.Services.Interfaces;
 using BlogPlatform.Api.Models;
+using BlogPlatform.Api.Services.Interfaces;
 using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
-using BlogPlatform.EFCore.Models.Abstractions;
 
 using Meziantou.Extensions.Logging.Xunit;
 
@@ -14,7 +14,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
@@ -47,12 +46,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
                 {
                     lb.ClearProviders();
                     lb.AddProvider(loggerProvider);
-                });
-
-                cnf.ConfigureAppConfiguration(builder =>
-                {
-                    string settingPath = Path.Combine(Directory.GetCurrentDirectory(), "Identity", "appsettings.json");
-                    builder.AddJsonFile(settingPath);
                 });
 
                 cnf.ConfigureServices(services =>
@@ -88,6 +81,9 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
                         opt.EnableSensitiveDataLogging();
                     });
 
+                    services.RemoveAll<IMailSender>();
+                    services.AddScoped(_ => new Mock<IMailSender>().Object);
+
                     services.AddDistributedMemoryCache();
                 });
             });
@@ -99,7 +95,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task BasicLogin_NotFound()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/login/basic", new BasicLoginInfo("notexist", "password"));
@@ -113,7 +109,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task BasicLogin_Unauthorized()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/login/basic", new BasicLoginInfo("user1Id", "wrongpassword"));
@@ -127,7 +123,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task BasicLogin_Invalid_Id()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
 
             BasicLoginInfo basicLoginInfo = new("abc", "password");
 
@@ -143,7 +139,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task BasicLogin_Invalid_Password()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
 
             BasicLoginInfo basicLoginInfo = new("user0Id", "abc");
 
@@ -159,7 +155,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task BasicLogin_Ok_Body()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/login/basic", new BasicLoginInfo("user1Id", "user1pw"));
@@ -178,7 +174,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task BasicLogin_Ok_Cookie()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
             client.DefaultRequestHeaders.Add(HeaderNameConstants.AuthorizeTokenSetCookie, "true");
 
             // Act
@@ -198,7 +194,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task BasicSignUp_EmailVerifyRequired()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/basic", new BasicSignUpInfo("user55", "user55pw", "user55", "user55@user.com"));
@@ -212,10 +208,10 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task BasicSignUp_IdExist()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
             User user = Helper.GetFirstUser(WebApplicationFactory);
             string email = "user55@user.com";
-            Helper.SetVerifiedEmail(WebApplicationFactory, email);
+            await Helper.SetVerifiedEmail(WebApplicationFactory, email);
             Helper.LoadCollection(WebApplicationFactory, user, u => u.BasicAccounts);
 
             // Act
@@ -233,10 +229,10 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task BasicSignUp_NameExist()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
             User user = Helper.GetFirstUser(WebApplicationFactory);
             string email = "user55@user.com";
-            Helper.SetVerifiedEmail(WebApplicationFactory, email);
+            await Helper.SetVerifiedEmail(WebApplicationFactory, email);
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/basic", new BasicSignUpInfo("user55Id", "user55pw", user.Name, email));
@@ -253,9 +249,9 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task BasicSignUp_EmailExist()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
             User user = Helper.GetFirstUser(WebApplicationFactory);
-            Helper.SetVerifiedEmail(WebApplicationFactory, user.Email);
+            await Helper.SetVerifiedEmail(WebApplicationFactory, user.Email);
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/basic", new BasicSignUpInfo("user55Id", "user55pw", "user55", user.Email));
@@ -272,10 +268,10 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task BasicSignUp_Success_Cookie()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
 
             string email = "user55@user.com";
-            Helper.SetVerifiedEmail(WebApplicationFactory, email);
+            await Helper.SetVerifiedEmail(WebApplicationFactory, email);
             client.DefaultRequestHeaders.Add(HeaderNameConstants.AuthorizeTokenSetCookie, "true");
 
             // Act
@@ -296,10 +292,10 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task BasicSignUp_Success_Body(bool setCookieSetToken)
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
 
             string email = "user55@user.com";
-            Helper.SetVerifiedEmail(WebApplicationFactory, email);
+            await Helper.SetVerifiedEmail(WebApplicationFactory, email);
             if (setCookieSetToken)
             {
                 client.DefaultRequestHeaders.Add(HeaderNameConstants.AuthorizeTokenSetCookie, "false");
@@ -324,7 +320,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         {
             // Arrange
             SetIEmailServiceMock();
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/basic/email", new EmailModel("user@user.com"));
@@ -338,7 +334,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task VerifyEmail_BadRequest()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
 
             // Act
             HttpResponseMessage response = await client.GetAsync("/api/identity/signup/basic/email?code=123456");
@@ -352,10 +348,10 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task VerifyEmail_Ok()
         {
             // Arrange
-            Mock<IUserEmailService> userEmailServiceMock = new();
-            userEmailServiceMock.Setup(s => s.VerifyEmailCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("success");
-            SetIEmailServiceMock(userEmailServiceMock);
-            HttpClient client = WebApplicationFactory.CreateClient();
+            Mock<IEmailVerifyService> emailVerifyServiceMock = new();
+            emailVerifyServiceMock.Setup(s => s.VerifyEmailCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("success@user.com");
+            SetIEmailVerifyServiceMock(emailVerifyServiceMock);
+            HttpClient client = CreateClient();
 
             // Act
             HttpResponseMessage response = await client.GetAsync("/api/identity/signup/basic/email?code=123456");
@@ -380,13 +376,27 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         }
 
         [Fact]
+        public async Task OAuthSignUp_InvalidUserName()
+        {
+            // Arrange
+            HttpClient client = WebApplicationFactory.CreateClient(new WebApplicationFactoryClientOptions() { AllowAutoRedirect = false });
+
+            // Act
+            HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/oauth", new OAuthSignUpModel("Google", "ab"));
+
+            // Assert
+            PrintResponse(response);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
         public async Task OAuthSignUp_Challenge()
         {
             // Arrange
             HttpClient client = WebApplicationFactory.CreateClient(new WebApplicationFactoryClientOptions() { AllowAutoRedirect = false });
 
             // Act
-            HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/oauth", new Models.OAuthProvider("Google"));
+            HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/oauth", new OAuthSignUpModel("Google", "userName"));
 
             // Assert
             PrintResponse(response);
@@ -397,7 +407,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task AddOAuth_Unauthorize()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
 
             // Act
             HttpResponseMessage response = await client.GetAsync("/api/identity/oauth?provider=google");
@@ -445,7 +455,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task RemoveOAuth_Unauthorize()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
 
             // Act
             HttpResponseMessage response = await client.DeleteAsync("/api/identity/oauth/google");
@@ -459,7 +469,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task RemoveOAuth_Conflict()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
             using var scope = WebApplicationFactory.Services.CreateScope();
             BlogPlatformDbContext dbContext = scope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
             User oauthUser = new("oauthOnly", "oauthOnly@user.com");
@@ -489,7 +499,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task RemoveOAuth_UserNotFound()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
             using var scope = WebApplicationFactory.Services.CreateScope();
             BlogPlatformDbContext dbContext = scope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
             User oauthUser = new("oauthOnly", "oauthOnly@user.com");
@@ -503,10 +513,10 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             oauthUser.Roles.Add(dbContext.Roles.Where(r => r.Name == "user").First());
             dbContext.SaveChanges();
 
-            Helper.SoftDelete(WebApplicationFactory, oauthUser, TestOutputHelper);
-
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, oauthUser);
             Helper.SetAuthorizationHeader(client, authorizeToken);
+
+            Helper.SoftDelete(WebApplicationFactory, oauthUser, TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await client.DeleteAsync("/api/identity/oauth/google");
@@ -514,14 +524,14 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             // Assert
             PrintResponse(response);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-            Assert.True(dbContext.OAuthAccounts.Any(o => o.Id == oAuthAccount.Id));
+            Assert.True(dbContext.OAuthAccounts.IgnoreSoftDeleteFilter().Any(o => o.Id == oAuthAccount.Id));
         }
 
         [Fact]
         public async Task RemoveOAuth_ProviderNotFound()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
             using var scope = WebApplicationFactory.Services.CreateScope();
             BlogPlatformDbContext dbContext = scope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
             User oauthUser = new("newUser", "newUser@user.com");
@@ -551,7 +561,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task RemoveOAuth_OAuthOnly_Ok()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
             using var scope = WebApplicationFactory.Services.CreateScope();
             BlogPlatformDbContext dbContext = scope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
             User oauthUser = new("newUser", "newUser@user.com");
@@ -585,7 +595,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task RemoveOAuth_OneOAuthWithBasic_Ok()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
             using var scope = WebApplicationFactory.Services.CreateScope();
             BlogPlatformDbContext dbContext = scope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
             User oauthUser = new("newUser", "newUser@user.com");
@@ -620,7 +630,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task Logout_NoContent()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
             User user = Helper.GetFirstUser(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(client, authorizeToken);
@@ -630,14 +640,14 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
 
             // Assert
             PrintResponse(response);
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
         }
 
         [Fact]
         public async Task Logout_Ok()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
             User user = Helper.GetFirstUser(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizeTokenCookie(client, authorizeToken);
@@ -651,27 +661,44 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         }
 
         [Fact]
-        public async Task Refresh_NotFound()
+        public async Task Refresh_Empty()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
 
             // Act
             HttpResponseMessage response = await client.PostAsync("/api/identity/refresh", null);
 
             // Assert
             PrintResponse(response);
-            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task Refresh_InvalidToken()
+        {
+            // Arrange
+            HttpClient client = CreateClient();
+
+            // Act
+            HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/refresh", new AuthorizeToken("InvalidToken", "InvalidToken"), CancellationToken.None);
+
+            // Assert
+            PrintResponse(response);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
         [Fact]
         public async Task Refresh_Ok()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
             User user = Helper.GetFirstUser(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             await Helper.SetAuthorizeTokenCache(WebApplicationFactory, authorizeToken);
+            AuthorizeToken asdas = new("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwibmFtZSI6InVzZXIxIiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy9yb2xlIjoiVXNlciIsImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3Q6NTAwMCIsImF1ZCI6WyJodHRwOi8vbG9jYWxob3N0OjUwMDAiLCJodHRwOi8vbG9jYWxob3N0OjUwMDAiXSwibmJmIjoxNzE4Njk4MTM5LCJleHAiOjE3MTg2OTk5Mzl9.avaZzSkNhUiSE3wJ_qomtyF-kyAwxVyVKb9rOd4VKz0", "fd96b25a-686e-4180-be74-6625e2dcf540");
+            string asd = JsonSerializer.Serialize(asdas);
+            AuthorizeToken dasdas = JsonSerializer.Deserialize<AuthorizeToken>(asd);
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/refresh", authorizeToken, CancellationToken.None);
@@ -689,11 +716,11 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             {
                 conf.ConfigureServices(services =>
                 {
-                    services.AddScoped<TimeProvider, FakeTimeProvider>(_ => new FakeTimeProvider(DateTimeOffset.UtcNow.AddDays(1)));
+                    services.AddSingleton<TimeProvider, FakeTimeProvider>(_ => new FakeTimeProvider(DateTimeOffset.UtcNow.AddDays(1)));
                 });
             });
 
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
             User user = Helper.GetFirstUser(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             await Helper.SetAuthorizeTokenCache(WebApplicationFactory, authorizeToken);
@@ -710,7 +737,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task ChangePassword_Unauthorize()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/password/change", new PasswordModel("newPassword"));
@@ -724,7 +751,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task ChangePassword_UserNotFound()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
 
             User user = Helper.GetFirstUser(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -743,7 +770,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task ChangePassword_InvalidPassword()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
 
             using var scope = WebApplicationFactory.Services.CreateScope();
             BlogPlatformDbContext dbContext = scope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
@@ -766,12 +793,13 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task ChangePassword_Ok()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
 
             using var scope = WebApplicationFactory.Services.CreateScope();
             BlogPlatformDbContext dbContext = scope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
             User user = dbContext.Users.First();
-            string oldPasswordHash = dbContext.BasicAccounts.First(b => b.UserId == user.Id).PasswordHash;
+            BasicAccount basicAccount = dbContext.BasicAccounts.First(b => b.UserId == user.Id);
+            string oldPasswordHash = basicAccount.PasswordHash;
 
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(client, authorizeToken);
@@ -782,14 +810,15 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             // Assert
             PrintResponse(response);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            Assert.NotEqual(oldPasswordHash, dbContext.BasicAccounts.First(b => b.UserId == user.Id).PasswordHash);
+            Helper.ReloadEntity(WebApplicationFactory, basicAccount);
+            Assert.NotEqual(oldPasswordHash, basicAccount.PasswordHash);
         }
 
         [Fact]
         public async Task ResetPassword_NotFound()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/password/reset", new EmailModel("notExist@notExist"));
@@ -804,7 +833,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         {
             // Arrange
             SetIEmailServiceMock();
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
             User user = Helper.GetFirstUser(WebApplicationFactory);
 
             // Act
@@ -819,7 +848,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task ChangeName_UserNotFound()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
 
             User user = Helper.GetFirstUser(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -838,7 +867,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task Changename_InvalidName()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
 
             User user = Helper.GetFirstUser(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -856,7 +885,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task ChangeName_Ok()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
 
             User user = Helper.GetFirstUser(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -874,7 +903,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task FindId_NotFound()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/id/find", new EmailModel("notExist@user.com"));
@@ -889,7 +918,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         {
             // Arrange
             SetIEmailServiceMock(new Mock<IUserEmailService>());
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/id/find", new EmailModel("user1@user.com"));
@@ -903,7 +932,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task WithDraw_Unauthorize()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
 
             // Act
             HttpResponseMessage response = await client.PostAsync("/api/identity/withdraw", null);
@@ -917,7 +946,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task WithDraw_UserNotFound()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
 
             User user = Helper.GetFirstUser(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -936,7 +965,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task WithDraw_Ok()
         {
             // Arrange
-            HttpClient client = WebApplicationFactory.CreateClient();
+            HttpClient client = CreateClient();
 
             User user = Helper.GetFirstUser(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -954,7 +983,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task CancelWithDraw_UserNotFound()
         {
             // Arrange
-            HttpClient httpClient = WebApplicationFactory.CreateClient();
+            HttpClient httpClient = CreateClient();
 
             User user = Helper.GetFirstUser(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -973,12 +1002,14 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task CancelWithDraw_Expired()
         {
             // Arrange
-            HttpClient httpClient = WebApplicationFactory.CreateClient();
+            HttpClient httpClient = CreateClient();
 
             User user = Helper.GetFirstUser(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(httpClient, authorizeToken);
             Helper.SoftDelete(WebApplicationFactory, user, TestOutputHelper);
+            user.SoftDeletedAt = DateTimeOffset.UtcNow.AddDays(-2);
+            Helper.UpdateEntity(WebApplicationFactory, user);
 
             // Act
             HttpResponseMessage response = await httpClient.PostAsync("/api/identity/withdraw/cancel", null);
@@ -992,7 +1023,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task CancelWithDraw_WithDrawNotRequested()
         {
             // Arrange
-            HttpClient httpClient = WebApplicationFactory.CreateClient();
+            HttpClient httpClient = CreateClient();
 
             User user = Helper.GetFirstUser(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -1010,7 +1041,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task CancelWithDraw_Unauthorize()
         {
             // Arrange
-            HttpClient httpClient = WebApplicationFactory.CreateClient();
+            HttpClient httpClient = CreateClient();
 
             // Act
             HttpResponseMessage response = await httpClient.PostAsync("/api/identity/withdraw/cancel", null);
@@ -1024,7 +1055,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task CancelWithDraw_Ok()
         {
             // Arrange
-            HttpClient httpClient = WebApplicationFactory.CreateClient();
+            HttpClient httpClient = CreateClient();
 
             User user = Helper.GetFirstUser(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -1039,14 +1070,14 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Helper.ReloadEntity(WebApplicationFactory, user);
             Assert.Equal(0, user.SoftDeleteLevel);
-            Assert.Equal(EntityBase.DefaultSoftDeletedAt, user.SoftDeletedAt);
+            Assert.True(user.IsSoftDeletedAtDefault());
         }
 
         [Fact]
         public async Task ChangeEmail_Unauthorize()
         {
             // Arrange
-            HttpClient httpClient = WebApplicationFactory.CreateClient();
+            HttpClient httpClient = CreateClient();
 
             // Act
             HttpResponseMessage response = await httpClient.PostAsJsonAsync("/api/identity/email/change", new EmailModel("newEmail@email.com"));
@@ -1061,7 +1092,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         {
             // Arrange
             SetIEmailServiceMock();
-            HttpClient httpClient = WebApplicationFactory.CreateClient();
+            HttpClient httpClient = CreateClient();
 
             User user = Helper.GetFirstUser(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -1079,7 +1110,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task ConfirmChangeEmail_WrongCode()
         {
             // Arrange
-            HttpClient httpClient = WebApplicationFactory.CreateClient();
+            HttpClient httpClient = CreateClient();
 
             User user = Helper.GetFirstUser(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -1097,7 +1128,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task ConfirmChangeEmail_UserNotFound()
         {
             // Arrange
-            HttpClient httpClient = WebApplicationFactory.CreateClient();
+            HttpClient httpClient = CreateClient();
 
             User user = Helper.GetFirstUser(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -1105,10 +1136,10 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             Helper.SoftDelete(WebApplicationFactory, user, TestOutputHelper);
 
             string newEmail = "newEmail@email.com";
-            Helper.SetEmailVerifyCode(WebApplicationFactory, "code", newEmail);
+            await Helper.SetEmailVerifyCodeAsync(WebApplicationFactory, "verifyCode", newEmail);
 
             // Act
-            HttpResponseMessage response = await httpClient.GetAsync("/api/identity/email/change/confirm?code=code'");
+            HttpResponseMessage response = await httpClient.GetAsync("/api/identity/email/change/confirm?code=verifyCode");
 
             // Assert
             PrintResponse(response);
@@ -1119,17 +1150,17 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task ConfirmChangeEmail_Ok()
         {
             // Arrange
-            HttpClient httpClient = WebApplicationFactory.CreateClient();
+            HttpClient httpClient = CreateClient();
 
             User user = Helper.GetFirstUser(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(httpClient, authorizeToken);
 
             string newEmail = "newEmail@email.com";
-            Helper.SetEmailVerifyCode(WebApplicationFactory, "code", newEmail);
+            await Helper.SetEmailVerifyCodeAsync(WebApplicationFactory, "verifyCode", newEmail);
 
             // Act
-            HttpResponseMessage response = await httpClient.GetAsync("/api/identity/email/change/confirm?code=code'");
+            HttpResponseMessage response = await httpClient.GetAsync("/api/identity/email/change/confirm?code=verifyCode");
 
             // Assert
             PrintResponse(response);
@@ -1204,10 +1235,31 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             });
         }
 
+        private void SetIEmailVerifyServiceMock(Mock<IEmailVerifyService>? emailVerifyServiceMock = null)
+        {
+            WebApplicationFactory = WebApplicationFactory.WithWebHostBuilder(builder =>
+            {
+                builder.ConfigureServices(services =>
+                {
+                    services.RemoveAll<IEmailVerifyService>();
+                    if (emailVerifyServiceMock is null)
+                    {
+                        emailVerifyServiceMock = new();
+                    }
+                    services.AddSingleton(emailVerifyServiceMock.Object);
+                });
+            });
+        }
+
         private void PrintResponse(HttpResponseMessage response)
         {
             TestOutputHelper.WriteLine($"Content: {response.Content.ReadAsStringAsync().Result}");
             TestOutputHelper.WriteLine($"Headers: {response.Headers}");
+        }
+
+        private HttpClient CreateClient()
+        {
+            return WebApplicationFactory.CreateDefaultClient(new HttpClientRequestLogHandler(TestOutputHelper));
         }
     }
 }

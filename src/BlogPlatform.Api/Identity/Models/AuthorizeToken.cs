@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace BlogPlatform.Api.Identity.Models
 {
@@ -7,5 +8,6 @@ namespace BlogPlatform.Api.Identity.Models
     /// </summary>
     /// <param name="AccessToken"></param>
     /// <param name="RefreshToken"></param>
-    public record AuthorizeToken([Required] string AccessToken, [Required] string RefreshToken);
+    [method: JsonConstructor]
+    public record AuthorizeToken([Required(AllowEmptyStrings = false)] string AccessToken, [Required(AllowEmptyStrings = false)] string RefreshToken);
 }

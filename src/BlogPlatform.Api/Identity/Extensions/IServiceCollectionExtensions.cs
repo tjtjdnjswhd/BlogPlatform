@@ -28,6 +28,7 @@ namespace BlogPlatform.Api.Identity.Extensions
             services.AddScoped<IIdentityService, IdentityService>();
             services.AddScoped<IJwtService, JwtService>();
             services.AddScoped<IUserEmailService, UserEmailService>();
+            services.AddScoped<IEmailVerifyService, EmailVerifyService>();
             services.AddScoped<IPasswordHasher<BasicAccount>, PasswordHasher<BasicAccount>>();
 
             IConfigurationSection jwtOptionsSection = optionsSection.GetRequiredSection("Jwt");

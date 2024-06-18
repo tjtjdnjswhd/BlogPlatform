@@ -2,6 +2,7 @@
 using BlogPlatform.Api.Identity.ActionResults;
 using BlogPlatform.Api.Identity.Attributes;
 using BlogPlatform.Api.Identity.Filters;
+using BlogPlatform.Api.Identity.ModelBinders;
 using BlogPlatform.Api.Identity.Models;
 using BlogPlatform.Api.Identity.Services.Interfaces;
 using BlogPlatform.Api.Models;
@@ -21,12 +22,14 @@ namespace BlogPlatform.Api.Controllers
     {
         private readonly IIdentityService _identityService;
         private readonly IUserEmailService _userEmailService;
+        private readonly IEmailVerifyService _emailVerifyService;
         private readonly ILogger<IdentityController> _logger;
 
-        public IdentityController(IIdentityService identityService, IUserEmailService userEmailService, ILogger<IdentityController> logger)
+        public IdentityController(IIdentityService identityService, IUserEmailService userEmailService, IEmailVerifyService emailVerifyService, ILogger<IdentityController> logger)
         {
             _identityService = identityService;
             _userEmailService = userEmailService;
+            _emailVerifyService = emailVerifyService;
             _logger = logger;
         }
 
@@ -61,7 +64,9 @@ namespace BlogPlatform.Api.Controllers
         {
             string? verifyUri = Url.ActionLink("VerifyEmail", "Identity");
             Debug.Assert(verifyUri is not null); // VerifyEmailAsync가 존재하므로 null이 아니어야 함
-            await _userEmailService.SendEmailVerificationAsync(newEmail.Email, code => $"{verifyUri}&code={code}", cancellationToken);
+            string code = _emailVerifyService.GenerateVerificationCode();
+            await _emailVerifyService.SetVerifyCodeAsync(newEmail.Email, code, cancellationToken);
+            _userEmailService.SendEmailVerifyMail(newEmail.Email, $"{verifyUri}&code={code}", cancellationToken);
             return Ok();
         }
 
@@ -71,7 +76,7 @@ namespace BlogPlatform.Api.Controllers
         [ProducesDefaultResponseType]
         public async Task<IActionResult> VerifyEmailAsync([FromQuery] string code, CancellationToken cancellationToken)
         {
-            string? email = await _userEmailService.VerifyEmailCodeAsync(code, cancellationToken);
+            string? email = await _emailVerifyService.VerifyEmailCodeAsync(code, cancellationToken);
             return email is not null ? Ok() : BadRequest(new Error("잘못된 코드입니다"));
         }
 
@@ -222,7 +227,7 @@ namespace BlogPlatform.Api.Controllers
         [ProducesResponseType(typeof(Error), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
         [ProducesDefaultResponseType]
-        public RefreshResult Refresh() => new();
+        public RefreshResult Refresh([ModelBinder<RefreshAuthorizeTokenBinder>, FromSpecial] AuthorizeToken authorizeToken, [TokenSetCookie] bool setCookie) => new(authorizeToken, setCookie);
 
         [HttpPost("password/change")]
         [UserAuthorize]
@@ -316,7 +321,9 @@ namespace BlogPlatform.Api.Controllers
         {
             string? confirmUri = Url.Action("ConfirmChangeEmail", "Identity");
             Debug.Assert(confirmUri is not null); // ConfirmChangeEmailAsync가 존재하므로 null이 아니어야 함
-            await _userEmailService.SendEmailVerificationAsync(email.Email, code => $"{confirmUri}&code={code}", cancellationToken);
+            string code = _emailVerifyService.GenerateVerificationCode();
+            await _emailVerifyService.SetVerifyCodeAsync(email.Email, code, cancellationToken);
+            _userEmailService.SendEmailVerifyMail(email.Email, $"{confirmUri}&code={code}", cancellationToken);
             return Ok();
         }
 
@@ -327,7 +334,7 @@ namespace BlogPlatform.Api.Controllers
         [ProducesDefaultResponseType]
         public async Task<IActionResult> ConfirmChangeEmailAsync([FromQuery] string code, CancellationToken cancellationToken)
         {
-            string? email = await _userEmailService.VerifyEmailCodeAsync(code, cancellationToken);
+            string? email = await _emailVerifyService.VerifyEmailCodeAsync(code, cancellationToken);
             if (email is null)
             {
                 return BadRequest(new Error("잘못된 코드입니다"));

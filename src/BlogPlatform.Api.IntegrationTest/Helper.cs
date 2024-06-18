@@ -1,12 +1,11 @@
 ﻿using BlogPlatform.Api.Identity.Models;
-using BlogPlatform.Api.Identity.Services;
+using BlogPlatform.Api.Identity.Services.Interfaces;
 using BlogPlatform.Api.Services.Interfaces;
 using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Models;
 using BlogPlatform.EFCore.Models.Abstractions;
 
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
 
 using System.Linq.Expressions;
@@ -57,8 +56,7 @@ namespace BlogPlatform.Api.IntegrationTest
         {
             using var scope = applicationFactory.Services.CreateScope();
             ICascadeSoftDeleteService cascadeSoftDeleteService = scope.ServiceProvider.GetRequiredService<ICascadeSoftDeleteService>();
-            var status = cascadeSoftDeleteService.SetSoftDelete(entity, true);
-            testOutputHelper.WriteLine(status.Message);
+            cascadeSoftDeleteService.SetSoftDelete(entity, true);
         }
 
         public static void HardDelete<T>(WebApplicationFactory<Program> applicationFactory, T entity)
@@ -78,18 +76,27 @@ namespace BlogPlatform.Api.IntegrationTest
             dbContext.Entry(entity).Reload();
         }
 
-        public static void SetEmailVerifyCode(WebApplicationFactory<Program> applicationFactory, string code, string email)
+        public static void UpdateEntity(WebApplicationFactory<Program> webApplicationFactory, User user)
         {
-            using var scope = applicationFactory.Services.CreateScope();
-            IDistributedCache cache = scope.ServiceProvider.GetRequiredService<IDistributedCache>();
-            cache.SetString(UserEmailService.GetVerificationCodeKey(code), email);
+            using var scope = webApplicationFactory.Services.CreateScope();
+            BlogPlatformDbContext dbContext = scope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
+            dbContext.Update(user);
+            dbContext.SaveChanges();
         }
 
-        public static void SetVerifiedEmail(WebApplicationFactory<Program> applicationFactory, string email)
+        public static async Task SetEmailVerifyCodeAsync(WebApplicationFactory<Program> applicationFactory, string code, string email)
         {
             using var scope = applicationFactory.Services.CreateScope();
-            IDistributedCache cache = scope.ServiceProvider.GetRequiredService<IDistributedCache>();
-            cache.SetString(UserEmailService.GetVerifiedEmailKey(email), string.Empty);
+            IEmailVerifyService emailVerifyService = scope.ServiceProvider.GetRequiredService<IEmailVerifyService>();
+            await emailVerifyService.SetVerifyCodeAsync(email, code, CancellationToken.None);
+        }
+
+        public static async Task SetVerifiedEmail(WebApplicationFactory<Program> applicationFactory, string email)
+        {
+            using var scope = applicationFactory.Services.CreateScope();
+            IEmailVerifyService emailVerifyService = scope.ServiceProvider.GetRequiredService<IEmailVerifyService>();
+            await emailVerifyService.SetVerifyCodeAsync(email, "code", CancellationToken.None);
+            await emailVerifyService.VerifyEmailCodeAsync("code", CancellationToken.None);
         }
 
         public static void LoadCollection<T, V>(WebApplicationFactory<Program> applicationFactory, T entity, Expression<Func<T, IEnumerable<V>>> navigationExp)

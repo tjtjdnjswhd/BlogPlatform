@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="BlogPlatform.Api.Tests" />
+	<InternalsVisibleTo Include="BlogPlatform.Api.IntegrationTest" />
   </ItemGroup>
 	
   <ItemGroup>
