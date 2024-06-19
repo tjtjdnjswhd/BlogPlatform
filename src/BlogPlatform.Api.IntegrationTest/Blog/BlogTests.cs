@@ -21,7 +21,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         }
 
         [Fact]
-        public async Task GetBlog_NotFound()
+        public async Task Get_NotFound()
         {
             // Arrange
             HttpClient client = CreateClient();
@@ -34,7 +34,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         }
 
         [Fact]
-        public async Task GetBlog_Ok()
+        public async Task Get_Ok()
         {
             // Arrange
             SeedData();
@@ -50,7 +50,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         }
 
         [Fact]
-        public async Task CreateBlog_Unauthorized()
+        public async Task Create_Unauthorized()
         {
             // Arrange
             HttpClient client = CreateClient();
@@ -63,7 +63,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         }
 
         [Fact]
-        public async Task CreateBlog_BlogExist_Conflict()
+        public async Task Create_BlogExist_Conflict()
         {
             // Arrange
             HttpClient client = CreateClient();
@@ -81,7 +81,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         }
 
         [Fact]
-        public async Task CreateBlog_BlogNameDuplicate_Conflict()
+        public async Task Create_BlogNameDuplicate_Conflict()
         {
             // Arrange
             HttpClient client = CreateClient();
@@ -100,7 +100,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         }
 
         [Fact]
-        public async Task CreateBlog_Ok()
+        public async Task Create_Ok()
         {
             // Arrange
             HttpClient client = CreateClient();
@@ -118,7 +118,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         }
 
         [Fact]
-        public async Task UpdateBlog_Unauthorized()
+        public async Task Update_Unauthorized()
         {
             // Arrange
             HttpClient client = CreateClient();
@@ -131,7 +131,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         }
 
         [Fact]
-        public async Task UpdateBlog_NotFound()
+        public async Task Update_NotFound()
         {
             // Arrange
             HttpClient client = CreateClient();
@@ -147,7 +147,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         }
 
         [Fact]
-        public async Task UpdateBlog_Forbid()
+        public async Task Update_Forbid()
         {
             // Arrange
             HttpClient client = CreateClient();
@@ -163,7 +163,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         }
 
         [Fact]
-        public async Task UpdateBlog_BlogNameDuplicate_Conflict()
+        public async Task Update_BlogNameDuplicate_Conflict()
         {
             // Arrange
             HttpClient client = CreateClient();
@@ -188,7 +188,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         }
 
         [Fact]
-        public async Task UpdateBlog_Ok()
+        public async Task Update_Ok()
         {
             // Arrange
             HttpClient client = CreateClient();
@@ -207,7 +207,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         }
 
         [Fact]
-        public async Task DeleteBlog_NotFound()
+        public async Task Delete_NotFound()
         {
             // Arrange
             HttpClient client = CreateClient();
@@ -223,7 +223,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         }
 
         [Fact]
-        public async Task DeleteBlog_AlreadyDeleted_NotFound()
+        public async Task Delete_AlreadyDeleted_NotFound()
         {
             // Arrange
             HttpClient client = CreateClient();
@@ -241,7 +241,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         }
 
         [Fact]
-        public async Task DeleteBlog_Forbid()
+        public async Task Delete_Forbid()
         {
             // Arrange
             HttpClient client = CreateClient();
@@ -258,7 +258,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         }
 
         [Fact]
-        public async Task DeleteBlog_NoContent()
+        public async Task Delete_NoContent()
         {
             // Arrange
             HttpClient client = CreateClient();
@@ -272,12 +272,19 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
 
             // Assert
             Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
-            EFCore.Models.Blog? userBlog = Helper.GetFirstEntityOrDefault<EFCore.Models.Blog>(WebApplicationFactory, b => b.UserId == user.Id);
-            Assert.Null(userBlog);
+            EFCore.Models.Blog? userBlog = Helper.GetFirstEntityOrDefault<EFCore.Models.Blog>(WebApplicationFactory, b => b.UserId == user.Id, true);
+            Assert.NotNull(userBlog);
+            Assert.False(userBlog.IsSoftDeletedAtDefault());
+            Assert.Equal(1, userBlog.SoftDeleteLevel);
+
+            EFCore.Models.Category? category = Helper.GetFirstEntity<EFCore.Models.Category>(WebApplicationFactory, c => c.BlogId == userBlog.Id, true);
+            Assert.NotNull(category);
+            Assert.False(category.IsSoftDeletedAtDefault());
+            Assert.Equal(2, category.SoftDeleteLevel);
         }
 
         [Fact]
-        public async Task RestoreBlog_Unauthorized()
+        public async Task Restore_Unauthorized()
         {
             // Arrange
             HttpClient client = CreateClient();
@@ -290,7 +297,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         }
 
         [Fact]
-        public async Task RestoreBlog_NotFound()
+        public async Task Restore_NotFound()
         {
             // Arrange
             HttpClient client = CreateClient();
@@ -306,7 +313,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         }
 
         [Fact]
-        public async Task RestoreBlog_NotDeleted()
+        public async Task Restore_NotDeleted()
         {
             // Arrange
             HttpClient client = CreateClient();
@@ -323,7 +330,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         }
 
         [Fact]
-        public async Task RestoreBlog_Forbid()
+        public async Task Restore_Forbid()
         {
             // Arrange
             HttpClient client = CreateClient();
@@ -344,7 +351,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         }
 
         [Fact]
-        public async Task RestoreBlog_BlogAlreadyExist_Conflict()
+        public async Task Restore_BlogAlreadyExist_Conflict()
         {
             // Arrange
             HttpClient client = CreateClient();
@@ -372,7 +379,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         }
 
         [Fact]
-        public async Task RestoreBlog_Expired_BadRequest()
+        public async Task Restore_Expired_BadRequest()
         {
             // Arrange
             HttpClient client = CreateClient();
@@ -394,7 +401,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         }
 
         [Fact]
-        public async Task RestoreBlog_NoContent()
+        public async Task Restore_NoContent()
         {
             // Arrange
             HttpClient client = CreateClient();
@@ -413,12 +420,17 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
             Assert.NotNull(restoredBlog);
             Assert.True(restoredBlog.IsSoftDeletedAtDefault());
             Assert.Equal(0, restoredBlog.SoftDeleteLevel);
+
+            EFCore.Models.Category? category = Helper.GetFirstEntity<EFCore.Models.Category>(WebApplicationFactory, c => c.BlogId == restoredBlog.Id);
+            Assert.NotNull(category);
+            Assert.True(category.IsSoftDeletedAtDefault());
+            Assert.Equal(0, category.SoftDeleteLevel);
         }
 
         [Theory]
         [InlineData(true)]
         [InlineData(false)]
-        public async Task RestoreBlog_BlogNameDuplicate_Conflict(bool addBody)
+        public async Task Restore_BlogNameDuplicate_Conflict(bool addBody)
         {
             // Arrange
             HttpClient client = CreateClient();
@@ -477,6 +489,10 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
 
             EFCore.Models.Blog blog = new("blogName", "blogDescription", blogOwner.Id);
             dbContext.Blogs.Add(blog);
+            dbContext.SaveChanges();
+
+            EFCore.Models.Category category = new("categoryName", blog.Id);
+            dbContext.Categories.Add(category);
             dbContext.SaveChanges();
         }
     }
