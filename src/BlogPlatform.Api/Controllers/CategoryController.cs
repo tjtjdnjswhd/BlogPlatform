@@ -16,12 +16,14 @@ namespace BlogPlatform.Api.Controllers
     {
         private readonly BlogPlatformDbContext _dbContext;
         private readonly ICascadeSoftDeleteService _softDeleteService;
+        private readonly TimeProvider _timeProvider;
         private readonly ILogger<CategoryController> _logger;
 
-        public CategoryController(BlogPlatformDbContext dbContext, ICascadeSoftDeleteService softDeleteService, ILogger<CategoryController> logger)
+        public CategoryController(BlogPlatformDbContext dbContext, ICascadeSoftDeleteService softDeleteService, TimeProvider timeProvider, ILogger<CategoryController> logger)
         {
             _dbContext = dbContext;
             _softDeleteService = softDeleteService;
+            _timeProvider = timeProvider;
             _logger = logger;
         }
 
@@ -47,7 +49,7 @@ namespace BlogPlatform.Api.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status400BadRequest)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> CreateAsync([FromForm] string categoryName, [UserIdBind] int userId, CancellationToken cancellationToken)
+        public async Task<IActionResult> CreateAsync([FromBody] CategoryNameModel model, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             int blogId = await _dbContext.Blogs.Where(b => b.UserId == userId).Select(b => b.Id).FirstOrDefaultAsync(cancellationToken);
             if (blogId == default)
@@ -56,12 +58,12 @@ namespace BlogPlatform.Api.Controllers
                 return BadRequest(new Error("블로그를 먼저 생성해주세요"));
             }
 
-            Category category = new(categoryName, blogId);
+            Category category = new(model.Name, blogId);
             _dbContext.Categories.Add(category);
             await _dbContext.SaveChangesAsync(cancellationToken);
-            _logger.LogInformation("Category {categoryName} created", categoryName);
+            _logger.LogInformation("Category {categoryName} created", model.Name);
 
-            return CreatedAtAction("GetAsync", "Category", new { id = category.Id }, null);
+            return CreatedAtAction("Get", "Category", new { id = category.Id }, null);
         }
 
         [UserAuthorize]
@@ -70,25 +72,25 @@ namespace BlogPlatform.Api.Controllers
         [ProducesResponseType(typeof(Error), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> UpdateAsync([FromRoute] int id, [FromForm] string categoryName, [UserIdBind] int userId, CancellationToken cancellationToken)
+        public async Task<IActionResult> UpdateAsync([FromRoute] int id, [FromBody] CategoryNameModel model, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
-            int blogId = await _dbContext.Blogs.Where(b => b.UserId == userId).Select(b => b.Id).FirstOrDefaultAsync(cancellationToken);
-            if (blogId == default)
+            var categoryInfo = await _dbContext.Categories.Where(c => c.Id == id).Select(c => new { category = c, userId = c.Blog.UserId }).FirstOrDefaultAsync(cancellationToken);
+            if (categoryInfo is null)
             {
-                _logger.LogInformation("User with id {userId} does not have a blog", userId);
-                return BadRequest(new Error("블로그를 먼저 생성해주세요"));
-            }
-
-            Category? category = await _dbContext.Categories.FirstOrDefaultAsync(c => c.Id == id && c.BlogId == blogId, cancellationToken);
-            if (category == null)
-            {
-                _logger.LogInformation("Category for blog with id {blogId} not found", blogId);
+                _logger.LogInformation("Category with id {id} not found", id);
                 return NotFound(new Error("존재하지 않는 카테고리입니다"));
             }
 
-            category.Name = categoryName;
+            if (categoryInfo.userId != userId)
+            {
+                _logger.LogInformation("User with id {userId} does not have permission to update category with id {id}", userId, id);
+                return Forbid();
+            }
+
+            categoryInfo.category.Name = model.Name;
+            _dbContext.Categories.Update(categoryInfo.category);
             await _dbContext.SaveChangesAsync(cancellationToken);
-            _logger.LogInformation("Category {categoryName} updated", categoryName);
+            _logger.LogInformation("Category {categoryName} updated", model.Name);
 
             return NoContent();
         }
@@ -102,21 +104,20 @@ namespace BlogPlatform.Api.Controllers
         [ProducesDefaultResponseType]
         public async Task<IActionResult> DeleteAsync([FromRoute] int id, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
-            int blogId = await _dbContext.Blogs.Where(b => b.UserId == userId).Select(b => b.Id).FirstOrDefaultAsync(cancellationToken);
-            if (blogId == default)
+            var categoryInfo = await _dbContext.Categories.Where(c => c.Id == id).Select(c => new { category = c, userId = c.Blog.UserId }).FirstOrDefaultAsync(cancellationToken);
+            if (categoryInfo is null)
             {
-                _logger.LogInformation("User with id {userId} does not have a blog", userId);
-                return BadRequest(new Error("블로그를 먼저 생성해주세요"));
-            }
-
-            Category? category = await _dbContext.Categories.FirstOrDefaultAsync(c => c.Id == id && c.BlogId == blogId, cancellationToken);
-            if (category == null)
-            {
-                _logger.LogInformation("Category for blog with id {blogId} not found", blogId);
+                _logger.LogInformation("Category with id {id} not found", id);
                 return NotFound(new Error("존재하지 않는 카테고리입니다"));
             }
 
-            var status = await _softDeleteService.SetSoftDeleteAsync(category, true);
+            if (categoryInfo.userId != userId)
+            {
+                _logger.LogInformation("User with id {userId} does not have permission to delete category with id {id}", userId, id);
+                return Forbid();
+            }
+
+            var status = await _softDeleteService.SetSoftDeleteAsync(categoryInfo.category, true);
             _logger.LogStatusGeneric(status);
             return status.HasErrors ? StatusCode(StatusCodes.Status500InternalServerError, new Error(status.Message)) : NoContent();
         }
@@ -130,27 +131,32 @@ namespace BlogPlatform.Api.Controllers
         [ProducesDefaultResponseType]
         public async Task<IActionResult> RestoreAsync([FromRoute] int id, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
-            int blogId = await _dbContext.Blogs.Where(b => b.UserId == userId).Select(b => b.Id).FirstOrDefaultAsync(cancellationToken);
-            if (blogId == default)
+            var categoryInfo = await _dbContext.Categories.IgnoreSoftDeleteFilter().Where(c => c.Id == id).Select(c => new { category = c, userId = c.Blog.UserId }).FirstOrDefaultAsync(cancellationToken);
+            if (categoryInfo is null)
             {
-                _logger.LogInformation("User with id {userId} does not have a blog", userId);
-                return BadRequest(new Error("블로그를 먼저 생성해주세요"));
-            }
-
-            Category? category = await _dbContext.Categories.IgnoreSoftDeleteFilter().FirstOrDefaultAsync(c => c.Id == id && c.BlogId == blogId, cancellationToken);
-            if (category == null)
-            {
-                _logger.LogInformation("Category for blog with id {blogId} not found", blogId);
+                _logger.LogInformation("Category with id {id} not found", id);
                 return NotFound(new Error("존재하지 않는 카테고리입니다"));
             }
 
-            if (category.IsSoftDeletedAtDefault())
+            if (categoryInfo.userId != userId)
+            {
+                _logger.LogInformation("User with id {userId} does not have permission to delete category with id {id}", userId, id);
+                return Forbid();
+            }
+
+            if (categoryInfo.category.IsSoftDeletedAtDefault())
             {
                 _logger.LogInformation("Category with id {id} is not deleted", id);
                 return BadRequest(new Error("삭제되지 않은 카테고리입니다"));
             }
 
-            var status = await _softDeleteService.ResetSoftDeleteAsync(category, true);
+            if (categoryInfo.category.SoftDeletedAt.Add(TimeSpan.FromDays(1)) < _timeProvider.GetUtcNow())
+            {
+                _logger.LogInformation("Category with id {id} is not restorable", id);
+                return BadRequest(new Error("복원할 수 없는 카테고리입니다"));
+            }
+
+            var status = await _softDeleteService.ResetSoftDeleteAsync(categoryInfo.category, true);
             _logger.LogStatusGeneric(status);
             return status.HasErrors ? StatusCode(StatusCodes.Status500InternalServerError, new Error(status.Message)) : NoContent();
         }

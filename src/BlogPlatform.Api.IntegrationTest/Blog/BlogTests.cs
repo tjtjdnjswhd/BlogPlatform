@@ -475,12 +475,6 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
             withoutBlog.Roles.Add(userRole);
             dbContext.SaveChanges();
 
-            BasicAccount blogOwnerAccount = new("blogOwnerId", "password", blogOwner.Id);
-            BasicAccount withoutBlogAccount = new("withoutBlogId", "password", withoutBlog.Id);
-            dbContext.BasicAccounts.Add(blogOwnerAccount);
-            dbContext.BasicAccounts.Add(withoutBlogAccount);
-            dbContext.SaveChanges();
-
             EFCore.Models.Blog blog = new("blogName", "blogDescription", blogOwner.Id);
             dbContext.Blogs.Add(blog);
             dbContext.SaveChanges();
