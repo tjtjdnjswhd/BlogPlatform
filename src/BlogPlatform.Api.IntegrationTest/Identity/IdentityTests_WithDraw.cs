@@ -92,7 +92,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpClient client = CreateClient();
 
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
-            Helper.LoadCollection(WebApplicationFactory, user, u => u.BasicAccounts);
+            Helper.LoadCollection(WebApplicationFactory, user, u => u.BasicAccounts, true);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(client, authorizeToken);
 

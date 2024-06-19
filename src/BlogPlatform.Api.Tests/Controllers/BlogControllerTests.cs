@@ -39,7 +39,7 @@ namespace BlogPlatform.Api.Tests.Controllers
 
             XUnitLogger<BlogController> controllerLogger = new(testOutputHelper);
 
-            _blogController = new(_setUp.DbContextMock.Object, _setUp.SoftDeleteServiceMock.Object, controllerLogger);
+            _blogController = new(_setUp.DbContextMock.Object, _setUp.SoftDeleteServiceMock.Object, TimeProvider.System, controllerLogger);
         }
 
         [Fact]
@@ -69,7 +69,7 @@ namespace BlogPlatform.Api.Tests.Controllers
         public async Task Create_Conflict()
         {
             // Act
-            IActionResult result = await _blogController.CreateAsync("blog1", "bb", 1, CancellationToken.None);
+            IActionResult result = await _blogController.CreateAsync(new BlogCreate("blog1", "bb"), 1, CancellationToken.None);
 
             // Assert
             ConflictObjectResult conflictResult = Assert.IsType<ConflictObjectResult>(result);
@@ -82,7 +82,7 @@ namespace BlogPlatform.Api.Tests.Controllers
         public async Task Create_CreatedAtAction()
         {
             // Act
-            IActionResult result = await _blogController.CreateAsync("blog4", "description4", 4, CancellationToken.None);
+            IActionResult result = await _blogController.CreateAsync(new BlogCreate("blog4", "description4"), 4, CancellationToken.None);
 
             // Assert
             Utils.VerifyCreatedResult(result, nameof(BlogController.GetAsync), "Blog");
@@ -94,7 +94,7 @@ namespace BlogPlatform.Api.Tests.Controllers
         public async Task Update_NotFound()
         {
             // Act
-            IActionResult result = await _blogController.UpdateAsync(5, "blog5", "description5", 1, CancellationToken.None);
+            IActionResult result = await _blogController.UpdateAsync(5, new BlogCreate("blog5", "description5"), 1, CancellationToken.None);
 
             // Assert
             Utils.VerifyNotFoundResult(result);
@@ -106,7 +106,7 @@ namespace BlogPlatform.Api.Tests.Controllers
         public async Task Update_Forbidden()
         {
             // Act
-            IActionResult result = await _blogController.UpdateAsync(1, "blog1", "description1", 2, CancellationToken.None);
+            IActionResult result = await _blogController.UpdateAsync(1, new BlogCreate("blog1", "description1"), 2, CancellationToken.None);
 
             // Assert
             Utils.VerifyForbidResult(result);
@@ -118,7 +118,7 @@ namespace BlogPlatform.Api.Tests.Controllers
         public async Task Update_Ok()
         {
             // Act
-            IActionResult result = await _blogController.UpdateAsync(1, "blog1", "description1", 1, CancellationToken.None);
+            IActionResult result = await _blogController.UpdateAsync(1, new BlogCreate("blog1", "description1"), 1, CancellationToken.None);
 
             // Assert
             Utils.VerifyOkResult(result);

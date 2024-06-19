@@ -8,8 +8,6 @@ using BlogPlatform.EFCore.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-using System.ComponentModel.DataAnnotations;
-
 namespace BlogPlatform.Api.Controllers
 {
     [Route("api/[controller]")]
@@ -18,12 +16,14 @@ namespace BlogPlatform.Api.Controllers
     {
         private readonly BlogPlatformDbContext _dbContext;
         private readonly ICascadeSoftDeleteService _softDeleteService;
+        private readonly TimeProvider _timeProvider;
         private readonly ILogger<BlogController> _logger;
 
-        public BlogController(BlogPlatformDbContext dbContext, ICascadeSoftDeleteService softDeleteService, ILogger<BlogController> logger)
+        public BlogController(BlogPlatformDbContext dbContext, ICascadeSoftDeleteService softDeleteService, TimeProvider timeProvider, ILogger<BlogController> logger)
         {
             _dbContext = dbContext;
             _softDeleteService = softDeleteService;
+            _timeProvider = timeProvider;
             _logger = logger;
         }
 
@@ -49,7 +49,7 @@ namespace BlogPlatform.Api.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status409Conflict)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> CreateAsync([FromForm] string blogName, [FromForm] string description, [UserIdBind] int userId, CancellationToken cancellationToken)
+        public async Task<IActionResult> CreateAsync(BlogCreate model, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             bool isUserHasBlog = await _dbContext.Blogs.AnyAsync(b => b.UserId == userId, cancellationToken);
             if (isUserHasBlog)
@@ -58,12 +58,19 @@ namespace BlogPlatform.Api.Controllers
                 return Conflict(new Error("이미 블로그가 존재합니다"));
             }
 
-            Blog blog = new(blogName, description, userId);
+            bool isSameNameExist = await _dbContext.Blogs.AnyAsync(b => b.Name == model.BlogName, cancellationToken);
+            if (isSameNameExist)
+            {
+                _logger.LogInformation("Blog with name {name} already exists", model.BlogName);
+                return Conflict(new Error("이미 존재하는 블로그 이름입니다"));
+            }
+
+            Blog blog = new(model.BlogName, model.Description, userId);
             _dbContext.Blogs.Add(blog);
             await _dbContext.SaveChangesAsync(cancellationToken);
             _logger.LogInformation("Created blog with id {id}", blog.Id);
 
-            return CreatedAtAction(nameof(GetAsync), "Blog", routeValues: new { id = blog.Id }, null);
+            return CreatedAtAction("Get", "Blog", routeValues: new { id = blog.Id }, null);
         }
 
         [UserAuthorize]
@@ -71,7 +78,7 @@ namespace BlogPlatform.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> UpdateAsync([FromRoute] int id, [FromForm, Required(AllowEmptyStrings = false)] string blogName, [FromForm, Required(AllowEmptyStrings = false)] string description, [UserIdBind] int userId, CancellationToken cancellationToken)
+        public async Task<IActionResult> UpdateAsync([FromRoute] int id, BlogCreate model, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             Blog? blog = await _dbContext.Blogs.FindAsync([id], cancellationToken);
             if (blog == null)
@@ -86,8 +93,15 @@ namespace BlogPlatform.Api.Controllers
                 return Forbid();
             }
 
-            blog.Name = blogName;
-            blog.Description = description;
+            bool isSameNameExist = await _dbContext.Blogs.AnyAsync(b => b.Name == model.BlogName, cancellationToken);
+            if (isSameNameExist)
+            {
+                _logger.LogInformation("Blog with name {name} already exists", model.BlogName);
+                return Conflict(new Error("이미 존재하는 블로그 이름입니다"));
+            }
+
+            blog.Name = model.BlogName;
+            blog.Description = model.Description;
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             return Ok();
@@ -128,7 +142,7 @@ namespace BlogPlatform.Api.Controllers
         [ProducesResponseType(typeof(Error), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status500InternalServerError)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> RestoreAsync([FromRoute] int id, [UserIdBind] int userId, CancellationToken cancellationToken)
+        public async Task<IActionResult> RestoreAsync([FromRoute] int id, [FromBody] BlogCreate? model, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             Blog? blog = await _dbContext.Blogs.IgnoreSoftDeleteFilter().FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
             if (blog == null)
@@ -155,10 +169,19 @@ namespace BlogPlatform.Api.Controllers
                 return Conflict(new Error("이미 블로그가 존재합니다"));
             }
 
-            if (blog.SoftDeletedAt.Add(TimeSpan.FromDays(1)) < DateTimeOffset.UtcNow)
+            if (blog.SoftDeletedAt.Add(TimeSpan.FromDays(1)) < _timeProvider.GetUtcNow())
             {
                 _logger.LogInformation("Blog with id {id} is not restorable", id);
                 return BadRequest(new Error("복원할 수 없는 블로그입니다"));
+            }
+
+            blog.Name = model?.BlogName ?? blog.Name;
+            blog.Description = model?.Description ?? blog.Description;
+
+            if (await _dbContext.Blogs.AnyAsync(b => b.Name == blog.Name, cancellationToken))
+            {
+                _logger.LogInformation("Blog with name {name} already exists", blog.Name);
+                return Conflict(new Error("이미 존재하는 블로그 이름입니다"));
             }
 
             var status = await _softDeleteService.ResetSoftDeleteAsync(blog, true);

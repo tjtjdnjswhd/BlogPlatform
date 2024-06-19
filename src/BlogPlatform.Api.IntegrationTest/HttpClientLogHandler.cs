@@ -35,7 +35,7 @@ namespace BlogPlatform.Api.IntegrationTest
             _testOutputHelper.WriteLine(request.ToString());
             if (request.Content != null)
             {
-                _testOutputHelper.WriteLine(await request.Content.ReadAsStringAsync(cancellationToken), cancellationToken);
+                _testOutputHelper.WriteLine(await request.Content.ReadAsStringAsync(cancellationToken));
             }
 
             HttpResponseMessage response = await base.SendAsync(request, cancellationToken);
@@ -43,7 +43,7 @@ namespace BlogPlatform.Api.IntegrationTest
             _testOutputHelper.WriteLine(response.ToString());
             if (response.Content != null)
             {
-                _testOutputHelper.WriteLine(await response.Content.ReadAsStringAsync(cancellationToken), cancellationToken);
+                _testOutputHelper.WriteLine(await response.Content.ReadAsStringAsync(cancellationToken));
             }
 
             return response;

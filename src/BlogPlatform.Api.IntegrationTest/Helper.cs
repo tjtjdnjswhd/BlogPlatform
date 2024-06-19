@@ -8,6 +8,7 @@ using BlogPlatform.EFCore.Models.Abstractions;
 
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.Extensions.DependencyInjection;
 
 using System.Linq.Expressions;
@@ -20,14 +21,13 @@ namespace BlogPlatform.Api.IntegrationTest
 
         public const string REFRESH_TOKEN_NAME = "refresh_token";
 
-        public static T AddEntity<T>(WebApplicationFactory<Program> applicationFactory, T entity)
+        public static void AddEntity<T>(WebApplicationFactory<Program> applicationFactory, T entity)
             where T : EntityBase
         {
             using var scope = applicationFactory.Services.CreateScope();
             BlogPlatformDbContext dbContext = scope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
             dbContext.Add(entity);
             dbContext.SaveChanges();
-            return entity;
         }
 
         public static T GetFirstEntity<T>(WebApplicationFactory<Program> applicationFactory, bool ignoreSoftDelete = false)
@@ -44,6 +44,22 @@ namespace BlogPlatform.Api.IntegrationTest
             using var scope = applicationFactory.Services.CreateScope();
             BlogPlatformDbContext dbContext = scope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
             return ignoreSoftDelete ? dbContext.Set<T>().IgnoreSoftDeleteFilter().First(predicate) : dbContext.Set<T>().First(predicate);
+        }
+
+        public static T? GetFirstEntityOrDefault<T>(WebApplicationFactory<Program> applicationFactory, bool ignoreSoftDelete = false)
+            where T : EntityBase
+        {
+            using var scope = applicationFactory.Services.CreateScope();
+            BlogPlatformDbContext dbContext = scope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
+            return ignoreSoftDelete ? dbContext.Set<T>().IgnoreSoftDeleteFilter().FirstOrDefault() : dbContext.Set<T>().FirstOrDefault();
+        }
+
+        public static T? GetFirstEntityOrDefault<T>(WebApplicationFactory<Program> applicationFactory, Expression<Func<T, bool>> predicate, bool ignoreSoftDelete = false)
+            where T : EntityBase
+        {
+            using var scope = applicationFactory.Services.CreateScope();
+            BlogPlatformDbContext dbContext = scope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
+            return ignoreSoftDelete ? dbContext.Set<T>().IgnoreSoftDeleteFilter().FirstOrDefault(predicate) : dbContext.Set<T>().FirstOrDefault(predicate);
         }
 
         public static async Task<AuthorizeToken> GetAuthorizeTokenAsync(WebApplicationFactory<Program> applicationFactory, User user)
@@ -129,13 +145,22 @@ namespace BlogPlatform.Api.IntegrationTest
             await emailVerifyService.VerifyEmailCodeAsync("code", CancellationToken.None);
         }
 
-        public static void LoadCollection<T, V>(WebApplicationFactory<Program> applicationFactory, T entity, Expression<Func<T, IEnumerable<V>>> navigationExp)
+        public static void LoadCollection<T, V>(WebApplicationFactory<Program> applicationFactory, T entity, Expression<Func<T, IEnumerable<V>>> navigationExp, bool ignoreSoftDelete = false)
             where T : EntityBase
             where V : EntityBase
         {
             using var scope = applicationFactory.Services.CreateScope();
             BlogPlatformDbContext dbContext = scope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
-            dbContext.Set<T>().Entry(entity).Collection(navigationExp).Query().IgnoreSoftDeleteFilter().Load();
+
+            CollectionEntry<T, V> collectionEntry = dbContext.Set<T>().Entry(entity).Collection(navigationExp);
+            if (ignoreSoftDelete)
+            {
+                collectionEntry.Query().IgnoreSoftDeleteFilter().Load();
+            }
+            else
+            {
+                collectionEntry.Load();
+            }
         }
     }
 }
