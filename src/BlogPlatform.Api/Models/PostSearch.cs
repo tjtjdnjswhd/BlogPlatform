@@ -13,7 +13,7 @@ namespace BlogPlatform.Api.Models
                              DateTimeOffset? CreatedAtEnd,
                              DateTimeOffset? UpdatedAtStart,
                              DateTimeOffset? UpdatedAtEnd,
-                             IEnumerable<string>? Tags,
+                             List<string>? Tags,
                              TagFilterOption TagFilterOption = TagFilterOption.All,
                              EPostSearchOrderBy OrderBy = EPostSearchOrderBy.CreatedAt,
                              ListSortDirection OrderDirection = ListSortDirection.Ascending,

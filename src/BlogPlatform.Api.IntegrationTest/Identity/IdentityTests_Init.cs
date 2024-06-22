@@ -20,7 +20,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         protected override void SeedData()
         {
             using var scope = WebApplicationFactory.Services.CreateScope();
-            BlogPlatformDbContext dbContext = scope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
+            using BlogPlatformDbContext dbContext = GetNotLoggingDbContext<BlogPlatformDbContext>(scope);
             IPasswordHasher<BasicAccount> passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<BasicAccount>>();
 
             dbContext.Database.EnsureDeleted();

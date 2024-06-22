@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
@@ -69,7 +68,6 @@ namespace BlogPlatform.Api.Tests.Controllers
 
             OptionsWrapper<MemoryDistributedCacheOptions> cacheOption = new(new MemoryDistributedCacheOptions());
             Mock<IPostImageService> imageServiceMock = new();
-            imageServiceMock.Setup(i => i.WithTransaction(It.IsAny<IDbContextTransaction>())).Returns(imageServiceMock.Object);
             imageServiceMock.Setup(i => i.CacheImagesToDatabaseAsync(It.IsAny<IEnumerable<string>>(), It.Is<CancellationToken>(c => true))).ReturnsAsync(true);
             MemoryDistributedCache cache = new(cacheOption);
 

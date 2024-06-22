@@ -329,7 +329,7 @@ namespace BlogPlatform.Api.IntegrationTest.Category
         protected override void SeedData()
         {
             using var scope = WebApplicationFactory.Services.CreateScope();
-            BlogPlatformDbContext dbContext = scope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
+            using BlogPlatformDbContext dbContext = GetNotLoggingDbContext<BlogPlatformDbContext>(scope);
 
             dbContext.Database.EnsureDeleted();
             dbContext.Database.Migrate();

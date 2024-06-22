@@ -3,7 +3,6 @@ using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Models;
 
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Caching.Distributed;
 
 using System.ComponentModel;
@@ -71,7 +70,7 @@ namespace BlogPlatform.Api.Services
 
         public async Task<ImageInfo?> GetImageFromDatabaseAsync(string fileName, CancellationToken cancellationToken = default)
         {
-            Image? image = await _imgDbcontext.Images.FindAsync([fileName], cancellationToken);
+            Image? image = await _imgDbcontext.Images.FirstOrDefaultAsync(i => i.Name == fileName, cancellationToken);
             if (image is null)
             {
                 _logger.LogInformation("Image {fileName} not found in database", fileName);
@@ -102,12 +101,6 @@ namespace BlogPlatform.Api.Services
         {
             await _imgDbcontext.Images.Where(i => fileNames.Contains(i.Name)).ExecuteDeleteAsync(cancellationToken);
             return;
-        }
-
-        public IPostImageService WithTransaction(IDbContextTransaction transaction)
-        {
-            _imgDbcontext.Database.UseTransaction(transaction.GetDbTransaction());
-            return this;
         }
 
         private static string GetPostImgCacheKey(string fileName) => CachePrefix + fileName;

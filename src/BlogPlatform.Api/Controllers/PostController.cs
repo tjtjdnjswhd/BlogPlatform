@@ -28,15 +28,15 @@ namespace BlogPlatform.Api.Controllers
         private readonly BlogPlatformDbContext _dbContext;
         private readonly ICascadeSoftDeleteService _softDeleteService;
         private readonly IPostImageService _imageService;
-        private readonly IDistributedCache _distributedCache;
+        private readonly TimeProvider _timeProvider;
         private readonly ILogger<PostController> _logger;
 
-        public PostController(BlogPlatformDbContext dbContext, ICascadeSoftDeleteService softDeleteService, IPostImageService imageService, IDistributedCache distributedCache, ILogger<PostController> logger)
+        public PostController(BlogPlatformDbContext dbContext, ICascadeSoftDeleteService softDeleteService, IPostImageService imageService, TimeProvider timeProvider, ILogger<PostController> logger)
         {
             _dbContext = dbContext;
             _softDeleteService = softDeleteService;
             _imageService = imageService;
-            _distributedCache = distributedCache;
+            _timeProvider = timeProvider;
             _logger = logger;
         }
 
@@ -144,40 +144,46 @@ namespace BlogPlatform.Api.Controllers
         [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status500InternalServerError)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> CreateAsync([FromForm] string title, [FromForm] string content, [FromForm] string categoryName, [FromForm] List<string> tags, [UserIdBind] int userId, CancellationToken cancellationToken)
+        public async Task<IActionResult> CreateAsync([FromBody] PostCreate model, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
-            var categoryInfo = await _dbContext.Categories.Where(c => c.Name == categoryName).Select(c => new { c.Id, c.Blog.UserId }).FirstOrDefaultAsync(cancellationToken);
+            var categoryInfo = await _dbContext.Categories.Where(c => c.Id == model.CategoryId).Select(c => new { c.Id, c.Blog.UserId }).FirstOrDefaultAsync(cancellationToken);
             if (categoryInfo == null)
             {
-                _logger.LogInformation("Category with name {categoryName} not found or does not belong to user with id {userId}", categoryName, userId);
+                _logger.LogInformation("Category with id {categoryId} not found", model.CategoryId);
                 return NotFound(new Error("존재하지 않는 카테고리입니다"));
             }
 
             if (categoryInfo.UserId != userId)
             {
-                _logger.LogInformation("Category with name {categoryName} does not belong to user with id {userId}", categoryName, userId);
+                _logger.LogInformation("Category with id {categoryId} does not belong to user with id {userId}", model.CategoryId, userId);
                 return Forbid();
             }
 
-            IEnumerable<string> serverImages = await GetServerImgUrlsAsync(content, cancellationToken);
-
-            using var transaction = _dbContext.Database.BeginTransaction();
-            bool isAllImageSaved = await _imageService.WithTransaction(transaction).CacheImagesToDatabaseAsync(serverImages, cancellationToken);
-            if (!isAllImageSaved)
+            IEnumerable<string> serverImages = await GetServerImgNamesAsync(model.Content, cancellationToken);
+            bool isImageSaved = await _imageService.CacheImagesToDatabaseAsync(serverImages, cancellationToken);
+            if (!isImageSaved)
             {
                 _logger.LogWarning("Some images not found in cache. Post creation aborted.");
-                transaction.Rollback();
                 return StatusCode(StatusCodes.Status500InternalServerError, new Error("이미지를 저장하는데 실패했습니다"));
             }
 
-            Post post = new(title, content, categoryInfo.Id);
-            post.Tags.AddRange(tags);
+            Post post = new(model.Title, model.Content, categoryInfo.Id);
+            post.Tags.AddRange(model.Tags);
 
             _dbContext.Posts.Add(post);
-            await _dbContext.SaveChangesAsync(cancellationToken);
-            transaction.Commit();
 
-            return CreatedAtAction(nameof(GetAsync), "Post", new { id = post.Id }, null);
+            try
+            {
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "An error occurred while saving post to database");
+                await _imageService.RemoveImageFromDatabaseAsync(serverImages, CancellationToken.None);
+                throw;
+            }
+
+            return CreatedAtAction("Get", "Post", new { id = post.Id }, null);
         }
 
         [HttpPut("{id:int}")]
@@ -187,53 +193,56 @@ namespace BlogPlatform.Api.Controllers
         [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status500InternalServerError)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> UpdateAsync([FromRoute] int id, [FromForm] string title, [FromForm] string content, [FromForm] string categoryName, [FromForm] List<string> tags, [UserIdBind] int userId, CancellationToken cancellationToken)
+        public async Task<IActionResult> UpdateAsync([FromRoute] int id, [FromBody] PostCreate model, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
-            var categoryInfo = await _dbContext.Categories.Where(c => c.Name == categoryName).Select(c => new { c.Id, c.Blog.UserId }).FirstOrDefaultAsync(cancellationToken);
+            var categoryInfo = await _dbContext.Categories.Where(c => c.Id == model.CategoryId).Select(c => new { c.Id, c.Blog.UserId }).FirstOrDefaultAsync(cancellationToken);
             if (categoryInfo == null)
             {
-                _logger.LogInformation("Category with name {categoryName} not found or does not belong to user with id {userId}", categoryName, userId);
+                _logger.LogInformation("Category with id {categoryId} not found", model.CategoryId);
                 return NotFound(new Error("존재하지 않는 카테고리입니다"));
             }
 
             if (categoryInfo.UserId != userId)
             {
-                _logger.LogInformation("Category with name {categoryName} does not belong to user with id {userId}", categoryName, userId);
+                _logger.LogInformation("Category with id {categoryId} does not belong to user with id {userId}", model.CategoryId, userId);
                 return Forbid();
             }
 
-            Post? post = await _dbContext.Posts.FindAsync([id], cancellationToken);
-            if (post == null)
+            var postInfo = await _dbContext.Posts.Where(p => p.Id == id).Select(p => new { post = p, userId = p.Category.Blog.UserId }).FirstOrDefaultAsync(cancellationToken);
+            if (postInfo == null)
             {
                 _logger.LogInformation("Post with id {id} not found", id);
                 return NotFound(new Error("존재하지 않는 포스트입니다"));
             }
 
-            IEnumerable<string> oldImgSrcs = await GetServerImgUrlsAsync(post.Content, cancellationToken);
-            IEnumerable<string> newImgSrcs = await GetServerImgUrlsAsync(content, cancellationToken);
+            if (postInfo.userId != userId)
+            {
+                _logger.LogInformation("Post with id {id} does not belong to user with id {userId}", id, userId);
+                return Forbid();
+            }
+
+            IEnumerable<string> oldImgSrcs = await GetServerImgNamesAsync(postInfo.post.Content, cancellationToken);
+            IEnumerable<string> newImgSrcs = await GetServerImgNamesAsync(model.Content, cancellationToken);
             IEnumerable<string> addedImgSrcs = newImgSrcs.Except(oldImgSrcs);
             IEnumerable<string> deletedImgSrcs = oldImgSrcs.Except(newImgSrcs);
 
-            using var transaction = _dbContext.Database.BeginTransaction();
-            IPostImageService imageServiceWithTransaction = _imageService.WithTransaction(transaction);
-            bool isAllImageSaved = await imageServiceWithTransaction.CacheImagesToDatabaseAsync(addedImgSrcs, cancellationToken);
-            if (!isAllImageSaved)
+            bool isImageSaved = await _imageService.CacheImagesToDatabaseAsync(addedImgSrcs, cancellationToken);
+            if (!isImageSaved)
             {
                 _logger.LogWarning("Some images not found in cache. Post update aborted.");
-                transaction.Rollback();
                 return StatusCode(StatusCodes.Status500InternalServerError, new Error("이미지를 저장하는데 실패했습니다"));
             }
 
-            await imageServiceWithTransaction.RemoveImageFromDatabaseAsync(deletedImgSrcs, cancellationToken);
+            await _imageService.RemoveImageFromDatabaseAsync(deletedImgSrcs, cancellationToken);
 
-            post.Title = title;
-            post.Content = content;
-            post.CategoryId = categoryInfo.Id;
-            post.Tags.Clear();
-            post.Tags.AddRange(tags);
+            postInfo.post.Title = model.Title;
+            postInfo.post.Content = model.Content;
+            postInfo.post.CategoryId = categoryInfo.Id;
+            postInfo.post.Tags.Clear();
+            postInfo.post.Tags.AddRange(model.Tags);
 
+            _dbContext.Posts.Update(postInfo.post);
             await _dbContext.SaveChangesAsync(cancellationToken);
-            transaction.Commit();
 
             return NoContent();
         }
@@ -295,6 +304,12 @@ namespace BlogPlatform.Api.Controllers
                 return Forbid();
             }
 
+            if (post.SoftDeletedAt.Add(TimeSpan.FromDays(1)) < _timeProvider.GetUtcNow())
+            {
+                _logger.LogInformation("Post with id {id} is not restorable", id);
+                return BadRequest(new Error("복원할 수 없는 게시글입니다"));
+            }
+
             var status = await _softDeleteService.ResetSoftDeleteAsync(post, true);
             _logger.LogStatusGeneric(status);
             return status.HasErrors ? StatusCode(StatusCodes.Status500InternalServerError, new Error(status.Message)) : NoContent();
@@ -302,28 +317,26 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpPost("image")]
         [UserAuthorize]
-        [PostImageFilter(nameof(images))]
-        public async Task<IEnumerable<string>> CacheImagesAsync([FromForm] List<IFormFile> images, CancellationToken cancellationToken)
+        [PostImageFilter(nameof(image))]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        public async Task<CreatedAtActionResult> CacheImageAsync(IFormFile image, CancellationToken cancellationToken)
         {
             DistributedCacheEntryOptions imageCacheOptions = new()
             {
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(12)
             };
 
-            string[] fileNames = await Task.WhenAll(images.AsParallel().WithCancellation(cancellationToken).Select(async file =>
-            {
-                string fileName = Guid.NewGuid().ToString();
-                int length = checked((int)file.Length);
-                using MemoryStream memoryStream = new(length);
+            string fileName = Guid.NewGuid().ToString();
 
-                await file.CopyToAsync(memoryStream);
-                ImageInfo imageInfo = new(file.ContentType, memoryStream.ToArray());
-                await _imageService.CacheImageAsync(fileName, imageInfo, imageCacheOptions, cancellationToken);
-                return fileName;
-            }));
+            int length = checked((int)image.Length);
+            using MemoryStream memoryStream = new(length);
 
-            _logger.LogInformation("Caching images. file names: [{fileNames}]", fileNames);
-            return fileNames;
+            _logger.LogInformation("Caching image. file name: [{fileName}]", fileName);
+            await image.CopyToAsync(memoryStream, cancellationToken);
+            ImageInfo imageInfo = new(image.ContentType, memoryStream.ToArray());
+            await _imageService.CacheImageAsync(fileName, imageInfo, imageCacheOptions, cancellationToken);
+
+            return CreatedAtAction("GetImage", "Post", new { fileName }, null);
         }
 
         [HttpGet("image/{fileName}")]
@@ -336,13 +349,14 @@ namespace BlogPlatform.Api.Controllers
             return image is null ? NotFound() : File(image.Data, image.ContentType);
         }
 
-        private async Task<IEnumerable<string>> GetServerImgUrlsAsync(string content, CancellationToken cancellationToken = default)
+        private async Task<IEnumerable<string>> GetServerImgNamesAsync(string content, CancellationToken cancellationToken = default)
         {
             IBrowsingContext browsingContext = BrowsingContext.New(Configuration.Default);
             IDocument document = await browsingContext.OpenAsync(req => req.Content(content), cancellationToken);
-            IEnumerable<string?> imageSrcs = document.Images.Select(i => i.ActualSource);
-            string baseUrl = HttpContext.GetServerVariable("baseUri") ?? throw new InvalidOperationException("baseUri not found in server variables");
-            IEnumerable<string> serverImages = imageSrcs.Where(src => src is not null && src.StartsWith(baseUrl))!;
+            IEnumerable<string?> imageSrcs = document.Images.Select(i => i.Source);
+
+            string baseUrl = Url.ActionLink("GetImage", "Post", new { fileName = "s" })?.TrimEnd('s') ?? throw new Exception();
+            IEnumerable<string> serverImages = imageSrcs.Where(src => src?.StartsWith(baseUrl, StringComparison.OrdinalIgnoreCase) ?? false).Select(src => src![baseUrl.Length..]);
             return serverImages;
         }
     }

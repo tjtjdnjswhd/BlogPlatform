@@ -1,6 +1,4 @@
-﻿
-using Microsoft.EntityFrameworkCore.Storage;
-using Microsoft.Extensions.Caching.Distributed;
+﻿using Microsoft.Extensions.Caching.Distributed;
 
 namespace BlogPlatform.Api.Services.Interfaces
 {
@@ -12,6 +10,5 @@ namespace BlogPlatform.Api.Services.Interfaces
         Task<ImageInfo?> GetImageFromCacheAsync(string fileName, CancellationToken cancellationToken = default);
         Task<ImageInfo?> GetImageFromDatabaseAsync(string fileName, CancellationToken cancellationToken = default);
         Task RemoveImageFromDatabaseAsync(IEnumerable<string> fileNames, CancellationToken cancellationToken = default);
-        IPostImageService WithTransaction(IDbContextTransaction transaction);
     }
 }

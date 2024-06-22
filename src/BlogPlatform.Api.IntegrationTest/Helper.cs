@@ -62,6 +62,14 @@ namespace BlogPlatform.Api.IntegrationTest
             return ignoreSoftDelete ? dbContext.Set<T>().IgnoreSoftDeleteFilter().FirstOrDefault(predicate) : dbContext.Set<T>().FirstOrDefault(predicate);
         }
 
+        public static bool IsExist<T>(WebApplicationFactory<Program> applicationFactory, Expression<Func<T, bool>> predicate)
+            where T : EntityBase
+        {
+            using var scope = applicationFactory.Services.CreateScope();
+            BlogPlatformDbContext dbContext = scope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
+            return dbContext.Set<T>().Any(predicate);
+        }
+
         public static async Task<AuthorizeToken> GetAuthorizeTokenAsync(WebApplicationFactory<Program> applicationFactory, User user)
         {
             using var scope = applicationFactory.Services.CreateScope();
