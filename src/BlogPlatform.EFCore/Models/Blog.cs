@@ -45,9 +45,22 @@ namespace BlogPlatform.EFCore.Models
         /// </summary>
         public User User { get; private set; }
 
+        /*
+        ----------------------------
+        Collection navigation의 경우 CascadeSoftDeleteService.ResetSoftDelete(), ResetSoftDeleteAsync() 메서드와의 호환성을 위해 생성 시 null이어야 함
+
+        ex)  
+            X public List<Blog> Blog { get; set; } = [];
+            X private List<Blog> _blog;
+               public List<Blog> Blog => _blog ??= [];
+            O public List<Blog> Blog { get; set; }
+            O public List<Blog> Blog { get; private set; }
+        ----------------------------
+        */
+
         /// <summary>
         /// 카테고리
         /// </summary>
-        public List<Category> Categories { get; } = [];
+        public List<Category> Categories { get; private set; }
     }
 }

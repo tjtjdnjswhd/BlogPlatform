@@ -38,25 +38,38 @@ namespace BlogPlatform.EFCore.Models
         /// </summary>
         public DateTimeOffset? BanExpiresAt { get; set; }
 
+        /*
+        ----------------------------
+        Collection navigation의 경우 CascadeSoftDeleteService.ResetSoftDelete(), ResetSoftDeleteAsync() 메서드와의 호환성을 위해 생성 시 null이어야 함
+
+        ex)  
+            X public List<Blog> Blog { get; set; } = [];
+            X private List<Blog> _blog;
+               public List<Blog> Blog => _blog ??= [];
+            O public List<Blog> Blog { get; set; }
+            O public List<Blog> Blog { get; private set; }
+        ----------------------------
+         */
+
         /// <summary>
         /// 블로그
         /// </summary>
-        public List<Blog> Blog { get; private set; } = [];
+        public List<Blog> Blog { get; private set; }
 
         /// <summary>
         /// 댓글
         /// </summary>
-        public List<Comment> Comments { get; } = [];
+        public List<Comment> Comments { get; private set; }
 
         /// <summary>
         /// 기본 로그인 계정
         /// </summary>
-        public List<BasicAccount> BasicAccounts { get; } = [];
+        public List<BasicAccount> BasicAccounts { get; private set; }
 
         /// <summary>
         /// OAuth 계정
         /// </summary>
-        public List<OAuthAccount> OAuthAccounts { get; } = [];
+        public List<OAuthAccount> OAuthAccounts { get; private set; }
 
         /// <summary>
         /// 역할

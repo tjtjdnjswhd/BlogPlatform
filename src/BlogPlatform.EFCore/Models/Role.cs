@@ -33,6 +33,6 @@ namespace BlogPlatform.EFCore.Models
         /// <summary>
         /// 사용자
         /// </summary>
-        public List<User> Users { get; set; }
+        public List<User> Users { get; } = [];
     }
 }
