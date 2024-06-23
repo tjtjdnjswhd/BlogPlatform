@@ -1,6 +1,7 @@
 ﻿using BlogPlatform.Api.Identity.Models;
 using BlogPlatform.Api.Models;
 using BlogPlatform.EFCore;
+using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
 
 using Microsoft.EntityFrameworkCore;
@@ -418,6 +419,15 @@ namespace BlogPlatform.Api.IntegrationTest.Post
 
             // Assert
             Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+            EFCore.Models.Post? deletedPost = Helper.GetFirstEntityOrDefault<EFCore.Models.Post>(WebApplicationFactory, p => p.Id == 1, true);
+            Assert.NotNull(deletedPost);
+            Assert.False(deletedPost.IsSoftDeletedAtDefault());
+            Assert.Equal(1, deletedPost.SoftDeleteLevel);
+
+            Comment? deletedComment = Helper.GetFirstEntityOrDefault<Comment>(WebApplicationFactory, c => c.PostId == deletedPost.Id, true);
+            Assert.NotNull(deletedComment);
+            Assert.False(deletedComment.IsSoftDeletedAtDefault());
+            Assert.Equal(2, deletedComment.SoftDeleteLevel);
         }
 
         [Fact]
@@ -522,6 +532,16 @@ namespace BlogPlatform.Api.IntegrationTest.Post
 
             // Assert
             Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+            EFCore.Models.Post? restoredPost = Helper.GetFirstEntityOrDefault<EFCore.Models.Post>(WebApplicationFactory, p => p.Id == post.Id);
+            Assert.NotNull(restoredPost);
+            Assert.True(restoredPost.IsSoftDeletedAtDefault());
+            Assert.Equal(0, restoredPost.SoftDeleteLevel);
+
+            Comment? restoredComment = Helper.GetFirstEntityOrDefault<Comment>(WebApplicationFactory, c => c.PostId == post.Id);
+            Assert.NotNull(restoredComment);
+            Assert.True(restoredComment.IsSoftDeletedAtDefault());
+            Assert.Equal(0, restoredComment.SoftDeleteLevel);
         }
 
         [Fact]
@@ -651,6 +671,10 @@ namespace BlogPlatform.Api.IntegrationTest.Post
             posts[2].Tags.Add("tag1");
             posts[3].Tags.Add("tag2");
             dbContext.Posts.AddRange(posts);
+            dbContext.SaveChanges();
+
+            Comment comment = new("content1", posts[0].Id, user1.Id, null);
+            dbContext.Comments.Add(comment);
             dbContext.SaveChanges();
         }
 

@@ -324,6 +324,18 @@ namespace BlogPlatform.Api.IntegrationTest.Category
             Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
             EFCore.Models.Category? restoredCategory = Helper.GetFirstEntity<EFCore.Models.Category>(WebApplicationFactory, c => c.Blog.UserId == user.Id);
             Assert.NotNull(restoredCategory);
+            Assert.True(restoredCategory.IsSoftDeletedAtDefault());
+            Assert.True(restoredCategory.SoftDeleteLevel == 0);
+
+            EFCore.Models.Post? post = Helper.GetFirstEntity<EFCore.Models.Post>(WebApplicationFactory, p => p.Category.Id == restoredCategory.Id);
+            Assert.NotNull(post);
+            Assert.True(post.IsSoftDeletedAtDefault());
+            Assert.True(post.SoftDeleteLevel == 0);
+
+            Comment? comment = Helper.GetFirstEntity<Comment>(WebApplicationFactory, c => c.Post.Id == post.Id);
+            Assert.NotNull(comment);
+            Assert.True(comment.IsSoftDeletedAtDefault());
+            Assert.True(comment.SoftDeleteLevel == 0);
         }
 
         protected override void SeedData()
@@ -351,6 +363,14 @@ namespace BlogPlatform.Api.IntegrationTest.Category
             EFCore.Models.Category category1 = new("Category1", blog.Id);
             EFCore.Models.Category category2 = new("Category2", blog.Id);
             dbContext.Categories.AddRange(category1, category2);
+            dbContext.SaveChanges();
+
+            EFCore.Models.Post post = new("PostTitle", "PostContent", category1.Id);
+            dbContext.Posts.Add(post);
+            dbContext.SaveChanges();
+
+            Comment comment = new("CommentContent", post.Id, withoutBlog.Id, null);
+            dbContext.Comments.Add(comment);
             dbContext.SaveChanges();
         }
     }

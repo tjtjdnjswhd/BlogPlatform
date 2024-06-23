@@ -281,6 +281,16 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
             Assert.NotNull(category);
             Assert.False(category.IsSoftDeletedAtDefault());
             Assert.Equal(2, category.SoftDeleteLevel);
+
+            EFCore.Models.Post? post = Helper.GetFirstEntity<EFCore.Models.Post>(WebApplicationFactory, p => p.Category.BlogId == userBlog.Id, true);
+            Assert.NotNull(post);
+            Assert.False(post.IsSoftDeletedAtDefault());
+            Assert.Equal(3, post.SoftDeleteLevel);
+
+            Comment? comment = Helper.GetFirstEntity<Comment>(WebApplicationFactory, c => c.Post.Category.BlogId == userBlog.Id, true);
+            Assert.NotNull(comment);
+            Assert.False(comment.IsSoftDeletedAtDefault());
+            Assert.Equal(4, comment.SoftDeleteLevel);
         }
 
         [Fact]
@@ -400,8 +410,10 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
             Assert.Null(restoredBlog);
         }
 
-        [Fact]
-        public async Task Restore_NoContent()
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task Restore_NoContent(bool changeName)
         {
             // Arrange
             HttpClient client = CreateClient();
@@ -411,8 +423,20 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(client, authorizeToken);
 
+            string blogName = changeName ? "newblogName" : blog.Name;
+            string blogDescription = changeName ? "newdescription" : blog.Description;
+
             // Act
-            HttpResponseMessage response = await client.PostAsync($"/api/blog/restore/{blog.Id}", null);
+            HttpResponseMessage response;
+            if (changeName)
+            {
+                BlogCreate model = new(blogName, blogDescription);
+                response = await client.PostAsJsonAsync($"/api/blog/restore/{blog.Id}", model);
+            }
+            else
+            {
+                response = await client.PostAsync($"/api/blog/restore/{blog.Id}", null);
+            }
 
             // Assert
             Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
@@ -420,11 +444,23 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
             Assert.NotNull(restoredBlog);
             Assert.True(restoredBlog.IsSoftDeletedAtDefault());
             Assert.Equal(0, restoredBlog.SoftDeleteLevel);
+            Assert.Equal(blogName, restoredBlog.Name);
+            Assert.Equal(blogDescription, restoredBlog.Description);
 
             EFCore.Models.Category? category = Helper.GetFirstEntityOrDefault<EFCore.Models.Category>(WebApplicationFactory, c => c.BlogId == restoredBlog.Id);
             Assert.NotNull(category);
             Assert.True(category.IsSoftDeletedAtDefault());
             Assert.Equal(0, category.SoftDeleteLevel);
+
+            EFCore.Models.Post? post = Helper.GetFirstEntityOrDefault<EFCore.Models.Post>(WebApplicationFactory, p => p.Category.BlogId == restoredBlog.Id);
+            Assert.NotNull(post);
+            Assert.True(post.IsSoftDeletedAtDefault());
+            Assert.Equal(0, post.SoftDeleteLevel);
+
+            Comment? comment = Helper.GetFirstEntityOrDefault<Comment>(WebApplicationFactory, c => c.Post.Category.BlogId == restoredBlog.Id);
+            Assert.NotNull(comment);
+            Assert.True(comment.IsSoftDeletedAtDefault());
+            Assert.Equal(0, comment.SoftDeleteLevel);
         }
 
         [Theory]
@@ -493,6 +529,14 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
 
             EFCore.Models.Category category = new("categoryName", blog.Id);
             dbContext.Categories.Add(category);
+            dbContext.SaveChanges();
+
+            EFCore.Models.Post post = new("postTitle", "postContent", category.Id);
+            dbContext.Posts.Add(post);
+            dbContext.SaveChanges();
+
+            Comment comment = new("commentContent", post.Id, withoutBlog.Id, null);
+            dbContext.Comments.Add(comment);
             dbContext.SaveChanges();
         }
     }
