@@ -287,7 +287,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
             Assert.False(post.IsSoftDeletedAtDefault());
             Assert.Equal(3, post.SoftDeleteLevel);
 
-            Comment? comment = Helper.GetFirstEntity<Comment>(WebApplicationFactory, c => c.Post.Category.BlogId == userBlog.Id, true);
+            EFCore.Models.Comment? comment = Helper.GetFirstEntity<EFCore.Models.Comment>(WebApplicationFactory, c => c.Post.Category.BlogId == userBlog.Id, true);
             Assert.NotNull(comment);
             Assert.False(comment.IsSoftDeletedAtDefault());
             Assert.Equal(4, comment.SoftDeleteLevel);
@@ -457,7 +457,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
             Assert.True(post.IsSoftDeletedAtDefault());
             Assert.Equal(0, post.SoftDeleteLevel);
 
-            Comment? comment = Helper.GetFirstEntityOrDefault<Comment>(WebApplicationFactory, c => c.Post.Category.BlogId == restoredBlog.Id);
+            EFCore.Models.Comment? comment = Helper.GetFirstEntityOrDefault<EFCore.Models.Comment>(WebApplicationFactory, c => c.Post.Category.BlogId == restoredBlog.Id);
             Assert.NotNull(comment);
             Assert.True(comment.IsSoftDeletedAtDefault());
             Assert.Equal(0, comment.SoftDeleteLevel);
@@ -519,8 +519,8 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
 
             Role userRole = new("User", 1);
             dbContext.Roles.Add(userRole);
-            blogOwner.Roles.Add(userRole);
-            withoutBlog.Roles.Add(userRole);
+            blogOwner.Roles = [userRole];
+            withoutBlog.Roles = [userRole];
             dbContext.SaveChanges();
 
             EFCore.Models.Blog blog = new("blogName", "blogDescription", blogOwner.Id);
@@ -535,7 +535,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
             dbContext.Posts.Add(post);
             dbContext.SaveChanges();
 
-            Comment comment = new("commentContent", post.Id, withoutBlog.Id, null);
+            EFCore.Models.Comment comment = new("commentContent", post.Id, withoutBlog.Id, null);
             dbContext.Comments.Add(comment);
             dbContext.SaveChanges();
         }

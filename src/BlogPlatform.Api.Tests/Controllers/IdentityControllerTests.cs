@@ -771,7 +771,8 @@ namespace BlogPlatform.Api.Tests.Controllers
             urlHelper.Setup(u => u.Action(It.IsAny<UrlActionContext>())).Returns("http://localhost:5000");
             urlHelper.Setup(u => u.ActionContext).Returns(new ActionContext() { HttpContext = new DefaultHttpContext() });
 
-            IdentityController controller = new(identityServiceMock.Object, userEmailService.Object, emailVerifyService.Object, _logger)
+            TimeProvider timeProvider = TimeProvider.System;
+            IdentityController controller = new(identityServiceMock.Object, userEmailService.Object, emailVerifyService.Object, timeProvider, _logger)
             {
                 Url = urlHelper.Object
             };

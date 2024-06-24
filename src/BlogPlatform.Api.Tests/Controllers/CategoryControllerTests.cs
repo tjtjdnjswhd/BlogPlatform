@@ -41,11 +41,21 @@ namespace BlogPlatform.Api.Tests.Controllers
                 new Category("Category3", 2) { Id = 6, SoftDeletedAt = EntityBase.DefaultSoftDeletedAt },
             ];
 
+            blogs[0].Categories = [categories[0], categories[2], categories[4]];
+            blogs[1].Categories = [categories[1], categories[3], categories[5]];
+            categories[0].Blog = blogs[0];
+            categories[1].Blog = blogs[1];
+            categories[2].Blog = blogs[0];
+            categories[3].Blog = blogs[1];
+            categories[4].Blog = blogs[0];
+            categories[5].Blog = blogs[1];
+
             _blogDbSetMock = _setUp.DbContextMock.SetDbSet(db => db.Blogs, blogs);
             _categoryDbSetMock = _setUp.DbContextMock.SetDbSet(db => db.Categories, categories);
 
             XUnitLogger<CategoryController> controllerLogger = new(testOutputHelper);
-            _categoryController = new(_setUp.DbContextMock.Object, _setUp.SoftDeleteServiceMock.Object, controllerLogger);
+            TimeProvider timeProvider = TimeProvider.System;
+            _categoryController = new(_setUp.DbContextMock.Object, _setUp.SoftDeleteServiceMock.Object, timeProvider, controllerLogger);
         }
 
         [Fact]
@@ -76,7 +86,7 @@ namespace BlogPlatform.Api.Tests.Controllers
         public async Task Create_BadRequest()
         {
             // Act
-            IActionResult result = await _categoryController.CreateAsync("Category4", 3, CancellationToken.None);
+            IActionResult result = await _categoryController.CreateAsync(new("Category4"), 3, CancellationToken.None);
 
             // Assert
             Utils.VerifyBadRequestResult(result);
@@ -88,10 +98,10 @@ namespace BlogPlatform.Api.Tests.Controllers
         public async Task Create_CreatedAtAction()
         {
             // Act
-            IActionResult result = await _categoryController.CreateAsync("Category4", 1, CancellationToken.None);
+            IActionResult result = await _categoryController.CreateAsync(new("Category4"), 1, CancellationToken.None);
 
             // Assert
-            Utils.VerifyCreatedResult(result, nameof(CategoryController.GetAsync), "Category");
+            Utils.VerifyCreatedResult(result, "Get", "Category");
             _categoryDbSetMock.Verify(d => d.Add(It.IsAny<Category>()), Times.Once);
             _setUp.DbContextMock.Verify(d => d.SaveChangesAsync(CancellationToken.None), Times.Once);
         }
@@ -100,10 +110,10 @@ namespace BlogPlatform.Api.Tests.Controllers
         public async Task Update_BlogNotExist()
         {
             // Act
-            IActionResult result = await _categoryController.UpdateAsync(7, "newCategoryName", 7, CancellationToken.None);
+            IActionResult result = await _categoryController.UpdateAsync(7, new("newCategoryName"), 7, CancellationToken.None);
 
             // Assert
-            Utils.VerifyBadRequestResult(result);
+            Utils.VerifyNotFoundResult(result);
             _setUp.DbContextMock.Verify(d => d.SaveChangesAsync(CancellationToken.None), Times.Never);
         }
 
@@ -111,7 +121,7 @@ namespace BlogPlatform.Api.Tests.Controllers
         public async Task Update_NotFound()
         {
             // Act
-            IActionResult result = await _categoryController.UpdateAsync(7, "newCategoryName", 1, CancellationToken.None);
+            IActionResult result = await _categoryController.UpdateAsync(7, new("newCategoryName"), 1, CancellationToken.None);
 
             // Assert
             Utils.VerifyNotFoundResult(result);
@@ -122,7 +132,7 @@ namespace BlogPlatform.Api.Tests.Controllers
         public async Task Update_NoContent()
         {
             // Act
-            IActionResult result = await _categoryController.UpdateAsync(1, "newCategoryName", 1, CancellationToken.None);
+            IActionResult result = await _categoryController.UpdateAsync(1, new("newCategoryName"), 1, CancellationToken.None);
 
             // Assert
             Utils.VerifyNoContentResult(result);
@@ -136,7 +146,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             IActionResult result = await _categoryController.DeleteAsync(7, 7, CancellationToken.None);
 
             // Assert
-            Utils.VerifyBadRequestResult(result);
+            Utils.VerifyNotFoundResult(result);
             _setUp.DbContextMock.Verify(d => d.SaveChangesAsync(CancellationToken.None), Times.Never);
             _setUp.SoftDeleteServiceMock.Verify(s => s.SetSoftDeleteAsync(It.IsAny<Category>(), true), Times.Never);
         }

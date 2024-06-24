@@ -424,7 +424,7 @@ namespace BlogPlatform.Api.IntegrationTest.Post
             Assert.False(deletedPost.IsSoftDeletedAtDefault());
             Assert.Equal(1, deletedPost.SoftDeleteLevel);
 
-            Comment? deletedComment = Helper.GetFirstEntityOrDefault<Comment>(WebApplicationFactory, c => c.PostId == deletedPost.Id, true);
+            EFCore.Models.Comment? deletedComment = Helper.GetFirstEntityOrDefault<EFCore.Models.Comment>(WebApplicationFactory, c => c.PostId == deletedPost.Id, true);
             Assert.NotNull(deletedComment);
             Assert.False(deletedComment.IsSoftDeletedAtDefault());
             Assert.Equal(2, deletedComment.SoftDeleteLevel);
@@ -538,7 +538,7 @@ namespace BlogPlatform.Api.IntegrationTest.Post
             Assert.True(restoredPost.IsSoftDeletedAtDefault());
             Assert.Equal(0, restoredPost.SoftDeleteLevel);
 
-            Comment? restoredComment = Helper.GetFirstEntityOrDefault<Comment>(WebApplicationFactory, c => c.PostId == post.Id);
+            EFCore.Models.Comment? restoredComment = Helper.GetFirstEntityOrDefault<EFCore.Models.Comment>(WebApplicationFactory, c => c.PostId == post.Id);
             Assert.NotNull(restoredComment);
             Assert.True(restoredComment.IsSoftDeletedAtDefault());
             Assert.Equal(0, restoredComment.SoftDeleteLevel);
@@ -644,8 +644,8 @@ namespace BlogPlatform.Api.IntegrationTest.Post
 
             Role role = new("User", 1);
             dbContext.Roles.Add(role);
-            user1.Roles.Add(role);
-            user2.Roles.Add(role);
+            user1.Roles = [role];
+            user2.Roles = [role];
             dbContext.SaveChanges();
 
             EFCore.Models.Blog blog = new("blog1", "blogDes", user1.Id);
@@ -673,7 +673,7 @@ namespace BlogPlatform.Api.IntegrationTest.Post
             dbContext.Posts.AddRange(posts);
             dbContext.SaveChanges();
 
-            Comment comment = new("content1", posts[0].Id, user1.Id, null);
+            EFCore.Models.Comment comment = new("content1", posts[0].Id, user1.Id, null);
             dbContext.Comments.Add(comment);
             dbContext.SaveChanges();
         }

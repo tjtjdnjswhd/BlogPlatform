@@ -93,7 +93,7 @@ namespace BlogPlatform.Api.IntegrationTest
             return WebApplicationFactory.CreateDefaultClient(new HttpClientLogHandler(TestOutputHelper));
         }
 
-        protected TContext GetNotLoggingDbContext<TContext>(IServiceScope serviceScope)
+        protected static TContext GetNotLoggingDbContext<TContext>(IServiceScope serviceScope)
             where TContext : DbContext
         {
             DbContextOptionsBuilder<TContext> dbContextOptionsBuilder = new(serviceScope.ServiceProvider.GetRequiredService<DbContextOptions<TContext>>());

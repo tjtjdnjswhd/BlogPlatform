@@ -332,7 +332,7 @@ namespace BlogPlatform.Api.IntegrationTest.Category
             Assert.True(post.IsSoftDeletedAtDefault());
             Assert.True(post.SoftDeleteLevel == 0);
 
-            Comment? comment = Helper.GetFirstEntity<Comment>(WebApplicationFactory, c => c.Post.Id == post.Id);
+            EFCore.Models.Comment? comment = Helper.GetFirstEntity<EFCore.Models.Comment>(WebApplicationFactory, c => c.Post.Id == post.Id);
             Assert.NotNull(comment);
             Assert.True(comment.IsSoftDeletedAtDefault());
             Assert.True(comment.SoftDeleteLevel == 0);
@@ -352,8 +352,8 @@ namespace BlogPlatform.Api.IntegrationTest.Category
             dbContext.SaveChanges();
 
             Role userRole = new("User", 1);
-            blogOwner.Roles.Add(userRole);
-            withoutBlog.Roles.Add(userRole);
+            blogOwner.Roles = [userRole];
+            withoutBlog.Roles = [userRole];
             dbContext.SaveChanges();
 
             EFCore.Models.Blog blog = new("BlogName", "BlogDescription", blogOwner.Id);
@@ -369,7 +369,7 @@ namespace BlogPlatform.Api.IntegrationTest.Category
             dbContext.Posts.Add(post);
             dbContext.SaveChanges();
 
-            Comment comment = new("CommentContent", post.Id, withoutBlog.Id, null);
+            EFCore.Models.Comment comment = new("CommentContent", post.Id, withoutBlog.Id, null);
             dbContext.Comments.Add(comment);
             dbContext.SaveChanges();
         }

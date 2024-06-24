@@ -717,7 +717,8 @@ namespace BlogPlatform.Api.Tests.Identity
 
             XUnitLogger<IdentityService> serviceLogger = new(_outputHelper);
             XUnitLogger<CascadeSoftDeleteService> deleteLogger = new(_outputHelper);
-            CascadeSoftDeleteService softDeleteService = new(_setUp.DbContext, deleteLogger);
+
+            CascadeSoftDeleteService softDeleteService = new(_setUp.DbContext, timeProvider, deleteLogger);
 
             return new IdentityService(_setUp.DbContext, jwtService.Object, _setUp.PasswordHasher, softDeleteService, authenticationService.Object, timeProvider, serviceLogger);
         }

@@ -125,7 +125,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             dbContext.OAuthAccounts.Add(oAuthAccount);
             dbContext.SaveChanges();
 
-            oauthUser.Roles.Add(dbContext.Roles.Where(r => r.Name == "user").First());
+            oauthUser.Roles = [dbContext.Roles.Where(r => r.Name == "user").First()];
             dbContext.SaveChanges();
 
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, oauthUser);
@@ -154,7 +154,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             dbContext.OAuthAccounts.Add(oAuthAccount);
             dbContext.SaveChanges();
 
-            oauthUser.Roles.Add(dbContext.Roles.Where(r => r.Name == "user").First());
+            oauthUser.Roles = [dbContext.Roles.Where(r => r.Name == "user").First()];
             dbContext.SaveChanges();
 
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, oauthUser);
@@ -185,7 +185,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             dbContext.OAuthAccounts.Add(oAuthAccount);
             dbContext.SaveChanges();
 
-            oauthUser.Roles.Add(dbContext.Roles.Where(r => r.Name == "user").First());
+            oauthUser.Roles = [dbContext.Roles.Where(r => r.Name == "user").First()];
             dbContext.SaveChanges();
 
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, oauthUser);
@@ -216,7 +216,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             dbContext.OAuthAccounts.AddRange(googleAccount, naverAccount);
             dbContext.SaveChanges();
 
-            oauthUser.Roles.Add(dbContext.Roles.Where(r => r.Name == "user").First());
+            oauthUser.Roles = [dbContext.Roles.Where(r => r.Name == "user").First()];
             dbContext.SaveChanges();
 
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, oauthUser);
@@ -250,7 +250,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             dbContext.BasicAccounts.Add(basicAccount);
             dbContext.SaveChanges();
 
-            oauthUser.Roles.Add(dbContext.Roles.Where(r => r.Name == "user").First());
+            oauthUser.Roles = [dbContext.Roles.Where(r => r.Name == "user").First()];
             dbContext.SaveChanges();
 
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, oauthUser);

@@ -85,7 +85,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             IActionResult result = await _blogController.CreateAsync(new BlogCreate("blog4", "description4"), 4, CancellationToken.None);
 
             // Assert
-            Utils.VerifyCreatedResult(result, nameof(BlogController.GetAsync), "Blog");
+            Utils.VerifyCreatedResult(result, "Get", "Blog");
             _blogDbSetMock.Verify(set => set.Add(It.IsAny<Blog>()), Times.Once);
             _setUp.DbContextMock.Verify(db => db.SaveChangesAsync(CancellationToken.None), Times.Once);
         }

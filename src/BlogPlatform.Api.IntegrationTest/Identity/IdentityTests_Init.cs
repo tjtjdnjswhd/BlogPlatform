@@ -43,9 +43,9 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             dbContext.Roles.AddRange(roles);
             dbContext.SaveChanges();
 
-            users[0].Roles.Add(roles[0]);
-            users[1].Roles.Add(roles[0]);
-            users[2].Roles.Add(roles[1]);
+            users[0].Roles = [roles[0]];
+            users[1].Roles = [roles[0]];
+            users[2].Roles = [roles[1]];
 
             dbContext.SaveChanges();
 

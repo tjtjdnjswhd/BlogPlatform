@@ -67,12 +67,11 @@ namespace BlogPlatform.Api.Tests.Controllers
                 new Comment("content1", 2, 2, 1) { Id = 2, SoftDeletedAt = EntityBase.DefaultSoftDeletedAt },
             ];
 
-            users[0].Roles.Add(roles[1]);
-            users[0].BasicAccounts.Add(new BasicAccount("userId", "asda", 1));
-            users[0].Blog.Add(blogs[0]);
-            users[1].Roles.Add(roles[0]);
-            users[1].Roles.Add(roles[1]);
-            users[2].Roles.Add(roles[1]);
+            users[0].Roles = [roles[1]];
+            users[0].BasicAccounts = [new BasicAccount("userId", "asda", 1)];
+            users[0].Blog = [blogs[0]];
+            users[1].Roles = [roles[0], roles[1]];
+            users[2].Roles = [roles[1]];
 
             _userDbSetMock = _setUp.DbContextMock.SetDbSet(db => db.Users, users);
             _roleDbSetMock = _setUp.DbContextMock.SetDbSet(db => db.Roles, roles);
@@ -84,7 +83,8 @@ namespace BlogPlatform.Api.Tests.Controllers
             XUnitLogger<AdminController> controllerLogger = new(testOutputHelper);
 
             Mock<IMailSender> mailSenderMock = new();
-            _adminController = new(_setUp.DbContextMock.Object, _setUp.SoftDeleteServiceMock.Object, mailSenderMock.Object, controllerLogger);
+            TimeProvider timeProvider = TimeProvider.System;
+            _adminController = new(_setUp.DbContextMock.Object, _setUp.SoftDeleteServiceMock.Object, mailSenderMock.Object, timeProvider, controllerLogger);
 
             RouteData routeData = new();
             routeData.Routers.Add(new Mock<IRouter>().Object);

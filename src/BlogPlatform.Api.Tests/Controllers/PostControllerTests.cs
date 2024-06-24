@@ -8,6 +8,7 @@ using BlogPlatform.EFCore.Models.Abstractions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
@@ -71,7 +72,9 @@ namespace BlogPlatform.Api.Tests.Controllers
             imageServiceMock.Setup(i => i.CacheImagesToDatabaseAsync(It.IsAny<IEnumerable<string>>(), It.Is<CancellationToken>(c => true))).ReturnsAsync(true);
             MemoryDistributedCache cache = new(cacheOption);
 
-            _postController = new(_setUp.DbContextMock.Object, _setUp.SoftDeleteServiceMock.Object, imageServiceMock.Object, cache, controllerLogger);
+            TimeProvider timeProvider = TimeProvider.System;
+
+            _postController = new(_setUp.DbContextMock.Object, _setUp.SoftDeleteServiceMock.Object, imageServiceMock.Object, timeProvider, controllerLogger);
             ControllerContext controllerContext = new();
 
             HttpContext httpContext = new DefaultHttpContext();
@@ -79,8 +82,12 @@ namespace BlogPlatform.Api.Tests.Controllers
             serverVariablesFeatureMock.SetupGet(f => f["baseUri"]).Returns("https://localhost");
             httpContext.Features.Set(serverVariablesFeatureMock.Object);
             controllerContext.HttpContext = httpContext;
-
             _postController.ControllerContext = controllerContext;
+
+            Mock<IUrlHelper> urlHelperMock = new();
+            urlHelperMock.Setup(u => u.Action(It.IsAny<UrlActionContext>())).Returns("https://localhost");
+            urlHelperMock.Setup(u => u.ActionContext).Returns(controllerContext);
+            _postController.Url = urlHelperMock.Object;
         }
 
         [Fact]
@@ -164,7 +171,7 @@ namespace BlogPlatform.Api.Tests.Controllers
         public async Task Create_NotFound()
         {
             // Act
-            IActionResult result = await _postController.CreateAsync("title", "content", "notExistCategory", [], 1, CancellationToken.None);
+            IActionResult result = await _postController.CreateAsync(new("title", "content", [], 10), 1, CancellationToken.None);
 
             // Assert
             Utils.VerifyNotFoundResult(result);
@@ -176,7 +183,7 @@ namespace BlogPlatform.Api.Tests.Controllers
         public async Task Create_Forbid()
         {
             // Act
-            IActionResult result = await _postController.CreateAsync("title", "content", "category0", [], 2, CancellationToken.None);
+            IActionResult result = await _postController.CreateAsync(new("title", "content", [], 1), 2, CancellationToken.None);
 
             // Assert
             Utils.VerifyForbidResult(result);
@@ -188,10 +195,10 @@ namespace BlogPlatform.Api.Tests.Controllers
         public async Task Create_Ok()
         {
             // Act
-            IActionResult result = await _postController.CreateAsync("title", "content", "category0", [], 1, CancellationToken.None);
+            IActionResult result = await _postController.CreateAsync(new("title", "content", [], 1), 1, CancellationToken.None);
 
             // Assert
-            Utils.VerifyCreatedResult(result, "GetAsync", "Post");
+            Utils.VerifyCreatedResult(result, "Get", "Post");
             _postDbSetMock.Verify(d => d.Add(It.IsAny<Post>()), Times.Once);
             _setUp.DbContextMock.Verify(d => d.SaveChangesAsync(CancellationToken.None), Times.Once);
         }
@@ -200,11 +207,10 @@ namespace BlogPlatform.Api.Tests.Controllers
         public async Task Update_NotFound()
         {
             // Act
-            IActionResult result = await _postController.UpdateAsync(5, "title", "content", "category0", [], 1, CancellationToken.None);
+            IActionResult result = await _postController.UpdateAsync(5, new("title", "content", [], 1), 1, CancellationToken.None);
 
             // Assert
             Utils.VerifyNotFoundResult(result);
-            _postDbSetMock.Verify(d => d.FindAsync(new object[] { 5 }, CancellationToken.None), Times.Once);
             _setUp.DbContextMock.Verify(d => d.SaveChangesAsync(CancellationToken.None), Times.Never);
         }
 
@@ -212,7 +218,7 @@ namespace BlogPlatform.Api.Tests.Controllers
         public async Task Update_Forbid()
         {
             // Act
-            IActionResult result = await _postController.UpdateAsync(1, "title", "content", "category0", [], 2, CancellationToken.None);
+            IActionResult result = await _postController.UpdateAsync(1, new("title", "content", [], 1), 2, CancellationToken.None);
 
             // Assert
             Utils.VerifyForbidResult(result);
@@ -224,11 +230,10 @@ namespace BlogPlatform.Api.Tests.Controllers
         public async Task Update_NoContent()
         {
             // Act
-            IActionResult result = await _postController.UpdateAsync(1, "title", "content", "category0", [], 1, CancellationToken.None);
+            IActionResult result = await _postController.UpdateAsync(1, new("title", "content", [], 1), 1, CancellationToken.None);
 
             // Assert
             Utils.VerifyNoContentResult(result);
-            _postDbSetMock.Verify(d => d.FindAsync(new object[] { 1 }, CancellationToken.None), Times.Once);
             _setUp.DbContextMock.Verify(d => d.SaveChangesAsync(CancellationToken.None), Times.Once);
         }
 

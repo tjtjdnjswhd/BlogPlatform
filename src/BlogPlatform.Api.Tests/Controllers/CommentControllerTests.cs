@@ -46,7 +46,8 @@ namespace BlogPlatform.Api.Tests.Controllers
             _commentDbSetMock = _setUp.DbContextMock.SetDbSet(db => db.Comments, comments);
 
             XUnitLogger<CommentController> controllerLogger = new(testOutputHelper);
-            _commentController = new(_setUp.DbContextMock.Object, _setUp.SoftDeleteServiceMock.Object, controllerLogger);
+            TimeProvider timeProvider = TimeProvider.System;
+            _commentController = new(_setUp.DbContextMock.Object, _setUp.SoftDeleteServiceMock.Object, timeProvider, controllerLogger);
         }
 
         [Fact]

@@ -93,7 +93,7 @@ namespace BlogPlatform.Api.Controllers
                 return Forbid();
             }
 
-            bool isSameNameExist = await _dbContext.Blogs.AnyAsync(b => b.Name == model.BlogName, cancellationToken);
+            bool isSameNameExist = blog.Name != model.BlogName && await _dbContext.Blogs.AnyAsync(b => b.Name == model.BlogName, cancellationToken);
             if (isSameNameExist)
             {
                 _logger.LogInformation("Blog with name {name} already exists", model.BlogName);
