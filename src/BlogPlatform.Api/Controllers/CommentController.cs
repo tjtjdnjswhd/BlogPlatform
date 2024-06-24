@@ -7,6 +7,9 @@ using BlogPlatform.EFCore.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
+using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
+
 namespace BlogPlatform.Api.Controllers
 {
     [Route("api/[controller]")]
@@ -15,14 +18,12 @@ namespace BlogPlatform.Api.Controllers
     {
         private readonly BlogPlatformDbContext _dbContext;
         private readonly ICascadeSoftDeleteService _softDeleteService;
-        private readonly TimeProvider _timeProvider;
         private readonly ILogger<CommentController> _logger;
 
-        public CommentController(BlogPlatformDbContext dbContext, ICascadeSoftDeleteService softDeleteService, TimeProvider timeProvider, ILogger<CommentController> logger)
+        public CommentController(BlogPlatformDbContext dbContext, ICascadeSoftDeleteService softDeleteService, ILogger<CommentController> logger)
         {
             _dbContext = dbContext;
             _softDeleteService = softDeleteService;
-            _timeProvider = timeProvider;
             _logger = logger;
         }
 
@@ -42,10 +43,11 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpGet("post/{postId:int}")]
-        public IAsyncEnumerable<CommentRead> GetByPost([FromRoute] int postId, [FromQuery] int page)
+        public IAsyncEnumerable<CommentRead> GetByPost([FromRoute] int postId, [FromQuery, Range(1, int.MaxValue)] int page = 1)
         {
             IAsyncEnumerable<CommentRead> queryResult = _dbContext.Comments
                 .Where(c => c.PostId == postId)
+                .OrderBy(c => c.Id)
                 .Skip((page - 1) * 100)
                 .Take(100)
                 .Select(c => new CommentRead(c.Id, c.Content, c.CreatedAt, c.LastUpdatedAt, c.PostId, c.UserId, c.ParentCommentId))
@@ -88,23 +90,34 @@ namespace BlogPlatform.Api.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> CreateAsync([FromForm] string content, [FromForm] int postId, [FromForm] int? parentCommentId, [UserIdBind] int userId, CancellationToken cancellationToken)
+        public async Task<IActionResult> CreateAsync([FromBody] CommentCreate model, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
-            if (!await _dbContext.Posts.AnyAsync(p => p.Id == postId, cancellationToken))
+            Debug.Assert(model.PostId.HasValue ^ model.ParentCommentId.HasValue);
+
+            if (model.PostId.HasValue && !await _dbContext.Posts.AnyAsync(p => p.Id == model.PostId, cancellationToken))
             {
                 return NotFound(new Error("존재하지 않는 게시글입니다"));
             }
 
-            if (parentCommentId.HasValue && !await _dbContext.Comments.AnyAsync(c => c.Id == parentCommentId && c.PostId != postId, cancellationToken))
+            var commentInfo = model.PostId.HasValue ? new { PostId = model.PostId.Value, Level = 0 } :
+                await _dbContext.Comments
+                .Where(c => c.ParentCommentId == model.ParentCommentId)
+                .Select(c => new { c.PostId, Level = c.Level + 1 })
+                .FirstOrDefaultAsync(cancellationToken);
+            if (commentInfo is null)
             {
                 return NotFound(new Error("존재하지 않는 댓글입니다"));
             }
 
-            Comment comment = new(content, postId, userId, parentCommentId);
+            Comment comment = new(model.Content, commentInfo.PostId, userId, model.ParentCommentId)
+            {
+                Level = commentInfo.Level
+            };
+
             _dbContext.Comments.Add(comment);
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            return CreatedAtAction(nameof(GetAsync), "Comment", new { comment.Id }, null);
+            return CreatedAtAction("Get", "Comment", new { comment.Id }, null);
         }
 
         [HttpPut("{id:int}")]
@@ -113,7 +126,7 @@ namespace BlogPlatform.Api.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> UpdateAsync([FromRoute] int id, [FromForm] string content, [UserIdBind] int userId, CancellationToken cancellationToken)
+        public async Task<IActionResult> UpdateAsync([FromRoute] int id, [FromBody] CommentUpdate model, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             Comment? comment = await _dbContext.Comments.FindAsync([id], cancellationToken);
             if (comment == null)
@@ -126,8 +139,7 @@ namespace BlogPlatform.Api.Controllers
                 return Forbid();
             }
 
-            comment.Content = content;
-            comment.LastUpdatedAt = _timeProvider.GetUtcNow();
+            comment.Content = model.Content;
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             return NoContent();

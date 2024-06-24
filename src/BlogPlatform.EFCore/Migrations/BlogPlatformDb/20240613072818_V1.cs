@@ -1,5 +1,4 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Metadata;
+﻿using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -273,6 +272,7 @@ namespace BlogPlatform.EFCore.Migrations
                     Content = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     LastUpdatedAt = table.Column<DateTimeOffset>(type: "datetime(6)", nullable: true),
+                    Level = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
                     PostId = table.Column<int>(type: "int", nullable: false),
                     UserId = table.Column<int>(type: "int", nullable: false),
                     ParentCommentId = table.Column<int>(type: "int", nullable: true),

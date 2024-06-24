@@ -92,15 +92,5 @@ namespace BlogPlatform.Api.IntegrationTest
         {
             return WebApplicationFactory.CreateDefaultClient(new HttpClientLogHandler(TestOutputHelper));
         }
-
-        protected static TContext GetNotLoggingDbContext<TContext>(IServiceScope serviceScope)
-            where TContext : DbContext
-        {
-            DbContextOptionsBuilder<TContext> dbContextOptionsBuilder = new(serviceScope.ServiceProvider.GetRequiredService<DbContextOptions<TContext>>());
-            dbContextOptionsBuilder.UseLoggerFactory(LoggerFactory.Create(lb => lb.ClearProviders()));
-
-            TContext dbContext = (TContext?)Activator.CreateInstance(typeof(TContext), dbContextOptionsBuilder.Options) ?? throw new Exception();
-            return dbContext;
-        }
     }
 }

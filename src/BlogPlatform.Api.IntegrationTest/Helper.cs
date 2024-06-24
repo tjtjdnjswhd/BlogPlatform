@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 using System.Linq.Expressions;
 
@@ -169,6 +170,22 @@ namespace BlogPlatform.Api.IntegrationTest
             {
                 collectionEntry.Load();
             }
+        }
+
+        public static TContext GetNotLoggingDbContext<TContext>(IServiceProvider services)
+            where TContext : DbContext
+        {
+            return CreateDbContext<TContext>(services, builder => builder.UseLoggerFactory(LoggerFactory.Create(lb => lb.ClearProviders())));
+        }
+
+        public static TContext CreateDbContext<TContext>(IServiceProvider services, Action<DbContextOptionsBuilder<TContext>> builder) where TContext : DbContext
+        {
+            DbContextOptions<TContext> dbContextOptions = services.GetRequiredService<DbContextOptions<TContext>>();
+            DbContextOptionsBuilder<TContext> dbContextOptionsBuilder = new(dbContextOptions);
+            builder(dbContextOptionsBuilder);
+
+            TContext dbContext = (TContext?)ActivatorUtilities.CreateInstance(services, typeof(TContext), dbContextOptionsBuilder.Options) ?? throw new Exception();
+            return dbContext;
         }
     }
 }

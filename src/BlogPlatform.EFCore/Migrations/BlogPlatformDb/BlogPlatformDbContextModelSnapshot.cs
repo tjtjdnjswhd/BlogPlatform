@@ -17,7 +17,7 @@ namespace BlogPlatform.EFCore.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.4")
+                .HasAnnotation("ProductVersion", "8.0.2")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
@@ -198,6 +198,10 @@ namespace BlogPlatform.EFCore.Migrations
 
                     b.Property<DateTimeOffset?>("LastUpdatedAt")
                         .HasColumnType("datetime(6)");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
 
                     b.Property<int?>("ParentCommentId")
                         .HasColumnType("int");

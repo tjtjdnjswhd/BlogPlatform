@@ -18,6 +18,8 @@ public class Program
     Host.CreateApplicationBuilder(args);
 #endif
 
+        builder.Services.AddSingleton(TimeProvider.System);
+
         MySqlConnectionStringBuilder mySqlConnectionStringBuilder = builder.Configuration.GetRequiredSection("MySqlConnectionString").Get<MySqlConnectionStringBuilder>() ?? throw new Exception();
 
         builder.Services.AddDbContext<BlogPlatformDbContext>(options =>

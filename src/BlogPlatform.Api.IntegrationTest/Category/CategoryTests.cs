@@ -325,23 +325,23 @@ namespace BlogPlatform.Api.IntegrationTest.Category
             EFCore.Models.Category? restoredCategory = Helper.GetFirstEntity<EFCore.Models.Category>(WebApplicationFactory, c => c.Blog.UserId == user.Id);
             Assert.NotNull(restoredCategory);
             Assert.True(restoredCategory.IsSoftDeletedAtDefault());
-            Assert.True(restoredCategory.SoftDeleteLevel == 0);
+            Assert.Equal(0, restoredCategory.SoftDeleteLevel);
 
             EFCore.Models.Post? post = Helper.GetFirstEntity<EFCore.Models.Post>(WebApplicationFactory, p => p.Category.Id == restoredCategory.Id);
             Assert.NotNull(post);
             Assert.True(post.IsSoftDeletedAtDefault());
-            Assert.True(post.SoftDeleteLevel == 0);
+            Assert.Equal(0, post.SoftDeleteLevel);
 
             EFCore.Models.Comment? comment = Helper.GetFirstEntity<EFCore.Models.Comment>(WebApplicationFactory, c => c.Post.Id == post.Id);
             Assert.NotNull(comment);
             Assert.True(comment.IsSoftDeletedAtDefault());
-            Assert.True(comment.SoftDeleteLevel == 0);
+            Assert.Equal(0, comment.SoftDeleteLevel);
         }
 
         protected override void SeedData()
         {
             using var scope = WebApplicationFactory.Services.CreateScope();
-            using BlogPlatformDbContext dbContext = GetNotLoggingDbContext<BlogPlatformDbContext>(scope);
+            using BlogPlatformDbContext dbContext = Helper.GetNotLoggingDbContext<BlogPlatformDbContext>(scope.ServiceProvider);
 
             dbContext.Database.EnsureDeleted();
             dbContext.Database.Migrate();

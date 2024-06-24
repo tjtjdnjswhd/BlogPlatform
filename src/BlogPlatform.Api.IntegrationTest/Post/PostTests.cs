@@ -101,7 +101,6 @@ namespace BlogPlatform.Api.IntegrationTest.Post
             PostSearchResult[]? postSearchResults = await response.Content.ReadFromJsonAsync<PostSearchResult[]>();
             Assert.NotNull(postSearchResults);
             Assert.NotEmpty(postSearchResults);
-
         }
 
         [Fact]
@@ -622,8 +621,8 @@ namespace BlogPlatform.Api.IntegrationTest.Post
         protected override void SeedData()
         {
             using var scope = WebApplicationFactory.Services.CreateScope();
-            using BlogPlatformDbContext dbContext = GetNotLoggingDbContext<BlogPlatformDbContext>(scope);
-            using BlogPlatformImgDbContext imgDbContext = GetNotLoggingDbContext<BlogPlatformImgDbContext>(scope);
+            using BlogPlatformDbContext dbContext = Helper.GetNotLoggingDbContext<BlogPlatformDbContext>(scope.ServiceProvider);
+            using BlogPlatformImgDbContext imgDbContext = Helper.GetNotLoggingDbContext<BlogPlatformImgDbContext>(scope.ServiceProvider);
 
             dbContext.Database.EnsureDeleted();
             dbContext.Database.Migrate();

@@ -507,7 +507,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         protected override void SeedData()
         {
             using var scope = WebApplicationFactory.Services.CreateScope();
-            using BlogPlatformDbContext dbContext = GetNotLoggingDbContext<BlogPlatformDbContext>(scope);
+            using BlogPlatformDbContext dbContext = Helper.GetNotLoggingDbContext<BlogPlatformDbContext>(scope.ServiceProvider);
             dbContext.Database.EnsureDeleted();
             dbContext.Database.Migrate();
 

@@ -46,8 +46,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             _commentDbSetMock = _setUp.DbContextMock.SetDbSet(db => db.Comments, comments);
 
             XUnitLogger<CommentController> controllerLogger = new(testOutputHelper);
-            TimeProvider timeProvider = TimeProvider.System;
-            _commentController = new(_setUp.DbContextMock.Object, _setUp.SoftDeleteServiceMock.Object, timeProvider, controllerLogger);
+            _commentController = new(_setUp.DbContextMock.Object, _setUp.SoftDeleteServiceMock.Object, controllerLogger);
         }
 
         [Fact]
@@ -101,7 +100,7 @@ namespace BlogPlatform.Api.Tests.Controllers
         public async Task Create_PostNotFound()
         {
             // Act
-            IActionResult result = await _commentController.CreateAsync("Comment7", 4, null, 1, CancellationToken.None);
+            IActionResult result = await _commentController.CreateAsync(new("Comment7", 4, null), 1, CancellationToken.None);
 
             // Assert
             Utils.VerifyNotFoundResult(result);
@@ -113,7 +112,7 @@ namespace BlogPlatform.Api.Tests.Controllers
         public async Task Create_ParentCommentNotFound()
         {
             // Act
-            IActionResult result = await _commentController.CreateAsync("Comment7", 3, 7, 1, CancellationToken.None);
+            IActionResult result = await _commentController.CreateAsync(new("Comment7", null, 7), 1, CancellationToken.None);
 
             // Assert
             Utils.VerifyNotFoundResult(result);
@@ -125,7 +124,7 @@ namespace BlogPlatform.Api.Tests.Controllers
         public async Task Create_Parent_CreatedAtAction()
         {
             // Act
-            IActionResult result = await _commentController.CreateAsync("Comment7", 3, 2, 1, CancellationToken.None);
+            IActionResult result = await _commentController.CreateAsync(new("Comment7", null, 2), 1, CancellationToken.None);
 
             // Assert
             Utils.VerifyCreatedResult(result, "GetAsync", "Comment");
@@ -137,7 +136,7 @@ namespace BlogPlatform.Api.Tests.Controllers
         public async Task Create_Child_CreatedAtAction()
         {
             // Act
-            IActionResult result = await _commentController.CreateAsync("Comment7", 3, null, 1, CancellationToken.None);
+            IActionResult result = await _commentController.CreateAsync(new("Comment7", 3, null), 1, CancellationToken.None);
 
             // Assert
             Utils.VerifyCreatedResult(result, "GetAsync", "Comment");
@@ -147,7 +146,7 @@ namespace BlogPlatform.Api.Tests.Controllers
         public async Task Update_NotFound()
         {
             // Act
-            IActionResult result = await _commentController.UpdateAsync(7, "Comment7", 1, CancellationToken.None);
+            IActionResult result = await _commentController.UpdateAsync(7, new("Comment7"), 1, CancellationToken.None);
 
             // Assert
             Utils.VerifyNotFoundResult(result);
@@ -159,7 +158,7 @@ namespace BlogPlatform.Api.Tests.Controllers
         public async Task Update_Forbid()
         {
             // Act
-            IActionResult result = await _commentController.UpdateAsync(1, "Comment7", 2, CancellationToken.None);
+            IActionResult result = await _commentController.UpdateAsync(1, new("Comment7"), 2, CancellationToken.None);
 
             // Assert
             Utils.VerifyForbidResult(result);
@@ -171,7 +170,7 @@ namespace BlogPlatform.Api.Tests.Controllers
         public async Task Update_NoContent()
         {
             // Act
-            IActionResult result = await _commentController.UpdateAsync(1, "Comment7", 1, CancellationToken.None);
+            IActionResult result = await _commentController.UpdateAsync(1, new("Comment7"), 1, CancellationToken.None);
 
             // Assert
             Utils.VerifyNoContentResult(result);

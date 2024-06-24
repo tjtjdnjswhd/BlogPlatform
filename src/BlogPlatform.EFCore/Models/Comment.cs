@@ -31,6 +31,12 @@ namespace BlogPlatform.EFCore.Models
         public DateTimeOffset? LastUpdatedAt { get; set; }
 
         /// <summary>
+        /// 댓글 레벨
+        /// </summary>
+        [Required]
+        public int Level { get; set; }
+
+        /// <summary>
         /// 게시글 ID
         /// </summary>
         [Required]
