@@ -54,26 +54,26 @@ namespace BlogPlatform.EFCore.Models
         /// <summary>
         /// 블로그
         /// </summary>
-        public List<Blog> Blog { get; private set; }
+        public List<Blog> Blog { get; internal set; }
 
         /// <summary>
         /// 댓글
         /// </summary>
-        public List<Comment> Comments { get; private set; }
+        public List<Comment> Comments { get; internal set; }
 
         /// <summary>
         /// 기본 로그인 계정
         /// </summary>
-        public List<BasicAccount> BasicAccounts { get; private set; }
+        public List<BasicAccount> BasicAccounts { get; internal set; }
 
         /// <summary>
         /// OAuth 계정
         /// </summary>
-        public List<OAuthAccount> OAuthAccounts { get; private set; }
+        public List<OAuthAccount> OAuthAccounts { get; internal set; }
 
         /// <summary>
         /// 역할
         /// </summary>
-        public List<Role> Roles { get; } = [];
+        public List<Role> Roles { get; internal set; }
     }
 }

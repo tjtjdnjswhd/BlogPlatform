@@ -69,6 +69,6 @@ namespace BlogPlatform.EFCore.Models
         /// <summary>
         /// 댓글
         /// </summary>
-        public List<Comment> Comments { get; private set; }
+        public List<Comment> Comments { get; internal set; }
     }
 }

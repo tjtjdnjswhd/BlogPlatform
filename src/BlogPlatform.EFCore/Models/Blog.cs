@@ -61,6 +61,6 @@ namespace BlogPlatform.EFCore.Models
         /// <summary>
         /// 카테고리
         /// </summary>
-        public List<Category> Categories { get; private set; }
+        public List<Category> Categories { get; internal set; }
     }
 }

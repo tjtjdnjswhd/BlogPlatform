@@ -78,6 +78,6 @@ namespace BlogPlatform.EFCore.Models
         /// <summary>
         /// 자식 댓글
         /// </summary>
-        public List<Comment> ChildComments { get; private set; }
+        public List<Comment> ChildComments { get; internal set; }
     }
 }

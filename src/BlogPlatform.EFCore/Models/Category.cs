@@ -35,6 +35,6 @@ namespace BlogPlatform.EFCore.Models
         ----------------------------
         */
 
-        public List<Post> Posts { get; private set; }
+        public List<Post> Posts { get; internal set; }
     }
 }
