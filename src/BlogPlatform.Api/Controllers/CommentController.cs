@@ -15,12 +15,14 @@ namespace BlogPlatform.Api.Controllers
     {
         private readonly BlogPlatformDbContext _dbContext;
         private readonly ICascadeSoftDeleteService _softDeleteService;
+        private readonly TimeProvider _timeProvider;
         private readonly ILogger<CommentController> _logger;
 
-        public CommentController(BlogPlatformDbContext dbContext, ICascadeSoftDeleteService softDeleteService, ILogger<CommentController> logger)
+        public CommentController(BlogPlatformDbContext dbContext, ICascadeSoftDeleteService softDeleteService, TimeProvider timeProvider, ILogger<CommentController> logger)
         {
             _dbContext = dbContext;
             _softDeleteService = softDeleteService;
+            _timeProvider = timeProvider;
             _logger = logger;
         }
 
@@ -125,7 +127,7 @@ namespace BlogPlatform.Api.Controllers
             }
 
             comment.Content = content;
-            comment.LastUpdatedAt = DateTimeOffset.UtcNow;
+            comment.LastUpdatedAt = _timeProvider.GetUtcNow();
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             return NoContent();

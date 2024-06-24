@@ -8,6 +8,13 @@ namespace BlogPlatform.EFCore.Internals
 {
     public class CommentLastUpdatedAtInterceptor : SaveChangesInterceptor
     {
+        private readonly TimeProvider _timeProvider;
+
+        public CommentLastUpdatedAtInterceptor(TimeProvider timeProvider)
+        {
+            _timeProvider = timeProvider;
+        }
+
         public override ValueTask<InterceptionResult<int>> SavingChangesAsync(DbContextEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
         {
             if (eventData.Context is null)
@@ -30,11 +37,11 @@ namespace BlogPlatform.EFCore.Internals
             return base.SavingChanges(eventData, result);
         }
 
-        private static void SetLastUpdatedAt(ChangeTracker changeTracker)
+        private void SetLastUpdatedAt(ChangeTracker changeTracker)
         {
             foreach (var entry in changeTracker.Entries<Comment>().Where(e => e.State == EntityState.Modified && e.Property(c => c.Content).IsModified))
             {
-                entry.Entity.LastUpdatedAt = DateTimeOffset.Now;
+                entry.Entity.LastUpdatedAt = _timeProvider.GetUtcNow();
             }
         }
     }

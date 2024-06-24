@@ -20,13 +20,15 @@ namespace BlogPlatform.Api.Controllers
         private readonly BlogPlatformDbContext _dbContext;
         private readonly ICascadeSoftDeleteService _softDeleteService;
         private readonly IMailSender _mailSender;
+        private readonly TimeProvider _timeProvider;
         private readonly ILogger<AdminController> _logger;
 
-        public AdminController(BlogPlatformDbContext dbContext, ICascadeSoftDeleteService softDeleteService, IMailSender mailSender, ILogger<AdminController> logger)
+        public AdminController(BlogPlatformDbContext dbContext, ICascadeSoftDeleteService softDeleteService, IMailSender mailSender, TimeProvider timeProvider, ILogger<AdminController> logger)
         {
             _dbContext = dbContext;
             _softDeleteService = softDeleteService;
             _mailSender = mailSender;
+            _timeProvider = timeProvider;
             _logger = logger;
         }
 
@@ -139,7 +141,7 @@ namespace BlogPlatform.Api.Controllers
                 return NotFound(new Error("존재하지 않는 유저입니다"));
             }
 
-            user.BanExpiresAt = DateTimeOffset.UtcNow.Add(banDuration);
+            user.BanExpiresAt = _timeProvider.GetUtcNow().Add(banDuration);
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             return Ok();

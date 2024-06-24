@@ -23,13 +23,15 @@ namespace BlogPlatform.Api.Controllers
         private readonly IIdentityService _identityService;
         private readonly IUserEmailService _userEmailService;
         private readonly IEmailVerifyService _emailVerifyService;
+        private readonly TimeProvider _timeProvider;
         private readonly ILogger<IdentityController> _logger;
 
-        public IdentityController(IIdentityService identityService, IUserEmailService userEmailService, IEmailVerifyService emailVerifyService, ILogger<IdentityController> logger)
+        public IdentityController(IIdentityService identityService, IUserEmailService userEmailService, IEmailVerifyService emailVerifyService, TimeProvider timeProvider, ILogger<IdentityController> logger)
         {
             _identityService = identityService;
             _userEmailService = userEmailService;
             _emailVerifyService = emailVerifyService;
+            _timeProvider = timeProvider;
             _logger = logger;
         }
 
@@ -89,10 +91,10 @@ namespace BlogPlatform.Api.Controllers
         {
             AuthenticationProperties authenticationProperties = new()
             {
-                ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(10),
+                ExpiresUtc = _timeProvider.GetUtcNow().AddMinutes(10),
                 IsPersistent = false,
                 RedirectUri = $"{Url.Action(nameof(OAuthLoginCallbackAsync), "Identity")}?setcookie={setCookie}",
-                IssuedUtc = DateTimeOffset.UtcNow,
+                IssuedUtc = _timeProvider.GetUtcNow(),
             };
 
             _logger.LogDebug("Login with OAuth. provider: {provider} SetCookie: {setCookie}", provider.Provider, setCookie);
@@ -117,10 +119,10 @@ namespace BlogPlatform.Api.Controllers
         {
             AuthenticationProperties authenticationProperties = new()
             {
-                ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(10),
+                ExpiresUtc = _timeProvider.GetUtcNow().AddMinutes(10),
                 IsPersistent = false,
                 RedirectUri = $"{Url.Action(nameof(OAuthSignUpCallbackAsync), "Identity")}?setcookie={setCookie}",
-                IssuedUtc = DateTimeOffset.UtcNow,
+                IssuedUtc = _timeProvider.GetUtcNow(),
             };
 
             return new OAuthSignUpChallengeResult(authenticationProperties, signUpModel);
@@ -144,10 +146,10 @@ namespace BlogPlatform.Api.Controllers
         {
             AuthenticationProperties authenticationProperties = new()
             {
-                ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(10),
+                ExpiresUtc = _timeProvider.GetUtcNow().AddMinutes(10),
                 IsPersistent = false,
                 RedirectUri = Url.Action(nameof(AddOAuthCallbackAsync), "Identity"),
-                IssuedUtc = DateTimeOffset.UtcNow,
+                IssuedUtc = _timeProvider.GetUtcNow(),
             };
 
             return Challenge(authenticationProperties, provider.ToLower());

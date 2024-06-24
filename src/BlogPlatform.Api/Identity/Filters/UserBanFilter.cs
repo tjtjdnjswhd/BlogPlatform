@@ -18,11 +18,13 @@ namespace BlogPlatform.Api.Identity.Filters
     public class UserBanFilter : IAsyncAuthorizationFilter
     {
         private readonly BlogPlatformDbContext _blogPlatformDbContext;
+        private readonly TimeProvider _timeProvider;
         private readonly ILogger<UserBanFilter> _logger;
 
-        public UserBanFilter(BlogPlatformDbContext blogPlatformDbContext, ILogger<UserBanFilter> logger)
+        public UserBanFilter(BlogPlatformDbContext blogPlatformDbContext, TimeProvider timeProvider, ILogger<UserBanFilter> logger)
         {
             _blogPlatformDbContext = blogPlatformDbContext;
+            _timeProvider = timeProvider;
             _logger = logger;
         }
 
@@ -44,7 +46,7 @@ namespace BlogPlatform.Api.Identity.Filters
                 .Select(u => u.BanExpiresAt)
                 .FirstOrDefaultAsync(context.HttpContext.RequestAborted);
 
-            if (banExpiresAt is not null && DateTimeOffset.UtcNow < banExpiresAt)
+            if (banExpiresAt is not null && _timeProvider.GetUtcNow() < banExpiresAt)
             {
                 _logger.LogInformation("User {userId} is banned until {banExpiresAt}", userId, banExpiresAt);
                 await context.HttpContext.Response.WriteAsJsonAsync(new Error($"해당 계정은 {banExpiresAt}까지 사용할 수 없습니다."));

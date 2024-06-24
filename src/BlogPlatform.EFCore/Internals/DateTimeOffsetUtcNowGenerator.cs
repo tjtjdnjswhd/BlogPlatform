@@ -7,9 +7,16 @@ namespace BlogPlatform.EFCore.Internals
     {
         public override bool GeneratesTemporaryValues => false;
 
+        private readonly TimeProvider _timeProvider;
+
+        public DateTimeOffsetUtcNowGenerator(TimeProvider timeProvider)
+        {
+            _timeProvider = timeProvider;
+        }
+
         public override DateTimeOffset Next(EntityEntry entry)
         {
-            return DateTimeOffset.UtcNow;
+            return _timeProvider.GetUtcNow();
         }
     }
 }

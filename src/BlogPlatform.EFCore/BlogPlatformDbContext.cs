@@ -4,7 +4,9 @@ using BlogPlatform.EFCore.Models.Abstractions;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.Extensions.DependencyInjection;
 
 using System.Linq.Expressions;
 using System.Text.Json;
@@ -31,14 +33,18 @@ namespace BlogPlatform.EFCore
 
         public virtual DbSet<Role> Roles { get; private set; }
 
+        private readonly TimeProvider _timeProvider;
+
         public BlogPlatformDbContext(DbContextOptions<BlogPlatformDbContext> options) : base(options)
         {
+            TimeProvider? timeProvider = options.FindExtension<CoreOptionsExtension>()?.ApplicationServiceProvider?.GetRequiredService<TimeProvider>();
+            _timeProvider = timeProvider ?? TimeProvider.System;
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.AddInterceptors(new PostLastUpdatedAtInterceptor());
-            optionsBuilder.AddInterceptors(new CommentLastUpdatedAtInterceptor());
+            optionsBuilder.AddInterceptors(new PostLastUpdatedAtInterceptor(_timeProvider));
+            optionsBuilder.AddInterceptors(new CommentLastUpdatedAtInterceptor(_timeProvider));
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -84,7 +90,7 @@ namespace BlogPlatform.EFCore
             ConfigureEntityBaseModels(modelBuilder);
         }
 
-        private static void ConfigureEntityBaseModels(ModelBuilder modelBuilder)
+        private void ConfigureEntityBaseModels(ModelBuilder modelBuilder)
         {
             string defaultSoftDeletedAt = EntityBase.DefaultSoftDeletedAt.ToString("yyyy-MM-dd HH:mm:ss.ffffff");
             foreach (var entity in modelBuilder.Model.GetEntityTypes().Where(t => t.ClrType.IsAssignableTo(typeof(EntityBase))))
@@ -114,7 +120,7 @@ namespace BlogPlatform.EFCore
 
                 var createdAtProperty = entity.GetProperty(nameof(EntityBase.CreatedAt));
                 createdAtProperty.SetValueGenerationStrategy(MySqlValueGenerationStrategy.IdentityColumn);
-                createdAtProperty.SetValueGeneratorFactory((_, _) => new DateTimeOffsetUtcNowGenerator());
+                createdAtProperty.SetValueGeneratorFactory((_, _) => new DateTimeOffsetUtcNowGenerator(_timeProvider));
             }
         }
     }

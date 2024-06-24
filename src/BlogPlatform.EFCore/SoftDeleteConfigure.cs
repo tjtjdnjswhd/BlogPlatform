@@ -8,8 +8,12 @@ namespace BlogPlatform.EFCore
 {
     public class SoftDeleteConfigure : CascadeSoftDeleteConfiguration<EntityBase>
     {
-        public SoftDeleteConfigure(DbContext context) : base(context)
+        private readonly TimeProvider _timeProvider;
+
+        public SoftDeleteConfigure(DbContext context, TimeProvider timeProvider) : base(context)
         {
+            _timeProvider = timeProvider;
+
             GetSoftDeleteValue = e => e.SoftDeleteLevel;
             SetSoftDeleteValue = (e, value) =>
             {
@@ -19,7 +23,7 @@ namespace BlogPlatform.EFCore
                 }
                 else if (e.SoftDeleteLevel == 0)
                 {
-                    e.SoftDeletedAt = DateTimeOffset.UtcNow;
+                    e.SoftDeletedAt = _timeProvider.GetUtcNow();
                 }
                 e.SoftDeleteLevel = value;
             };
