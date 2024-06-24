@@ -91,11 +91,11 @@ namespace BlogPlatform.Api.Controllers
         [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status500InternalServerError)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> DeleteUserAsync([FromForm] string email, CancellationToken cancellationToken)
+        public async Task<IActionResult> DeleteUserAsync([FromBody] EmailModel model, CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Deleting user with email {email}", email);
+            _logger.LogInformation("Deleting user with email {email}", model.Email);
 
-            User? user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
+            User? user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == model.Email, cancellationToken);
             if (user is null)
             {
                 return NotFound(new Error("존재하지 않는 유저입니다"));
@@ -108,17 +108,23 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpPost("user/restore")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status500InternalServerError)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> RestoreUserAsync([FromForm] string email, CancellationToken cancellationToken)
+        public async Task<IActionResult> RestoreUserAsync([FromBody] EmailModel model, CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Restoring user with email {Email}", email);
+            _logger.LogInformation("Restoring user with email {Email}", model.Email);
 
-            User? user = await _dbContext.Users.IgnoreSoftDeleteFilter().FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
+            User? user = await _dbContext.Users.IgnoreSoftDeleteFilter().FirstOrDefaultAsync(u => u.Email == model.Email, cancellationToken);
             if (user is null)
             {
                 return NotFound(new Error("존재하지 않는 유저입니다"));
+            }
+
+            if (user.IsSoftDeletedAtDefault())
+            {
+                return BadRequest(new Error("삭제되지 않은 유저입니다"));
             }
 
             var status = await _softDeleteService.ResetSoftDeleteAsync(user, true);
@@ -131,17 +137,17 @@ namespace BlogPlatform.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> BanUserAsync([FromForm] string email, [FromForm] TimeSpan banDuration, CancellationToken cancellationToken)
+        public async Task<IActionResult> BanUserAsync(UserBanModel model, CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Banning user with email {Email}", email);
+            _logger.LogInformation("Banning user with email {Email}", model.Email);
 
-            User? user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
+            User? user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == model.Email, cancellationToken);
             if (user is null)
             {
                 return NotFound(new Error("존재하지 않는 유저입니다"));
             }
 
-            user.BanExpiresAt = _timeProvider.GetUtcNow().Add(banDuration);
+            user.BanExpiresAt = _timeProvider.GetUtcNow().Add(model.BanDuration);
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             return Ok();
@@ -151,11 +157,11 @@ namespace BlogPlatform.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> UnbanUserAsync([FromForm] string email, CancellationToken cancellationToken)
+        public async Task<IActionResult> UnbanUserAsync([FromBody] EmailModel model, CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Unbanning user with email {Email}", email);
+            _logger.LogInformation("Unbanning user with email {Email}", model.Email);
 
-            User? user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
+            User? user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == model.Email, cancellationToken);
             if (user is null)
             {
                 return NotFound(new Error("존재하지 않는 유저입니다"));
@@ -188,6 +194,7 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpPost("post/{id:int}/restore")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> RestorePostAsync([FromRoute] int id, CancellationToken cancellationToken)
@@ -198,6 +205,11 @@ namespace BlogPlatform.Api.Controllers
             if (post is null)
             {
                 return NotFound(new Error("존재하지 않는 게시글입니다"));
+            }
+
+            if (post.IsSoftDeletedAtDefault())
+            {
+                return BadRequest(new Error("삭제되지 않은 게시글입니다"));
             }
 
             var status = await _softDeleteService.ResetSoftDeleteAsync(post, true);
@@ -227,6 +239,7 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpPost("comment/{id:int}/restore")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status500InternalServerError)]
         [ProducesDefaultResponseType]
@@ -238,6 +251,11 @@ namespace BlogPlatform.Api.Controllers
             if (comment is null)
             {
                 return NotFound(new Error("존재하지 않는 댓글입니다"));
+            }
+
+            if (comment.IsSoftDeletedAtDefault())
+            {
+                return BadRequest(new Error("삭제되지 않은 댓글입니다"));
             }
 
             var status = await _softDeleteService.ResetSoftDeleteAsync(comment, true);
