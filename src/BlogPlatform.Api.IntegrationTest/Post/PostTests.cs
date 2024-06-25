@@ -75,7 +75,7 @@ namespace BlogPlatform.Api.IntegrationTest.Post
             Assert.Equal(expected, postRead.Content);
         }
 
-        public static readonly TheoryData<string> SearchQueries = new() {
+        public static readonly TheoryData<string> SearchQueries = new(
             "blogid=1&title=title",
             "blogid=1&title=title&content=content&createdatstart=2024-01-01&createdatend=2025-12-31",
             "blogid=1&title=title&content=content&createdatstart=2024-01-01&createdatend=2025-12-31&tags=tag1&tags=tag2&tagFilter=All",
@@ -83,8 +83,8 @@ namespace BlogPlatform.Api.IntegrationTest.Post
             "blogid=1&title=title&content=content&createdatstart=2024-01-01&createdatend=2025-12-31&orderby=CreatedAt&orderdirection=Descending",
             "categoryid=1&title=title&content=content&createdatestart=2024-01-01&createdatend=2025-12-31&orderby=CreatedAt&orderdirection=Ascending",
             "categoryid=1&title=title&content=content&createdatstart=2024-01-01&createdatend=2025-12-31&tags=tag1&tags=tag2&tagFilter=All&orderby=CreatedAt&orderdirection=Ascending",
-            "categoryid=1&title=title&content=content&createdatstart=2024-01-01&createdatend=2025-12-31&tags=tag1&tags=tag2&tagFilter=Any&orderby=CreatedAt&orderdirection=Ascending",
-        };
+            "categoryid=1&title=title&content=content&createdatstart=2024-01-01&createdatend=2025-12-31&tags=tag1&tags=tag2&tagFilter=Any&orderby=CreatedAt&orderdirection=Ascending"
+        );
 
         [Theory]
         [MemberData(nameof(SearchQueries))]

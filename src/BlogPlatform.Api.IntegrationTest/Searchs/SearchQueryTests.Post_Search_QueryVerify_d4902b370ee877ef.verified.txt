@@ -1,0 +1,26 @@
+﻿[
+  {
+    query: categoryid=4&title=searchTitle&content=searchContent&createdatstart=2024-01-01&createdatend=2025-12-31&tags=tag1&tags=tag2&tagfilteroption=any&orderby=createdat&orderdirection=ascending&page=22&pagesize=60
+  },
+  {
+    ef: {
+      Type: ReaderExecutedAsync,
+      HasTransaction: false,
+      Parameters: {
+        @__p_5 (Int32): 1260,
+        @__p_6 (Int32): 60,
+        @__search_CategoryId_0 (Int32?): 4,
+        @__search_Content_2_contains (String?): %searchContent%,
+        @__search_CreatedAtEnd_4 (DateTimeOffset?): DateTimeOffset_1,
+        @__search_CreatedAtStart_3 (DateTimeOffset?): DateTimeOffset_2,
+        @__search_Title_1_contains (String?): %searchTitle%
+      },
+      Text:
+SELECT `p`.`Id`, `p`.`Title`, `p`.`CategoryId`
+FROM `Post` AS `p`
+WHERE ((((((`p`.`SoftDeleteLevel` = 0) AND (`p`.`CategoryId` = @__search_CategoryId_0)) AND (`p`.`Title` LIKE @__search_Title_1_contains)) AND (`p`.`Content` LIKE @__search_Content_2_contains)) AND (`p`.`CreatedAt` >= @__search_CreatedAtStart_3)) AND (`p`.`CreatedAt` <= @__search_CreatedAtEnd_4)) AND ((JSON_SEARCH(`p`.`Tags`, 'one', 'tag1') IS NOT NULL) OR (JSON_SEARCH(`p`.`Tags`, 'one', 'tag2') IS NOT NULL))
+ORDER BY `p`.`CreatedAt`
+LIMIT @__p_6 OFFSET @__p_5
+    }
+  }
+]

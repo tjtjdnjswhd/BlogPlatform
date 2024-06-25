@@ -1,0 +1,22 @@
+﻿[
+  {
+    query: userid=1
+  },
+  {
+    ef: {
+      Type: ReaderExecutedAsync,
+      HasTransaction: false,
+      Parameters: {
+        @__commentSearch_UserId_0 (Int32?): 1,
+        @__p_1 (Int32): 0,
+        @__p_2 (Int32): 100
+      },
+      Text:
+SELECT `c`.`Id`, `c`.`Content`, `c`.`CreatedAt`, `c`.`PostId`, `c`.`UserId`
+FROM `Comment` AS `c`
+WHERE (`c`.`SoftDeleteLevel` = 0) AND (`c`.`UserId` = @__commentSearch_UserId_0)
+ORDER BY `c`.`CreatedAt`
+LIMIT @__p_2 OFFSET @__p_1
+    }
+  }
+]

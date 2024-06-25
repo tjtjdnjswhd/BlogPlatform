@@ -127,7 +127,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             IActionResult result = await _commentController.CreateAsync(new("Comment7", null, 2), 1, CancellationToken.None);
 
             // Assert
-            Utils.VerifyCreatedResult(result, "GetAsync", "Comment");
+            Utils.VerifyCreatedResult(result, "Get", "Comment");
             _commentDbSetMock.Verify(c => c.Add(It.IsAny<Comment>()), Times.Once);
             _setUp.DbContextMock.Verify(d => d.SaveChangesAsync(CancellationToken.None), Times.Once);
         }
@@ -139,7 +139,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             IActionResult result = await _commentController.CreateAsync(new("Comment7", 3, null), 1, CancellationToken.None);
 
             // Assert
-            Utils.VerifyCreatedResult(result, "GetAsync", "Comment");
+            Utils.VerifyCreatedResult(result, "Get", "Comment");
         }
 
         [Fact]

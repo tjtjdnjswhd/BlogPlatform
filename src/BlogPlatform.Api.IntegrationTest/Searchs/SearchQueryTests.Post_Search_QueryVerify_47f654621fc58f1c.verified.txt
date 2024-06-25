@@ -1,0 +1,22 @@
+﻿[
+  {
+    query: categoryId=1
+  },
+  {
+    ef: {
+      Type: ReaderExecutedAsync,
+      HasTransaction: false,
+      Parameters: {
+        @__p_1 (Int32): 0,
+        @__p_2 (Int32): 50,
+        @__search_CategoryId_0 (Int32?): 1
+      },
+      Text:
+SELECT `p`.`Id`, `p`.`Title`, `p`.`CategoryId`
+FROM `Post` AS `p`
+WHERE (`p`.`SoftDeleteLevel` = 0) AND (`p`.`CategoryId` = @__search_CategoryId_0)
+ORDER BY `p`.`CreatedAt`
+LIMIT @__p_2 OFFSET @__p_1
+    }
+  }
+]

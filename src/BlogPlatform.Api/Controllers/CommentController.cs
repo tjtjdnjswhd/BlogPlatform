@@ -7,6 +7,7 @@ using BlogPlatform.EFCore.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 
@@ -75,6 +76,21 @@ namespace BlogPlatform.Api.Controllers
             {
                 query = query.Where(c => c.UserId == commentSearch.UserId);
             }
+
+            query = (commentSearch.OrderBy, commentSearch.OrderDirection) switch
+            {
+                (ECommentSearchOrderBy.CreatedAt, ListSortDirection.Ascending) => query.OrderBy(c => c.CreatedAt),
+                (ECommentSearchOrderBy.CreatedAt, ListSortDirection.Descending) => query.OrderByDescending(c => c.CreatedAt),
+                (ECommentSearchOrderBy.UpdatedAt, ListSortDirection.Ascending) => query.OrderBy(c => c.LastUpdatedAt),
+                (ECommentSearchOrderBy.UpdatedAt, ListSortDirection.Descending) => query.OrderByDescending(c => c.LastUpdatedAt),
+                (ECommentSearchOrderBy.Content, ListSortDirection.Ascending) => query.OrderBy(c => c.Content),
+                (ECommentSearchOrderBy.Content, ListSortDirection.Descending) => query.OrderByDescending(c => c.Content),
+                (ECommentSearchOrderBy.Post, ListSortDirection.Ascending) => query.OrderBy(c => c.PostId),
+                (ECommentSearchOrderBy.Post, ListSortDirection.Descending) => query.OrderByDescending(c => c.PostId),
+                (ECommentSearchOrderBy.User, ListSortDirection.Ascending) => query.OrderBy(c => c.UserId),
+                (ECommentSearchOrderBy.User, ListSortDirection.Descending) => query.OrderByDescending(c => c.UserId),
+                _ => throw new InvalidEnumArgumentException(nameof(commentSearch.OrderBy), (int)commentSearch.OrderBy, typeof(ECommentSearchOrderBy))
+            };
 
             IAsyncEnumerable<CommentSearchResult> queryResult = query
                 .Skip((commentSearch.Page - 1) * 100)

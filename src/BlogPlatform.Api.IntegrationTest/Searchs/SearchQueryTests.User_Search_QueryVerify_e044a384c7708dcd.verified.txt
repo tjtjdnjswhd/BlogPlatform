@@ -1,0 +1,44 @@
+﻿[
+  {
+    query: isremoved=false&id=userid
+  },
+  {
+    ef: {
+      Type: ReaderExecutedAsync,
+      HasTransaction: false,
+      Parameters: {
+        @__userId_0 (Int32): 1
+      },
+      Text:
+SELECT `u`.`BanExpiresAt`
+FROM `User` AS `u`
+WHERE (`u`.`SoftDeleteLevel` = 0) AND (`u`.`Id` = @__userId_0)
+LIMIT 1
+    }
+  },
+  {
+    ef: {
+      Type: ReaderExecutedAsync,
+      HasTransaction: false,
+      Parameters: {
+        @__search_Id_0 (String?): userid
+      },
+      Text:
+SELECT `u`.`Id`, (
+    SELECT `b0`.`AccountId`
+    FROM `BasicAccounts` AS `b0`
+    WHERE (`b0`.`SoftDeleteLevel` = 0) AND (`u`.`Id` = `b0`.`UserId`)
+    LIMIT 1), `u`.`Name`, `u`.`Email`, `u`.`CreatedAt`, (
+    SELECT `b1`.`Id`
+    FROM `Blog` AS `b1`
+    WHERE (`b1`.`SoftDeleteLevel` = 0) AND (`u`.`Id` = `b1`.`UserId`)
+    LIMIT 1)
+FROM `User` AS `u`
+WHERE (`u`.`SoftDeleteLevel` = 0) AND EXISTS (
+    SELECT 1
+    FROM `BasicAccounts` AS `b`
+    WHERE ((`b`.`SoftDeleteLevel` = 0) AND (`u`.`Id` = `b`.`UserId`)) AND (`b`.`AccountId` = @__search_Id_0))
+LIMIT 1
+    }
+  }
+]

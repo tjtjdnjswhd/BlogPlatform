@@ -107,26 +107,14 @@ namespace BlogPlatform.Api.Controllers
                 postQuery = postQuery.FilterTag(search.Tags, search.TagFilterOption);
             }
 
-            postQuery = search.OrderBy switch
+            postQuery = (search.OrderBy, search.OrderDirection) switch
             {
-                EPostSearchOrderBy.Title => search.OrderDirection switch
-                {
-                    ListSortDirection.Ascending => postQuery.OrderBy(p => p.Title),
-                    ListSortDirection.Descending => postQuery.OrderByDescending(p => p.Title),
-                    _ => throw new InvalidEnumArgumentException(nameof(search.OrderDirection), (int)search.OrderDirection, typeof(ListSortDirection))
-                },
-                EPostSearchOrderBy.CreatedAt => search.OrderDirection switch
-                {
-                    ListSortDirection.Ascending => postQuery.OrderBy(p => p.CreatedAt),
-                    ListSortDirection.Descending => postQuery.OrderByDescending(p => p.CreatedAt),
-                    _ => throw new InvalidEnumArgumentException(nameof(search.OrderDirection), (int)search.OrderDirection, typeof(ListSortDirection))
-                },
-                EPostSearchOrderBy.UpdatedAt => search.OrderDirection switch
-                {
-                    ListSortDirection.Ascending => postQuery.OrderBy(p => p.LastUpdatedAt),
-                    ListSortDirection.Descending => postQuery.OrderByDescending(p => p.LastUpdatedAt),
-                    _ => throw new InvalidEnumArgumentException(nameof(search.OrderDirection), (int)search.OrderDirection, typeof(ListSortDirection))
-                },
+                (EPostSearchOrderBy.Title, ListSortDirection.Ascending) => postQuery.OrderBy(p => p.Title),
+                (EPostSearchOrderBy.Title, ListSortDirection.Descending) => postQuery.OrderByDescending(p => p.Title),
+                (EPostSearchOrderBy.CreatedAt, ListSortDirection.Ascending) => postQuery.OrderBy(p => p.CreatedAt),
+                (EPostSearchOrderBy.CreatedAt, ListSortDirection.Descending) => postQuery.OrderByDescending(p => p.CreatedAt),
+                (EPostSearchOrderBy.UpdatedAt, ListSortDirection.Ascending) => postQuery.OrderBy(p => p.LastUpdatedAt),
+                (EPostSearchOrderBy.UpdatedAt, ListSortDirection.Descending) => postQuery.OrderByDescending(p => p.LastUpdatedAt),
                 _ => throw new InvalidEnumArgumentException(nameof(search.OrderBy), (int)search.OrderBy, typeof(EPostSearchOrderBy))
             };
 

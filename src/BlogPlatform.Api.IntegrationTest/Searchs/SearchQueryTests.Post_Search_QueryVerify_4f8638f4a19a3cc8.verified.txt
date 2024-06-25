@@ -1,0 +1,28 @@
+﻿[
+  {
+    query: blogid=1&title=searchTitle
+  },
+  {
+    ef: {
+      Type: ReaderExecutedAsync,
+      HasTransaction: false,
+      Parameters: {
+        @__p_2 (Int32): 0,
+        @__p_3 (Int32): 50,
+        @__search_BlogId_0 (Int32?): 1,
+        @__search_Title_1_contains (String?): %searchTitle%
+      },
+      Text:
+SELECT `p`.`Id`, `p`.`Title`, `p`.`CategoryId`
+FROM `Post` AS `p`
+INNER JOIN (
+    SELECT `c`.`Id`, `c`.`BlogId`
+    FROM `Category` AS `c`
+    WHERE `c`.`SoftDeleteLevel` = 0
+) AS `t` ON `p`.`CategoryId` = `t`.`Id`
+WHERE ((`p`.`SoftDeleteLevel` = 0) AND (`t`.`BlogId` = @__search_BlogId_0)) AND (`p`.`Title` LIKE @__search_Title_1_contains)
+ORDER BY `p`.`CreatedAt`
+LIMIT @__p_3 OFFSET @__p_2
+    }
+  }
+]

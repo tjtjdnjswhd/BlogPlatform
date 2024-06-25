@@ -26,10 +26,13 @@ namespace BlogPlatform.Api.IntegrationTest
 
         public ITestOutputHelper TestOutputHelper { get; }
 
-        protected TestBase(ITestOutputHelper testOutputHelper, string dbName)
+        public ServiceLifetime DbContextLifeTime { get; }
+
+        protected TestBase(ITestOutputHelper testOutputHelper, string dbName, ServiceLifetime dbContextLifeTime = ServiceLifetime.Scoped)
         {
             WebApplicationFactory = new();
             TestOutputHelper = testOutputHelper;
+            DbContextLifeTime = dbContextLifeTime;
             InitWebApplicationFactory(dbName);
             SeedData();
         }
@@ -76,7 +79,7 @@ namespace BlogPlatform.Api.IntegrationTest
                         opt.UseMySql(connectionString, MySqlServerVersion.LatestSupportedServerVersion);
                         opt.EnableDetailedErrors();
                         opt.EnableSensitiveDataLogging();
-                    });
+                    }, DbContextLifeTime, DbContextLifeTime);
 
                     services.RemoveAll<IMailSender>();
                     services.AddScoped(_ => new Mock<IMailSender>().Object);

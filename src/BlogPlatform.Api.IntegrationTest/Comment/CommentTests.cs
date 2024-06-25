@@ -70,13 +70,6 @@ namespace BlogPlatform.Api.IntegrationTest.Comment
             Assert.Equal(comment.Content, commentReads[0].Content);
         }
 
-        [Theory]
-        [InlineData("content=content&postid=1&userid=1&page=1")]
-        public async Task GetSearch_Ok(string query)
-        {
-            throw new NotImplementedException();
-        }
-
         [Fact]
         public async Task Create_Unauthorized()
         {

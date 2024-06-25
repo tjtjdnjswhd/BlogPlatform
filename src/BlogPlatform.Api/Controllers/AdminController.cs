@@ -35,15 +35,15 @@ namespace BlogPlatform.Api.Controllers
         [HttpPost("send-email")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> SendEmails([FromForm] string subject, [FromForm] string body, [FromForm] List<int>? userIds, CancellationToken cancellationToken)
+        public async Task<IActionResult> SendEmails([FromBody] SendMailModel model, CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Sending emails to {userIds}", userIds);
+            _logger.LogInformation("Sending emails to {userIds}", model.UserIds);
 
-            List<string> addresses = userIds is null ? await _dbContext.Users.Select(u => u.Email).ToListAsync(cancellationToken) : await _dbContext.Users.Where(u => userIds.Contains(u.Id)).Select(u => u.Email).ToListAsync(cancellationToken);
+            List<string> addresses = model.UserIds is null ? await _dbContext.Users.Select(u => u.Email).ToListAsync(cancellationToken) : await _dbContext.Users.Where(u => model.UserIds.Contains(u.Id)).Select(u => u.Email).ToListAsync(cancellationToken);
 
             addresses.AsParallel().ForAll(address =>
             {
-                MailSendContext context = new("admin", "user", address, subject, body);
+                MailSendContext context = new("admin", "user", address, model.Subject, model.Body);
                 _mailSender.Send(context, cancellationToken);
             });
 
@@ -137,7 +137,7 @@ namespace BlogPlatform.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> BanUserAsync(UserBanModel model, CancellationToken cancellationToken)
+        public async Task<IActionResult> BanUserAsync([FromBody] UserBanModel model, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Banning user with email {Email}", model.Email);
 

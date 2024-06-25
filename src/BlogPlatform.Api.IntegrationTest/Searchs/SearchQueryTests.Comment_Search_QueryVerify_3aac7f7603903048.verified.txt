@@ -1,0 +1,21 @@
+﻿[
+  {
+    query: 
+  },
+  {
+    ef: {
+      Type: ReaderExecutedAsync,
+      HasTransaction: false,
+      Parameters: {
+        @__p_0 (Int32): 0,
+        @__p_1 (Int32): 100
+      },
+      Text:
+SELECT `c`.`Id`, `c`.`Content`, `c`.`CreatedAt`, `c`.`PostId`, `c`.`UserId`
+FROM `Comment` AS `c`
+WHERE `c`.`SoftDeleteLevel` = 0
+ORDER BY `c`.`CreatedAt`
+LIMIT @__p_1 OFFSET @__p_0
+    }
+  }
+]

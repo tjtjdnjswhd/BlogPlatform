@@ -1,0 +1,25 @@
+﻿[
+  {
+    query: categoryid=1&title=searchTitle&content=searchContent&createdatestart=2024-01-01&createdatend=2025-12-31&orderby=createdAt&orderdirection=ascending
+  },
+  {
+    ef: {
+      Type: ReaderExecutedAsync,
+      HasTransaction: false,
+      Parameters: {
+        @__p_4 (Int32): 0,
+        @__p_5 (Int32): 50,
+        @__search_CategoryId_0 (Int32?): 1,
+        @__search_Content_2_contains (String?): %searchContent%,
+        @__search_CreatedAtEnd_3 (DateTimeOffset?): DateTimeOffset_1,
+        @__search_Title_1_contains (String?): %searchTitle%
+      },
+      Text:
+SELECT `p`.`Id`, `p`.`Title`, `p`.`CategoryId`
+FROM `Post` AS `p`
+WHERE ((((`p`.`SoftDeleteLevel` = 0) AND (`p`.`CategoryId` = @__search_CategoryId_0)) AND (`p`.`Title` LIKE @__search_Title_1_contains)) AND (`p`.`Content` LIKE @__search_Content_2_contains)) AND (`p`.`CreatedAt` <= @__search_CreatedAtEnd_3)
+ORDER BY `p`.`CreatedAt`
+LIMIT @__p_5 OFFSET @__p_4
+    }
+  }
+]

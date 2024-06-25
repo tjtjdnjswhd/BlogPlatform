@@ -98,7 +98,7 @@ namespace BlogPlatform.Api.Tests.Controllers
         public async Task SendEmails_Ok(int[]? userIds)
         {
             // Act
-            IActionResult result = await _adminController.SendEmails("subject", "body", userIds?.ToList(), CancellationToken.None);
+            IActionResult result = await _adminController.SendEmails(new("subject", "body", userIds?.ToList()), CancellationToken.None);
 
             // Assert
             Utils.VerifyOkResult(result);
@@ -128,7 +128,7 @@ namespace BlogPlatform.Api.Tests.Controllers
         public async Task DeleteUserAsync_NotFound()
         {
             // Act
-            IActionResult result = await _adminController.DeleteUserAsync("notExistUser", CancellationToken.None);
+            IActionResult result = await _adminController.DeleteUserAsync(new("notExistUser"), CancellationToken.None);
 
             // Assert
             Utils.VerifyNotFoundResult(result);
@@ -144,7 +144,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             _setUp.SoftDeleteServiceMock.Setup(s => s.SetSoftDeleteAsync(It.IsAny<User>(), It.IsAny<bool>())).ReturnsAsync(statusGenericHandler);
 
             // Act
-            IActionResult result = await _adminController.DeleteUserAsync("user@user.com", CancellationToken.None);
+            IActionResult result = await _adminController.DeleteUserAsync(new("user@user.com"), CancellationToken.None);
 
             // Assert
             Utils.VerifyInternalServerError(result);
@@ -155,7 +155,7 @@ namespace BlogPlatform.Api.Tests.Controllers
         public async Task DeleteUserAsync_NoContent()
         {
             // Act
-            IActionResult result = await _adminController.DeleteUserAsync("user@user.com", CancellationToken.None);
+            IActionResult result = await _adminController.DeleteUserAsync(new("user@user.com"), CancellationToken.None);
 
             // Assert
             Utils.VerifyNoContentResult(result);
@@ -166,7 +166,7 @@ namespace BlogPlatform.Api.Tests.Controllers
         public async Task BanUserAsync_NotFound()
         {
             // Act
-            IActionResult result = await _adminController.BanUserAsync("notExistUser", TimeSpan.FromDays(1), CancellationToken.None);
+            IActionResult result = await _adminController.BanUserAsync(new("notExistUser", TimeSpan.FromDays(1)), CancellationToken.None);
 
             // Assert
             Utils.VerifyNotFoundResult(result);
@@ -177,7 +177,7 @@ namespace BlogPlatform.Api.Tests.Controllers
         public async Task BanUserAsync_Ok()
         {
             // Act
-            IActionResult result = await _adminController.BanUserAsync("user@user.com", TimeSpan.FromDays(1), CancellationToken.None);
+            IActionResult result = await _adminController.BanUserAsync(new("user@user.com", TimeSpan.FromDays(1)), CancellationToken.None);
 
             // Assert
             Utils.VerifyOkResult(result);
@@ -188,7 +188,7 @@ namespace BlogPlatform.Api.Tests.Controllers
         public async Task UnbanUserAsync_NotFound()
         {
             // Act
-            IActionResult result = await _adminController.UnbanUserAsync("notExistUser", CancellationToken.None);
+            IActionResult result = await _adminController.UnbanUserAsync(new("notExistUser"), CancellationToken.None);
 
             // Assert
             Utils.VerifyNotFoundResult(result);
@@ -199,7 +199,7 @@ namespace BlogPlatform.Api.Tests.Controllers
         public async Task UnbanUserAsync_Ok()
         {
             // Act
-            IActionResult result = await _adminController.UnbanUserAsync("user@user.com", CancellationToken.None);
+            IActionResult result = await _adminController.UnbanUserAsync(new("user@user.com"), CancellationToken.None);
 
             // Assert
             Utils.VerifyOkResult(result);

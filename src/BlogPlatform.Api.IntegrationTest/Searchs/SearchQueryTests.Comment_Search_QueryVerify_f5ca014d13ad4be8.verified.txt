@@ -1,0 +1,24 @@
+﻿[
+  {
+    query: content=searchContent&postid=1&userid=1&orderby=UpdatedAt&orderdirection=Ascending
+  },
+  {
+    ef: {
+      Type: ReaderExecutedAsync,
+      HasTransaction: false,
+      Parameters: {
+        @__commentSearch_Content_0_contains (String?): %searchContent%,
+        @__commentSearch_PostId_1 (Int32?): 1,
+        @__commentSearch_UserId_2 (Int32?): 1,
+        @__p_3 (Int32): 0,
+        @__p_4 (Int32): 100
+      },
+      Text:
+SELECT `c`.`Id`, `c`.`Content`, `c`.`CreatedAt`, `c`.`PostId`, `c`.`UserId`
+FROM `Comment` AS `c`
+WHERE (((`c`.`SoftDeleteLevel` = 0) AND (`c`.`Content` LIKE @__commentSearch_Content_0_contains)) AND (`c`.`PostId` = @__commentSearch_PostId_1)) AND (`c`.`UserId` = @__commentSearch_UserId_2)
+ORDER BY `c`.`LastUpdatedAt`
+LIMIT @__p_4 OFFSET @__p_3
+    }
+  }
+]
