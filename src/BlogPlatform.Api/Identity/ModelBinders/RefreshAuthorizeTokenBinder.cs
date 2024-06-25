@@ -15,8 +15,8 @@ namespace BlogPlatform.Api.Identity.ModelBinders
             if (authorizeToken is null)
             {
                 authorizeToken = jwtService.GetCookieToken(bindingContext.HttpContext.Request);
-                bindingContext.Result = authorizeToken is null ? ModelBindingResult.Failed() : ModelBindingResult.Success(authorizeToken);
             }
+            bindingContext.Result = authorizeToken is null ? ModelBindingResult.Failed() : ModelBindingResult.Success(authorizeToken);
         }
     }
 }

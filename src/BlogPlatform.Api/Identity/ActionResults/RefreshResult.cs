@@ -28,6 +28,7 @@ namespace BlogPlatform.Api.Identity.ActionResults
 
             ILogger<RefreshResult> logger = serviceScope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger<RefreshResult>();
             IJwtService jwtService = serviceScope.ServiceProvider.GetRequiredService<IJwtService>();
+            context.HttpContext.Response.StatusCode = StatusCodes.Status200OK;
 
             AuthorizeToken? newToken = await jwtService.RefreshAsync(_authorizeToken, cancellationToken);
             if (newToken is null)
@@ -49,7 +50,6 @@ namespace BlogPlatform.Api.Identity.ActionResults
                 logger.LogDebug("Writing token to response: {token}", newToken);
                 await jwtService.SetBodyTokenAsync(context.HttpContext.Response, newToken, cancellationToken);
             }
-            context.HttpContext.Response.StatusCode = StatusCodes.Status200OK;
         }
     }
 }

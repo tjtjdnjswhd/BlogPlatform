@@ -20,6 +20,7 @@ namespace BlogPlatform.Api.Services
     public class JwtService : IJwtService
     {
         private static readonly JwtSecurityTokenHandler _jwtSecurityTokenHandler = new();
+        private static readonly JsonSerializerOptions _bodyTokenSerializeOption = new(JsonSerializerDefaults.Web);
 
         private readonly BlogPlatformDbContext _blogPlatformDbContext;
         private readonly JwtOptions _jwtOptions;
@@ -174,7 +175,7 @@ namespace BlogPlatform.Api.Services
 
             try
             {
-                AuthorizeToken? authorizeToken = JsonSerializer.Deserialize<AuthorizeToken>(bodyToken);
+                AuthorizeToken? authorizeToken = JsonSerializer.Deserialize<AuthorizeToken>(bodyToken, _bodyTokenSerializeOption);
                 return authorizeToken;
             }
             catch (Exception e)
