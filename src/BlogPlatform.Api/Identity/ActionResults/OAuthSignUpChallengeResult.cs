@@ -1,4 +1,4 @@
-﻿using BlogPlatform.Api.Models;
+﻿using BlogPlatform.Api.Identity.Models;
 
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;

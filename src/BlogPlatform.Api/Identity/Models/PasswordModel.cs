@@ -2,7 +2,7 @@
 
 using System.ComponentModel.DataAnnotations;
 
-namespace BlogPlatform.Api.Models
+namespace BlogPlatform.Api.Identity.Models
 {
     public record PasswordModel([Required, AccountPasswordValidate] string Password);
 }
