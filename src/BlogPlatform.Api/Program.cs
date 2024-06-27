@@ -66,6 +66,8 @@ app.UseAuthentication();
 
 app.MapControllers();
 
+app.SeedOAuthProviderData();
+
 app.Run();
 
 public partial class Program { }

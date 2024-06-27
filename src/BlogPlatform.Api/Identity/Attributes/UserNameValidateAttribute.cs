@@ -16,6 +16,11 @@ namespace BlogPlatform.Api.Identity.Attributes
     {
         protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
         {
+            if (value is null)
+            {
+                return new ValidationResult("이름이 입력되지 않았습니다.", [validationContext.MemberName]);
+            }
+
             if (value is not string userName)
             {
                 Debug.Assert(false);

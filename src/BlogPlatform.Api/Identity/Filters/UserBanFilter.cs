@@ -1,6 +1,7 @@
 ﻿using BlogPlatform.Api.Models;
 using BlogPlatform.EFCore;
 
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.EntityFrameworkCore;
@@ -19,19 +20,24 @@ namespace BlogPlatform.Api.Identity.Filters
     {
         private readonly BlogPlatformDbContext _blogPlatformDbContext;
         private readonly TimeProvider _timeProvider;
+        private readonly IAuthenticationSchemeProvider _schemeProvider;
         private readonly ILogger<UserBanFilter> _logger;
 
-        public UserBanFilter(BlogPlatformDbContext blogPlatformDbContext, TimeProvider timeProvider, ILogger<UserBanFilter> logger)
+        public UserBanFilter(BlogPlatformDbContext blogPlatformDbContext, TimeProvider timeProvider, IAuthenticationSchemeProvider schemeProvider, ILogger<UserBanFilter> logger)
         {
             _blogPlatformDbContext = blogPlatformDbContext;
             _timeProvider = timeProvider;
+            _schemeProvider = schemeProvider;
             _logger = logger;
         }
 
         public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
         {
+            AuthenticationScheme? authenticateScheme = await _schemeProvider.GetDefaultAuthenticateSchemeAsync();
+            Debug.Assert(authenticateScheme is not null);
+
             var user = context.HttpContext.User;
-            if ((!user.Identity?.IsAuthenticated) ?? true)
+            if (user.Identity?.AuthenticationType != authenticateScheme.Name)
             {
                 return;
             }

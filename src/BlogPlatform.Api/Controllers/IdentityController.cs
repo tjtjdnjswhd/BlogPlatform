@@ -6,12 +6,15 @@ using BlogPlatform.Api.Identity.ModelBinders;
 using BlogPlatform.Api.Identity.Models;
 using BlogPlatform.Api.Identity.Services.Interfaces;
 using BlogPlatform.Api.Models;
+using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Models;
 
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 
 namespace BlogPlatform.Api.Controllers
@@ -20,19 +23,35 @@ namespace BlogPlatform.Api.Controllers
     [ApiController]
     public class IdentityController : ControllerBase
     {
+        private readonly BlogPlatformDbContext _blogPlatformDbContext;
         private readonly IIdentityService _identityService;
         private readonly IUserEmailService _userEmailService;
         private readonly IEmailVerifyService _emailVerifyService;
         private readonly TimeProvider _timeProvider;
         private readonly ILogger<IdentityController> _logger;
 
-        public IdentityController(IIdentityService identityService, IUserEmailService userEmailService, IEmailVerifyService emailVerifyService, TimeProvider timeProvider, ILogger<IdentityController> logger)
+        public IdentityController(BlogPlatformDbContext blogPlatformDbContext, IIdentityService identityService, IUserEmailService userEmailService, IEmailVerifyService emailVerifyService, TimeProvider timeProvider, ILogger<IdentityController> logger)
         {
+            _blogPlatformDbContext = blogPlatformDbContext;
             _identityService = identityService;
             _userEmailService = userEmailService;
             _emailVerifyService = emailVerifyService;
             _timeProvider = timeProvider;
             _logger = logger;
+        }
+
+        [UserAuthorize]
+        [HttpGet]
+        public async Task<UserRead> GetUserInfo([UserIdBind] int userId, CancellationToken cancellationToken)
+        {
+            UserRead? userRead = await _blogPlatformDbContext.Users
+                .Where(u => u.Id == userId)
+                .Select(u => new UserRead(u.Id, u.BasicAccounts.First().AccountId, u.Name, u.Email, u.CreatedAt, u.Blog.First().Id))
+                .FirstOrDefaultAsync(cancellationToken);
+            Debug.Assert(userRead is not null); // UserAuthorize 필터를 통과했으므로 null이 아니어야 함
+
+            userRead.BlogUri = userRead.BlogId is not null ? Url.ActionLink("Get", "Blog", new { id = userRead.BlogId }) : null;
+            return userRead;
         }
 
         [HttpPost("login/basic")]
@@ -41,10 +60,10 @@ namespace BlogPlatform.Api.Controllers
         [ProducesResponseType(typeof(Error), StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> BasicLoginAsync([FromBody] BasicLoginInfo loginInfo, CancellationToken cancellationToken, [TokenSetCookie] bool setCookie = false)
+        public async Task<IActionResult> BasicLoginAsync([FromBody] BasicLoginInfo loginInfo, CancellationToken cancellationToken)
         {
             (ELoginResult loginResult, User? user) = await _identityService.LoginAsync(loginInfo, cancellationToken);
-            return HandleLogin(loginResult, user, setCookie);
+            return HandleLogin(loginResult, user, loginInfo.ReturnUrl);
         }
 
         [HttpPost("signup/basic")]
@@ -52,11 +71,11 @@ namespace BlogPlatform.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status409Conflict)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> BasicSignUpAsync([FromBody] BasicSignUpInfo signUpInfo, CancellationToken cancellationToken, [TokenSetCookie] bool setCookie = false)
+        public async Task<IActionResult> BasicSignUpAsync([FromBody] BasicSignUpInfo signUpInfo, CancellationToken cancellationToken)
         {
             (ESignUpResult signUpResult, User? user) = await _identityService.SignUpAsync(signUpInfo, cancellationToken);
-            Debug.Assert(signUpResult != ESignUpResult.OAuthAlreadyExists); // OAuth 계정이 아닌 경우 OAuthAlreadyExists가 나올 수 없음
-            return HandleSignUp(signUpResult, user, setCookie);
+            Debug.Assert(signUpResult is not (ESignUpResult.ProviderNotFound or ESignUpResult.OAuthAlreadyExists)); // OAuth 계정이 아닌 경우 OAuthAlreadyExists가 나올 수 없음
+            return HandleSignUp(signUpResult, user, signUpInfo.ReturnUrl);
         }
 
         [HttpPost("signup/basic/email")]
@@ -87,18 +106,21 @@ namespace BlogPlatform.Api.Controllers
         [ProducesResponseType(typeof(Error), StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
         [ProducesDefaultResponseType]
-        public IActionResult OAuthLogin([FromBody] Models.OAuthProvider provider, [TokenSetCookie] bool setCookie = false)
+        public IActionResult OAuthLogin([FromForm, Required(AllowEmptyStrings = false)] string provider, [FromQuery] string? returnUrl)
         {
+            string? redirectUri = Url.Action("OAuthLoginCallback", "Identity");
+            Debug.Assert(redirectUri is not null);
+
             AuthenticationProperties authenticationProperties = new()
             {
                 ExpiresUtc = _timeProvider.GetUtcNow().AddMinutes(10),
                 IsPersistent = false,
-                RedirectUri = $"{Url.Action(nameof(OAuthLoginCallbackAsync), "Identity")}?setcookie={setCookie}",
+                RedirectUri = $"{redirectUri}?{(returnUrl is null ? string.Empty : $"&returnUrl={returnUrl}")}",
                 IssuedUtc = _timeProvider.GetUtcNow(),
             };
 
-            _logger.LogDebug("Login with OAuth. provider: {provider} SetCookie: {setCookie}", provider.Provider, setCookie);
-            return Challenge(authenticationProperties, provider.Provider.ToLower());
+            _logger.LogDebug("Login with OAuth. provider: {provider}", provider);
+            return Challenge(authenticationProperties, provider);
         }
 
         [HttpGet("login/oauth")]
@@ -107,24 +129,28 @@ namespace BlogPlatform.Api.Controllers
         [ProducesResponseType(typeof(Error), StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> OAuthLoginCallbackAsync([FromSpecial] OAuthLoginInfo loginInfo, [FromQuery] bool setCookie, CancellationToken cancellationToken)
+        public async Task<IActionResult> OAuthLoginCallbackAsync([FromSpecial] OAuthLoginInfo loginInfo, [FromQuery] string? returnUrl, CancellationToken cancellationToken)
         {
             (ELoginResult loginResult, User? user) = await _identityService.LoginAsync(loginInfo, cancellationToken);
             Debug.Assert(loginResult != ELoginResult.WrongPassword); // OAuth 로그인 시 비밀번호가 틀릴 수 없음
-            return HandleLogin(loginResult, user, setCookie);
+            return HandleLogin(loginResult, user, returnUrl);
         }
 
         [HttpPost("signup/oauth")]
-        public IActionResult OAuthSignUp([FromBody] OAuthSignUpModel signUpModel, [TokenSetCookie] bool setCookie = false)
+        public IActionResult OAuthSignUp([FromForm, Required(AllowEmptyStrings = false)] string provider, [FromForm, UserNameValidate] string name, [FromQuery] string? returnUrl)
         {
+            string? redirectUri = Url.Action("OAuthSignUpCallback", "Identity");
+            Debug.Assert(redirectUri is not null);
+
             AuthenticationProperties authenticationProperties = new()
             {
                 ExpiresUtc = _timeProvider.GetUtcNow().AddMinutes(10),
                 IsPersistent = false,
-                RedirectUri = $"{Url.Action(nameof(OAuthSignUpCallbackAsync), "Identity")}?setcookie={setCookie}",
+                RedirectUri = $"{redirectUri}?{(returnUrl is null ? string.Empty : $"&returnUrl={returnUrl}")}",
                 IssuedUtc = _timeProvider.GetUtcNow(),
             };
 
+            OAuthSignUpModel signUpModel = new(provider, name);
             return new OAuthSignUpChallengeResult(authenticationProperties, signUpModel);
         }
 
@@ -134,41 +160,45 @@ namespace BlogPlatform.Api.Controllers
         [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status409Conflict)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> OAuthSignUpCallbackAsync([FromSpecial] OAuthSignUpInfo signUpInfo, [FromQuery] bool setCookie, CancellationToken cancellationToken)
+        public async Task<IActionResult> OAuthSignUpCallbackAsync([FromSpecial] OAuthSignUpInfo signUpInfo, [FromQuery] string? returnUrl, CancellationToken cancellationToken)
         {
             (ESignUpResult signUpResult, User? user) = await _identityService.SignUpAsync(signUpInfo, cancellationToken);
-            return HandleSignUp(signUpResult, user, setCookie);
+            return HandleSignUp(signUpResult, user, returnUrl);
         }
 
         [HttpGet("oauth")]
         [UserAuthorize]
-        public IActionResult AddOAuth([FromQuery] string provider)
+        public IActionResult AddOAuth([FromQuery] string provider, [FromQuery] string? returnUrl)
         {
+            string? redirectUri = Url.Action("OAuthSignUpCallback", "Identity");
+            Debug.Assert(redirectUri is not null);
+
             AuthenticationProperties authenticationProperties = new()
             {
                 ExpiresUtc = _timeProvider.GetUtcNow().AddMinutes(10),
                 IsPersistent = false,
-                RedirectUri = Url.Action(nameof(AddOAuthCallbackAsync), "Identity"),
+                RedirectUri = $"{redirectUri}{(returnUrl is null ? string.Empty : $"?returnUrl={returnUrl}")}",
                 IssuedUtc = _timeProvider.GetUtcNow(),
             };
 
-            return Challenge(authenticationProperties, provider.ToLower());
+            return Challenge(authenticationProperties, provider);
         }
 
         [HttpPost("oauth")]
         [OAuthAuthorize]
         [UserAuthorize]
         [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status302Found)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status409Conflict)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> AddOAuthCallbackAsync([FromSpecial] OAuthLoginInfo info, CancellationToken cancellationToken)
+        public async Task<IActionResult> AddOAuthCallbackAsync([FromSpecial] OAuthLoginInfo info, [FromQuery] string? returnUrl, CancellationToken cancellationToken)
         {
             EAddOAuthResult addOAuthResult = await _identityService.AddOAuthAsync(HttpContext, info, cancellationToken);
             switch (addOAuthResult)
             {
                 case EAddOAuthResult.Success:
-                    return Ok();
+                    return returnUrl is null ? Ok() : Redirect(returnUrl);
 
                 case EAddOAuthResult.UserNotFound:
                     return new AuthenticatedUserDataNotFoundResult();
@@ -346,52 +376,63 @@ namespace BlogPlatform.Api.Controllers
             return isExist ? Ok() : new AuthenticatedUserDataNotFoundResult();
         }
 
-        private IActionResult HandleLogin(ELoginResult loginResult, User? user, bool setCookie)
+        private IActionResult HandleLogin(ELoginResult loginResult, User? user, string? returnUrl)
         {
-            switch (loginResult)
+            Debug.Assert(loginResult is ELoginResult.Success ^ user is null);
+            string message = loginResult switch
             {
-                case ELoginResult.Success:
-                    Debug.Assert(user is not null); // 로그인 성공 시 user는 null이 아니어야 함
-                    return new LoginResult(user, setCookie);
+                ELoginResult.Success => "로그인 성공",
+                ELoginResult.NotFound => "존재하지 않는 계정입니다",
+                ELoginResult.WrongPassword => "틀린 비밀번호입니다",
+                _ => throw new InvalidEnumArgumentException(nameof(loginResult), (int)loginResult, typeof(ELoginResult))
+            };
 
-                case ELoginResult.NotFound:
-                    return NotFound();
-
-                case ELoginResult.WrongPassword:
-                    return Unauthorized();
-
-                default:
-                    Debug.Assert(false);
-                    throw new InvalidEnumArgumentException(nameof(loginResult), (int)loginResult, typeof(ELoginResult));
+            if (returnUrl is null)
+            {
+                return loginResult switch
+                {
+                    ELoginResult.Success => new LoginSuccessActionResult(user!),
+                    ELoginResult.NotFound => NotFound(new Error(message)),
+                    ELoginResult.WrongPassword => Unauthorized(new Error(message)),
+                    _ => throw new InvalidEnumArgumentException(nameof(loginResult), (int)loginResult, typeof(ELoginResult))
+                };
+            }
+            else
+            {
+                return new LoginRedirectActionResult(user, message, returnUrl);
             }
         }
 
-        private IActionResult HandleSignUp(ESignUpResult signUpResult, User? user, bool setCookie)
+        private IActionResult HandleSignUp(ESignUpResult signUpResult, User? user, string? returnUrl)
         {
-            switch (signUpResult)
+            Debug.Assert(signUpResult is ESignUpResult.Success ^ user is null);
+            string message = signUpResult switch
             {
-                case ESignUpResult.Success:
-                    Debug.Assert(user is not null); // 가입 성공 시 user는 null이 아니어야 함
-                    return new LoginResult(user, setCookie);
+                ESignUpResult.Success => "회원가입 성공",
+                ESignUpResult.UserIdAlreadyExists => "중복된 Id입니다",
+                ESignUpResult.NameAlreadyExists => "중복된 이름입니다",
+                ESignUpResult.EmailAlreadyExists => "중복된 이메일입니다",
+                ESignUpResult.OAuthAlreadyExists => "이미 존재하는 계정입니다",
+                ESignUpResult.ProviderNotFound => "잘못된 OAuth 제공자입니다",
+                _ => throw new InvalidEnumArgumentException(nameof(signUpResult), (int)signUpResult, typeof(ESignUpResult))
+            };
 
-                case ESignUpResult.UserIdAlreadyExists:
-                    return Conflict(new Error("중복된 Id입니다"));
-
-                case ESignUpResult.NameAlreadyExists:
-                    return Conflict(new Error("중복된 이름입니다"));
-
-                case ESignUpResult.EmailAlreadyExists:
-                    return Conflict(new Error("중복된 이메일입니다"));
-
-                case ESignUpResult.OAuthAlreadyExists:
-                    return Conflict(new Error("이미 존재하는 계정입니다"));
-
-                case ESignUpResult.ProviderNotFound:
-                    return NotFound(new Error("잘못된 OAuth 제공자입니다"));
-
-                default:
-                    Debug.Assert(false);
-                    throw new InvalidEnumArgumentException(nameof(signUpResult), (int)signUpResult, typeof(ESignUpResult));
+            if (returnUrl is null)
+            {
+                return signUpResult switch
+                {
+                    ESignUpResult.Success => new LoginSuccessActionResult(user!),
+                    ESignUpResult.UserIdAlreadyExists => Conflict(new Error(message)),
+                    ESignUpResult.NameAlreadyExists => Conflict(new Error(message)),
+                    ESignUpResult.EmailAlreadyExists => Conflict(new Error(message)),
+                    ESignUpResult.ProviderNotFound => Conflict(new Error(message)),
+                    ESignUpResult.OAuthAlreadyExists => Conflict(new Error(message)),
+                    _ => throw new InvalidEnumArgumentException(nameof(signUpResult), (int)signUpResult, typeof(ESignUpResult))
+                };
+            }
+            else
+            {
+                return new LoginRedirectActionResult(user, message, returnUrl);
             }
         }
     }

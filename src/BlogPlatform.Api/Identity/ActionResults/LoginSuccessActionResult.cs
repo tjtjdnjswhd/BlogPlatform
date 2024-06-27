@@ -4,25 +4,19 @@ using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Models;
 
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Infrastructure;
 
 namespace BlogPlatform.Api.Identity.ActionResults
 {
     /// <summary>
     /// 로그인 성공 시 반환하는 <see cref="IActionResult"/>
     /// </summary>
-    public class LoginResult : IActionResult, IStatusCodeActionResult
+    public class LoginSuccessActionResult : IActionResult
     {
         public User User { get; }
 
-        public bool SetCookie { get; }
-
-        public int? StatusCode => StatusCodes.Status200OK;
-
-        public LoginResult(User user, bool setCookie)
+        public LoginSuccessActionResult(User user)
         {
             User = user;
-            SetCookie = setCookie;
         }
 
         public async Task ExecuteResultAsync(ActionContext context)
@@ -30,26 +24,18 @@ namespace BlogPlatform.Api.Identity.ActionResults
             using var serviceScope = context.HttpContext.RequestServices.CreateScope();
             CancellationToken cancellationToken = context.HttpContext.RequestAborted;
 
-            ILogger<LoginResult> logger = serviceScope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger<LoginResult>();
+            ILogger<LoginSuccessActionResult> logger = serviceScope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger<LoginSuccessActionResult>();
+
             logger.LogInformation("Logging in user {userId}", User.Id);
 
             BlogPlatformDbContext blogPlatformDbContext = serviceScope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
             IJwtService jwtService = serviceScope.ServiceProvider.GetRequiredService<IJwtService>();
 
+            context.HttpContext.Response.StatusCode = StatusCodes.Status200OK;
             AuthorizeToken token = await jwtService.GenerateTokenAsync(User, cancellationToken);
             await jwtService.SetCacheTokenAsync(token, cancellationToken);
-
-            context.HttpContext.Response.StatusCode = StatusCode!.Value;
-            if (SetCookie)
-            {
-                logger.LogDebug("Setting cookie token: {token}", token);
-                jwtService.SetCookieToken(context.HttpContext.Response, token);
-            }
-            else
-            {
-                logger.LogDebug("Writing token to response: {token}", token);
-                await jwtService.SetBodyTokenAsync(context.HttpContext.Response, token, cancellationToken);
-            }
+            logger.LogDebug("Writing token to response body: {token}", token);
+            await jwtService.SetBodyTokenAsync(context.HttpContext.Response, token, cancellationToken);
         }
     }
 }

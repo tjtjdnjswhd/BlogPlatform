@@ -9,5 +9,6 @@ namespace BlogPlatform.Api.Identity.Models
     /// </summary>
     /// <param name="Id"></param>
     /// <param name="Password"></param>
-    public record BasicLoginInfo([Required(AllowEmptyStrings = false), AccountIdValidate] string Id, [Required(AllowEmptyStrings = false), AccountPasswordValidate] string Password);
+    /// 
+    public record BasicLoginInfo([Required(AllowEmptyStrings = false), AccountIdValidate] string Id, [Required(AllowEmptyStrings = false), AccountPasswordValidate] string Password, string? ReturnUrl);
 }

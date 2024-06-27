@@ -11,5 +11,6 @@ namespace BlogPlatform.Api.Identity.Models
     /// <param name="Password"></param>
     /// <param name="Name"></param>
     /// <param name="Email"></param>
-    public record BasicSignUpInfo([Required(AllowEmptyStrings = false), AccountIdValidate] string Id, [Required(AllowEmptyStrings = false), AccountPasswordValidate] string Password, [Required(AllowEmptyStrings = false), UserNameValidate] string Name, [Required(AllowEmptyStrings = false), EmailAddress] string Email);
+    /// 
+    public record BasicSignUpInfo([Required(AllowEmptyStrings = false), AccountIdValidate] string Id, [Required(AllowEmptyStrings = false), AccountPasswordValidate] string Password, [Required(AllowEmptyStrings = false), UserNameValidate] string Name, [Required(AllowEmptyStrings = false), EmailAddress] string Email, string? ReturnUrl);
 }
