@@ -36,7 +36,7 @@ namespace BlogPlatform.Api.Tests.Identity
             // Arrange
             IdentityService identityService = CreateIdentityService();
             BasicAccount basicAccount = _setUp.BasicOnlyUser.BasicAccounts.First();
-            BasicLoginInfo basicLoginInfo = new(basicAccount.AccountId, SetUp.SuccessPassword);
+            BasicLoginInfo basicLoginInfo = new(basicAccount.AccountId, SetUp.SuccessPassword, null);
 
             // Act
             (ELoginResult loginResult, User? user) = await identityService.LoginAsync(basicLoginInfo);
@@ -52,7 +52,7 @@ namespace BlogPlatform.Api.Tests.Identity
         {
             // Arrange
             IdentityService identityService = CreateIdentityService();
-            BasicLoginInfo basicLoginInfo = new("NotExistId", SetUp.SuccessPassword);
+            BasicLoginInfo basicLoginInfo = new("NotExistId", SetUp.SuccessPassword, null);
 
             // Act
             (ELoginResult loginResult, User? user) = await identityService.LoginAsync(basicLoginInfo);
@@ -68,7 +68,7 @@ namespace BlogPlatform.Api.Tests.Identity
             // Arrange
             IdentityService identityService = CreateIdentityService();
             BasicAccount basicAccount = _setUp.BasicOnlyUser.BasicAccounts.First();
-            BasicLoginInfo basicLoginInfo = new(basicAccount.AccountId, "WrongPassword");
+            BasicLoginInfo basicLoginInfo = new(basicAccount.AccountId, "WrongPassword", null);
 
             // Act
             (ELoginResult loginResult, User? user) = await identityService.LoginAsync(basicLoginInfo);
@@ -122,7 +122,7 @@ namespace BlogPlatform.Api.Tests.Identity
         {
             // Arrange
             IdentityService identityService = CreateIdentityService();
-            BasicSignUpInfo basicSignUpInfo = new("NewAccountId", SetUp.SuccessPassword, "newName", "newEmail@email.com");
+            BasicSignUpInfo basicSignUpInfo = new("NewAccountId", SetUp.SuccessPassword, "newName", "newEmail@email.com", null);
             int userCount = _setUp.DbContext.Users.Count();
 
             // Act
@@ -151,7 +151,7 @@ namespace BlogPlatform.Api.Tests.Identity
             name ??= basicOnlyUser.Name;
 
             IdentityService identityService = CreateIdentityService();
-            BasicSignUpInfo basicSignUpInfo = new(accountId, SetUp.SuccessPassword, name, email);
+            BasicSignUpInfo basicSignUpInfo = new(accountId, SetUp.SuccessPassword, name, email, null);
             int userCount = _setUp.DbContext.Users.Count();
 
             // Act
@@ -169,7 +169,7 @@ namespace BlogPlatform.Api.Tests.Identity
             // Arrange
             IdentityService identityService = CreateIdentityService();
 
-            OAuthSignUpInfo oAuthSignUpInfo = new(_setUp.OAuthProvider.Name, "newNameIdentifier", "oauthEmail", "oauthName");
+            OAuthSignUpInfo oAuthSignUpInfo = new("oauthEmail", "oauthName", _setUp.OAuthProvider.Name, "newNameIdentifier");
             int userCount = _setUp.DbContext.Users.Count();
 
             // Act
@@ -201,7 +201,7 @@ namespace BlogPlatform.Api.Tests.Identity
             email ??= oauthOnlyUser.Email;
 
             IdentityService identityService = CreateIdentityService();
-            OAuthSignUpInfo oAuthSignUpInfo = new(provider, nameIdentifier, name, email);
+            OAuthSignUpInfo oAuthSignUpInfo = new(name, email, provider, nameIdentifier);
             int userCount = _setUp.DbContext.Users.Count();
 
             // Act
@@ -586,7 +586,7 @@ namespace BlogPlatform.Api.Tests.Identity
 
             // Assert
             Assert.True(result);
-            Assert.True(user.SoftDeleteLevel == 1);
+            Assert.Equal(1, user.SoftDeleteLevel);
             Assert.True(user.SoftDeletedAt != EntityBase.DefaultSoftDeletedAt);
             Assert.True(user.BasicAccounts.All(b => b.SoftDeleteLevel > 1));
         }
@@ -607,7 +607,7 @@ namespace BlogPlatform.Api.Tests.Identity
 
             // Assert
             Assert.False(result);
-            Assert.True(user.SoftDeleteLevel == 0);
+            Assert.Equal(0, user.SoftDeleteLevel);
             Assert.True(user.IsSoftDeletedAtDefault());
             Assert.True(user.BasicAccounts.All(b => b.SoftDeleteLevel == 0));
         }
@@ -631,7 +631,7 @@ namespace BlogPlatform.Api.Tests.Identity
 
             // Assert
             Assert.Equal(ECancelWithDrawResult.Success, result);
-            Assert.True(user.SoftDeleteLevel == 0);
+            Assert.Equal(0, user.SoftDeleteLevel);
             Assert.True(user.SoftDeletedAt == EntityBase.DefaultSoftDeletedAt);
             Assert.True(user.BasicAccounts.All(b => b.SoftDeleteLevel == 0));
         }
@@ -657,7 +657,7 @@ namespace BlogPlatform.Api.Tests.Identity
 
             // Assert
             Assert.Equal(ECancelWithDrawResult.UserNotFound, result);
-            Assert.True(user.SoftDeleteLevel == 1);
+            Assert.Equal(1, user.SoftDeleteLevel);
             Assert.True(user.SoftDeletedAt != EntityBase.DefaultSoftDeletedAt);
             Assert.True(user.BasicAccounts.All(b => b.SoftDeleteLevel == 2));
         }
@@ -681,7 +681,7 @@ namespace BlogPlatform.Api.Tests.Identity
 
             // Assert
             Assert.Equal(ECancelWithDrawResult.Expired, result);
-            Assert.True(user.SoftDeleteLevel == 1);
+            Assert.Equal(1, user.SoftDeleteLevel);
             Assert.True(user.SoftDeletedAt != EntityBase.DefaultSoftDeletedAt);
             Assert.True(user.BasicAccounts.All(b => b.SoftDeleteLevel == 2));
         }
@@ -700,7 +700,7 @@ namespace BlogPlatform.Api.Tests.Identity
 
             // Assert
             Assert.Equal(ECancelWithDrawResult.WithDrawNotRequested, result);
-            Assert.True(user.SoftDeleteLevel == 0);
+            Assert.Equal(0, user.SoftDeleteLevel);
             Assert.True(user.IsSoftDeletedAtDefault());
             Assert.True(user.BasicAccounts.All(b => b.SoftDeleteLevel == 0));
         }

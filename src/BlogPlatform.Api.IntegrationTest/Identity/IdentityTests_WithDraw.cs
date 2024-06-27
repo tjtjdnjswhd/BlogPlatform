@@ -76,7 +76,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             await Helper.SetVerifiedEmailAsync(WebApplicationFactory, email);
 
             // Act
-            HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/basic", new BasicSignUpInfo(basicAccount.AccountId, "user55pw", "user55", email));
+            HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/basic", new BasicSignUpInfo(basicAccount.AccountId, "user55pw", "user55", email, null));
 
             // Assert
             Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
@@ -104,7 +104,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             await Helper.SetVerifiedEmailAsync(WebApplicationFactory, email);
 
             // Act
-            HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/basic", new BasicSignUpInfo("user55Id", "user55pw", "user55", email));
+            HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/basic", new BasicSignUpInfo("user55Id", "user55pw", "user55", email, null));
 
             // Assert
             Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
@@ -137,7 +137,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             await Helper.SetVerifiedEmailAsync(WebApplicationFactory, email);
 
             // Act
-            HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/basic", new BasicSignUpInfo(basicAccount.AccountId, "user55pw", "user55", email));
+            HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/basic", new BasicSignUpInfo(basicAccount.AccountId, "user55pw", "user55", email, null));
 
             // Assert
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);

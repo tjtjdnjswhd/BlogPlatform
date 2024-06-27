@@ -3,11 +3,13 @@ using BlogPlatform.Api.Identity.ActionResults;
 using BlogPlatform.Api.Identity.Models;
 using BlogPlatform.Api.Identity.Services.Interfaces;
 using BlogPlatform.Api.Models;
+using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Models;
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
+using Microsoft.EntityFrameworkCore;
 
 using Moq;
 
@@ -36,14 +38,13 @@ namespace BlogPlatform.Api.Tests.Controllers
 
             IdentityController controller = CreateMockController(identityServiceMock);
 
-            BasicLoginInfo loginInfo = new("TestId", "TestPassword");
+            BasicLoginInfo loginInfo = new("TestId", "TestPassword", null);
 
             // Act
             IActionResult result = await controller.BasicLoginAsync(loginInfo, CancellationToken.None);
 
             // Assert
-            LoginResult actionResult = Assert.IsType<LoginResult>(result);
-            Assert.False(actionResult.SetCookie);
+            LoginSuccessActionResult actionResult = Assert.IsType<LoginSuccessActionResult>(result);
             Assert.Equal(_testUser, actionResult.User);
         }
 
@@ -56,13 +57,13 @@ namespace BlogPlatform.Api.Tests.Controllers
 
             IdentityController controller = CreateMockController(identityServiceMock);
 
-            BasicLoginInfo loginInfo = new("TestId", "TestPassword");
+            BasicLoginInfo loginInfo = new("TestId", "TestPassword", null);
 
             // Act
             IActionResult result = await controller.BasicLoginAsync(loginInfo, CancellationToken.None);
 
             // Assert
-            Assert.IsType<NotFoundResult>(result);
+            Assert.IsType<NotFoundObjectResult>(result);
         }
 
         [Fact]
@@ -74,13 +75,13 @@ namespace BlogPlatform.Api.Tests.Controllers
 
             IdentityController controller = CreateMockController(identityServiceMock);
 
-            BasicLoginInfo loginInfo = new("TestId", "TestPassword");
+            BasicLoginInfo loginInfo = new("TestId", "TestPassword", null);
 
             // Act
             IActionResult result = await controller.BasicLoginAsync(loginInfo, CancellationToken.None);
 
             // Assert
-            Assert.IsType<UnauthorizedResult>(result);
+            Assert.IsType<UnauthorizedObjectResult>(result);
         }
 
         [Fact]
@@ -92,14 +93,13 @@ namespace BlogPlatform.Api.Tests.Controllers
 
             IdentityController controller = CreateMockController(identityServiceMock);
 
-            BasicSignUpInfo signUpInfo = new("TestId", "TestPassword", "TestName", "TestEmail");
+            BasicSignUpInfo signUpInfo = new("TestId", "TestPassword", "TestName", "TestEmail", null);
 
             // Act
             IActionResult result = await controller.BasicSignUpAsync(signUpInfo, CancellationToken.None);
 
             // Assert
-            LoginResult actionResult = Assert.IsType<LoginResult>(result);
-            Assert.False(actionResult.SetCookie);
+            LoginSuccessActionResult actionResult = Assert.IsType<LoginSuccessActionResult>(result);
             Assert.Equal(_testUser, actionResult.User);
         }
 
@@ -115,7 +115,7 @@ namespace BlogPlatform.Api.Tests.Controllers
 
             IdentityController controller = CreateMockController(identityServiceMock);
 
-            BasicSignUpInfo signUpInfo = new("TestId", "TestPassword", "TestName", "TestEmail");
+            BasicSignUpInfo signUpInfo = new("TestId", "TestPassword", "TestName", "TestEmail", null);
 
             // Act
             IActionResult result = await controller.BasicSignUpAsync(signUpInfo, CancellationToken.None);
@@ -134,29 +134,10 @@ namespace BlogPlatform.Api.Tests.Controllers
 
             IdentityController controller = CreateMockController(identityServiceMock);
 
-            BasicSignUpInfo signUpInfo = new("TestId", "TestPassword", "TestName", "TestEmail");
+            BasicSignUpInfo signUpInfo = new("TestId", "TestPassword", "TestName", "TestEmail", null);
 
             // Assert
             await Assert.ThrowsAnyAsync<Exception>(() => controller.BasicSignUpAsync(signUpInfo, CancellationToken.None));
-        }
-
-        [Fact]
-        public async Task BasicSignUpAsync_ReturnsNotFound()
-        {
-            // Arrange
-            Mock<IIdentityService> identityServiceMock = new();
-            identityServiceMock.Setup(i => i.SignUpAsync(It.IsAny<BasicSignUpInfo>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => (ESignUpResult.ProviderNotFound, null));
-
-            IdentityController controller = CreateMockController(identityServiceMock);
-
-            BasicSignUpInfo signUpInfo = new("TestId", "TestPassword", "TestName", "TestEmail");
-
-            // Act
-            IActionResult result = await controller.BasicSignUpAsync(signUpInfo, CancellationToken.None);
-
-            // Assert
-            NotFoundObjectResult actionResult = Assert.IsType<NotFoundObjectResult>(result);
-            Assert.IsType<Error>(actionResult.Value);
         }
 
         [Fact]
@@ -218,7 +199,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             IdentityController identityController = CreateMockController();
 
             // Act
-            IActionResult result = identityController.OAuthLogin(new("provider"));
+            IActionResult result = identityController.OAuthLogin("provider", null);
 
             // Assert
             Assert.IsType<ChallengeResult>(result);
@@ -235,11 +216,10 @@ namespace BlogPlatform.Api.Tests.Controllers
             OAuthLoginInfo loginInfo = new("TestProvider", "TestNameIdentifier");
 
             // Act
-            IActionResult result = await controller.OAuthLoginCallbackAsync(loginInfo, false, CancellationToken.None);
+            IActionResult result = await controller.OAuthLoginCallbackAsync(loginInfo, null, CancellationToken.None);
 
             // Assert
-            LoginResult actionResult = Assert.IsType<LoginResult>(result);
-            Assert.False(actionResult.SetCookie);
+            LoginSuccessActionResult actionResult = Assert.IsType<LoginSuccessActionResult>(result);
             Assert.Equal(_testUser, actionResult.User);
         }
 
@@ -254,10 +234,10 @@ namespace BlogPlatform.Api.Tests.Controllers
             OAuthLoginInfo loginInfo = new("TestProvider", "TestNameIdentifier");
 
             // Act
-            IActionResult result = await controller.OAuthLoginCallbackAsync(loginInfo, false, CancellationToken.None);
+            IActionResult result = await controller.OAuthLoginCallbackAsync(loginInfo, null, CancellationToken.None);
 
             // Assert
-            Assert.IsType<NotFoundResult>(result);
+            Assert.IsType<NotFoundObjectResult>(result);
         }
 
         [Fact]
@@ -271,7 +251,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             OAuthLoginInfo loginInfo = new("TestProvider", "TestNameIdentifier");
 
             // Assert
-            await Assert.ThrowsAnyAsync<Exception>(() => controller.OAuthLoginCallbackAsync(loginInfo, false, CancellationToken.None));
+            await Assert.ThrowsAnyAsync<Exception>(() => controller.OAuthLoginCallbackAsync(loginInfo, null, CancellationToken.None));
         }
 
         [Fact]
@@ -281,7 +261,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             IdentityController identityController = CreateMockController();
 
             // Act
-            IActionResult result = identityController.OAuthSignUp(new("provider", "name"));
+            IActionResult result = identityController.OAuthSignUp("provider", "name", null);
 
             // Assert
             Assert.IsType<OAuthSignUpChallengeResult>(result);
@@ -295,14 +275,13 @@ namespace BlogPlatform.Api.Tests.Controllers
             identityServiceMock.Setup(i => i.SignUpAsync(It.IsAny<OAuthSignUpInfo>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => (ESignUpResult.Success, _testUser));
 
             IdentityController controller = CreateMockController(identityServiceMock);
-            OAuthSignUpInfo signUpInfo = new("TestProvider", "TestNameIdentifier", "TestEmail", "TestName");
+            OAuthSignUpInfo signUpInfo = new("TestEmail", "TestName", "TestProvider", "TestNameIdentifier");
 
             // Act
-            IActionResult result = await controller.OAuthSignUpCallbackAsync(signUpInfo, false, CancellationToken.None);
+            IActionResult result = await controller.OAuthSignUpCallbackAsync(signUpInfo, null, CancellationToken.None);
 
             // Assert
-            LoginResult actionResult = Assert.IsType<LoginResult>(result);
-            Assert.False(actionResult.SetCookie);
+            LoginSuccessActionResult actionResult = Assert.IsType<LoginSuccessActionResult>(result);
             Assert.Equal(_testUser, actionResult.User);
         }
 
@@ -318,10 +297,10 @@ namespace BlogPlatform.Api.Tests.Controllers
             identityServiceMock.Setup(i => i.SignUpAsync(It.IsAny<OAuthSignUpInfo>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => (signUpResult, null));
 
             IdentityController controller = CreateMockController(identityServiceMock);
-            OAuthSignUpInfo signUpInfo = new("TestProvider", "TestNameIdentifier", "TestEmail", "TestName");
+            OAuthSignUpInfo signUpInfo = new("TestEmail", "TestName", "TestProvider", "TestNameIdentifier");
 
             // Act
-            IActionResult result = await controller.OAuthSignUpCallbackAsync(signUpInfo, false, CancellationToken.None);
+            IActionResult result = await controller.OAuthSignUpCallbackAsync(signUpInfo, null, CancellationToken.None);
 
             // Assert
             ConflictObjectResult actionResult = Assert.IsType<ConflictObjectResult>(result);
@@ -335,7 +314,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             IdentityController identityController = CreateMockController();
 
             // Act
-            IActionResult result = identityController.AddOAuth("provider");
+            IActionResult result = identityController.AddOAuth("provider", null);
 
             // Assert
             Assert.IsType<ChallengeResult>(result);
@@ -352,7 +331,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             OAuthLoginInfo loginInfo = new("TestProvider", "TestNameIdentifier");
 
             // Act
-            IActionResult result = await controller.AddOAuthCallbackAsync(loginInfo, CancellationToken.None);
+            IActionResult result = await controller.AddOAuthCallbackAsync(loginInfo, null, CancellationToken.None);
 
             // Assert
             Assert.IsType<OkResult>(result);
@@ -369,7 +348,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             OAuthLoginInfo loginInfo = new("TestProvider", "TestNameIdentifier");
 
             // Act
-            IActionResult result = await controller.AddOAuthCallbackAsync(loginInfo, CancellationToken.None);
+            IActionResult result = await controller.AddOAuthCallbackAsync(loginInfo, null, CancellationToken.None);
 
             // Assert
             Assert.IsType<AuthenticatedUserDataNotFoundResult>(result);
@@ -388,7 +367,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             OAuthLoginInfo loginInfo = new("TestProvider", "TestNameIdentifier");
 
             // Act
-            IActionResult result = await controller.AddOAuthCallbackAsync(loginInfo, CancellationToken.None);
+            IActionResult result = await controller.AddOAuthCallbackAsync(loginInfo, null, CancellationToken.None);
 
             // Assert
             var actionResult = Assert.IsType<ConflictObjectResult>(result);
@@ -406,7 +385,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             OAuthLoginInfo loginInfo = new("TestProvider", "TestNameIdentifier");
 
             // Act
-            IActionResult result = await controller.AddOAuthCallbackAsync(loginInfo, CancellationToken.None);
+            IActionResult result = await controller.AddOAuthCallbackAsync(loginInfo, null, CancellationToken.None);
 
             // Assert
             var actionResult = Assert.IsType<NotFoundObjectResult>(result);
@@ -772,7 +751,10 @@ namespace BlogPlatform.Api.Tests.Controllers
             urlHelper.Setup(u => u.ActionContext).Returns(new ActionContext() { HttpContext = new DefaultHttpContext() });
 
             TimeProvider timeProvider = TimeProvider.System;
-            IdentityController controller = new(identityServiceMock.Object, userEmailService.Object, emailVerifyService.Object, timeProvider, _logger)
+
+            DbContextOptionsBuilder<BlogPlatformDbContext> optionsBuilder = new();
+            Mock<BlogPlatformDbContext> dbContextMock = new(optionsBuilder.Options);
+            IdentityController controller = new(dbContextMock.Object, identityServiceMock.Object, userEmailService.Object, emailVerifyService.Object, timeProvider, _logger)
             {
                 Url = urlHelper.Object
             };

@@ -168,7 +168,7 @@ namespace BlogPlatform.Api.IntegrationTest.Searchs
         }
 
         [ModuleInitializer]
-        public static void Init()
+        internal static void Init()
         {
             DbContextOptionsBuilder<BlogPlatformDbContext> optionsBuilder = new();
             optionsBuilder.UseMySql("server=fake;database=fake", MySqlServerVersion.LatestSupportedServerVersion);

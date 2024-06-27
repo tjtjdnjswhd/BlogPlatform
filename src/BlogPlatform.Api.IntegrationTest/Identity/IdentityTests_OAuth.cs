@@ -1,5 +1,4 @@
 ﻿using BlogPlatform.Api.Identity.Models;
-using BlogPlatform.Api.Models;
 using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
@@ -7,7 +6,6 @@ using BlogPlatform.EFCore.Models;
 using Microsoft.Extensions.DependencyInjection;
 
 using System.Net;
-using System.Net.Http.Json;
 
 namespace BlogPlatform.Api.IntegrationTest.Identity
 {
@@ -18,9 +16,13 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         {
             // Arrange
             HttpClient client = CreateClient();
+            Dictionary<string, string> content = new()
+            {
+                { "provider", "google" }
+            };
 
             // Act
-            HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/login/oauth", new Models.OAuthProvider("Google"));
+            HttpResponseMessage response = await client.PostAsync("/api/identity/login/oauth", new FormUrlEncodedContent(content));
 
             // Assert
             Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
@@ -31,9 +33,14 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         {
             // Arrange
             HttpClient client = CreateClient();
+            FormUrlEncodedContent content = new(new Dictionary<string, string>
+            {
+                { "provider", "google" },
+                { "name", "ab" }
+            });
 
             // Act
-            HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/oauth", new OAuthSignUpModel("Google", "ab"));
+            HttpResponseMessage response = await client.PostAsync("/api/identity/signup/oauth", content);
 
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -44,9 +51,14 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         {
             // Arrange
             HttpClient client = CreateClient();
+            FormUrlEncodedContent content = new(new Dictionary<string, string>
+            {
+                { "provider", "google" },
+                { "name", "userName" }
+            });
 
             // Act
-            HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/oauth", new OAuthSignUpModel("Google", "userName"));
+            HttpResponseMessage response = await client.PostAsync("/api/identity/signup/oauth", content);
 
             // Assert
             Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
