@@ -1,0 +1,81 @@
+﻿@page "/oauth"
+@implements IDisposable
+@inject ApiClient ApiClient
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+
+<BaseAddress />
+
+<hr />
+
+<label for="returnUrl">Set return url</label>
+<input type="checkbox" name="returnUrl" @bind="setReturnUrl" />
+
+<hr />
+
+<h3>Login</h3>
+
+<form method="post" action="@oauthLoginUri">
+    <label for="provider">Provider:</label>
+    <input type="text" id="provider" name="provider" />
+    <button type="submit">Login</button>
+</form>
+
+<hr />
+
+<h3>SignUp</h3>
+
+<form method="post" action="@oauthSignUpUri">
+    <label for="provider">Provider:</label>
+    <input type="text" id="provider" name="provider" />
+    <label for="name">Name:</label>
+    <input type="text" id="name" name="name" />
+    <button type="submit">SignUp</button>
+</form>
+
+<hr />
+
+<h3>Add</h3>
+
+<form method="post" action="@oauthAddUri">
+    <label for="provider">Provider:</label>
+    <input type="text" id="provider" name="provider" />
+    <button type="submit">Add</button>
+</form>
+
+@code {
+    private string returnUrlQueryString => $"returnUrl={Uri.EscapeDataString(NavigationManager.Uri)}&";
+
+    private string queryStrings => $"?{(setReturnUrl ? returnUrlQueryString : string.Empty)}";
+
+    private string oauthLoginUri => ApiClient.OAuthLoginUri + queryStrings;
+    private string oauthSignUpUri => ApiClient.OAuthSignUpUri + queryStrings;
+    private string oauthAddUri => ApiClient.OAuthAddUri + queryStrings;
+
+    private bool _setReturnUrl;
+
+    private bool setReturnUrl
+    {
+        get => _setReturnUrl;
+        set
+        {
+            _setReturnUrl = value;
+            StateHasChanged();
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        ApiClient.OnChange += ChangeBaseAddress;
+    }
+
+    private void ChangeBaseAddress()
+    {
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        ApiClient.OnChange -= ChangeBaseAddress;
+    }
+}
