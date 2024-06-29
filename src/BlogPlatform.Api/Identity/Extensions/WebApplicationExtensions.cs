@@ -1,4 +1,5 @@
-﻿using BlogPlatform.EFCore;
+﻿using BlogPlatform.Api.Identity.Constants;
+using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Models;
 
 using Microsoft.AspNetCore.Authentication;
@@ -25,6 +26,20 @@ namespace BlogPlatform.Api.Identity.Extensions
                         dbContext.OAuthProviders.Add(provider);
                     }
                 }
+            }
+
+            dbContext.SaveChanges();
+        }
+
+        public static void SeedRoleData(this WebApplication webApplication)
+        {
+            using var scope = webApplication.Services.CreateScope();
+
+            BlogPlatformDbContext dbContext = scope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
+            if (!dbContext.Roles.Any())
+            {
+                dbContext.Roles.Add(new Role(PolicyConstants.UserPolicy, 1));
+                dbContext.Roles.Add(new Role(PolicyConstants.AdminPolicy, 0));
             }
 
             dbContext.SaveChanges();

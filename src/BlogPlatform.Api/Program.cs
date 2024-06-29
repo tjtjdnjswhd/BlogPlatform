@@ -52,6 +52,9 @@ builder.Services.AddScoped<ICascadeSoftDeleteService, CascadeSoftDeleteService>(
 
 var app = builder.Build();
 
+app.SeedOAuthProviderData();
+app.SeedRoleData();
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -61,12 +64,21 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseAuthorization();
+if (app.Environment.IsDevelopment())
+{
+    app.UseCors(b =>
+    {
+        b.AllowAnyHeader();
+        b.AllowAnyMethod();
+        b.SetIsOriginAllowed(origin => true);
+        b.AllowCredentials();
+    });
+}
+
 app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
-
-app.SeedOAuthProviderData();
 
 app.Run();
 

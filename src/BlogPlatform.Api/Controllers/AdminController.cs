@@ -72,7 +72,7 @@ namespace BlogPlatform.Api.Controllers
                 users = users.Where(u => u.Name == search.Name);
             }
 
-            UserRead? userRead = await users.Select(u => new UserRead(u.Id, u.BasicAccounts.First().AccountId, u.Name, u.Email, u.CreatedAt, u.Blog.First().Id)).FirstOrDefaultAsync(cancellationToken);
+            UserRead? userRead = await users.Select(u => new UserRead(u.Id, u.BasicAccounts.First().AccountId, u.Name, u.Email, u.CreatedAt, u.Blog.First().Id, u.Roles.Select(r => r.Name), u.OAuthAccounts.Select(o => o.Provider.Name))).FirstOrDefaultAsync(cancellationToken);
             if (userRead is null)
             {
                 return NotFound(new Error("존재하지 않는 유저입니다"));

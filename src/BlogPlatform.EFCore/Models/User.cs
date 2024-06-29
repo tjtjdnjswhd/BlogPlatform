@@ -74,6 +74,6 @@ namespace BlogPlatform.EFCore.Models
         /// <summary>
         /// 역할
         /// </summary>
-        public List<Role> Roles { get; internal set; }
+        public List<Role> Roles { get; internal set; } = [];
     }
 }

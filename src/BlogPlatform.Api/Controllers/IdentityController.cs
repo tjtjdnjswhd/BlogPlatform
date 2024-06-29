@@ -42,16 +42,20 @@ namespace BlogPlatform.Api.Controllers
 
         [UserAuthorize]
         [HttpGet]
-        public async Task<UserRead> GetUserInfo([UserIdBind] int userId, CancellationToken cancellationToken)
+        public async Task<IActionResult> GetUserInfo([UserIdBind] int userId, CancellationToken cancellationToken)
         {
             UserRead? userRead = await _blogPlatformDbContext.Users
                 .Where(u => u.Id == userId)
-                .Select(u => new UserRead(u.Id, u.BasicAccounts.First().AccountId, u.Name, u.Email, u.CreatedAt, u.Blog.First().Id))
+                .Select(u => new UserRead(u.Id, u.BasicAccounts.First().AccountId, u.Name, u.Email, u.CreatedAt, u.Blog.First().Id, u.Roles.Select(r => r.Name), u.OAuthAccounts.Select(o => o.Provider.Name)))
                 .FirstOrDefaultAsync(cancellationToken);
-            Debug.Assert(userRead is not null); // UserAuthorize 필터를 통과했으므로 null이 아니어야 함
+
+            if (userRead is null)
+            {
+                return new AuthenticatedUserDataNotFoundResult();
+            }
 
             userRead.BlogUri = userRead.BlogId is not null ? Url.ActionLink("Get", "Blog", new { id = userRead.BlogId }) : null;
-            return userRead;
+            return Ok(userRead);
         }
 
         [HttpPost("login/basic")]
@@ -170,7 +174,7 @@ namespace BlogPlatform.Api.Controllers
         [UserAuthorize]
         public IActionResult AddOAuth([FromQuery] string provider, [FromQuery] string? returnUrl)
         {
-            string? redirectUri = Url.Action("OAuthSignUpCallback", "Identity");
+            string? redirectUri = Url.Action("AddOAuthCallback", "Identity");
             Debug.Assert(redirectUri is not null);
 
             AuthenticationProperties authenticationProperties = new()

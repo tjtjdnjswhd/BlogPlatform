@@ -1,4 +1,5 @@
 ﻿using BlogPlatform.Api.Helper;
+using BlogPlatform.Api.Identity.Constants;
 using BlogPlatform.Api.Identity.Models;
 using BlogPlatform.Api.Identity.Services.Interfaces;
 using BlogPlatform.Api.Services.Interfaces;
@@ -117,6 +118,9 @@ namespace BlogPlatform.Api.Services
 
                     BasicAccount basicAccount = new(signUpInfo.Id, passwordHash, user.Id);
                     _blogPlatformDbContext.BasicAccounts.Add(basicAccount);
+
+                    Role userRole = await _blogPlatformDbContext.Roles.FirstAsync(r => r.Name == PolicyConstants.UserPolicy, cancellationToken);
+                    user.Roles.Add(userRole);
                     await _blogPlatformDbContext.SaveChangesAsync(cancellationToken);
 
                     transaction.Commit();
@@ -206,6 +210,10 @@ namespace BlogPlatform.Api.Services
                     OAuthAccount oAuthAccount = new(signUpInfo.NameIdentifier, providerId, user.Id);
                     _blogPlatformDbContext.OAuthAccounts.Add(oAuthAccount);
                     await _blogPlatformDbContext.SaveChangesAsync(token);
+
+                    Role userRole = await _blogPlatformDbContext.Roles.FirstAsync(r => r.Name == PolicyConstants.UserPolicy, cancellationToken);
+                    user.Roles.Add(userRole);
+                    await _blogPlatformDbContext.SaveChangesAsync(cancellationToken);
 
                     await transaction.CommitAsync(token);
                     return user;
