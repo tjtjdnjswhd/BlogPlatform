@@ -3,6 +3,7 @@ using AspNet.Security.OAuth.Naver;
 
 using BlogPlatform.Api.Constants;
 using BlogPlatform.Api.Identity.Filters;
+using BlogPlatform.Api.Identity.ModelBinders;
 using BlogPlatform.EFCore.Models;
 using BlogPlatform.Shared.Identity.Extensions;
 using BlogPlatform.Shared.Identity.Options;
@@ -37,21 +38,19 @@ namespace BlogPlatform.Api.Identity.Extensions
             IConfigurationSection userEmailOptionsSection = optionsSection.GetRequiredSection("UserEmail");
             services.AddUserEmailService(userEmailOptionsSection);
 
-            services.AddEmailVerifyService();
-
             IConfigurationSection accountOptionsSection = optionsSection.GetRequiredSection("Account");
             services.AddAccountOptions(accountOptionsSection);
 
+            services.AddEmailVerifyService();
+
             services.AddScoped<IPasswordHasher<BasicAccount>, PasswordHasher<BasicAccount>>();
 
-            services.AddOptions<AccountOptions>().Bind(accountOptionsSection).ValidateOnStart().ValidateDataAnnotations();
-
-            services.AddOptions<UserEmailOptions>().Bind(userEmailOptionsSection).ValidateOnStart().ValidateDataAnnotations();
-
             services.AddScoped<UserBanFilter>();
+
             services.Configure<MvcOptions>(m =>
             {
                 m.Filters.AddService<UserBanFilter>();
+                m.ModelBinderProviders.Insert(0, new OAuthInfoModelBinderProvider());
             });
 
             services.AddAuthorization(options =>

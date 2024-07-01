@@ -1,5 +1,7 @@
 ﻿using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Models;
+using BlogPlatform.Shared.Identity.Models;
+using BlogPlatform.Shared.Identity.Services.Interfaces;
 
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.OAuth;
@@ -42,6 +44,29 @@ namespace BlogPlatform.Api.Identity.Extensions
             }
 
             dbContext.SaveChanges();
+        }
+
+        public static async void SeedDevelopmentAdminAccount(this WebApplication webApplication)
+        {
+            if (webApplication.Environment.IsDevelopment())
+            {
+                using var scope = webApplication.Services.CreateScope();
+
+                BlogPlatformDbContext dbContext = scope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
+                if (!dbContext.Users.Any(u => u.Name == "Admin"))
+                {
+                    IIdentityService identityService = scope.ServiceProvider.GetRequiredService<IIdentityService>();
+                    (ESignUpResult signUpResult, User? admin) = await identityService.SignUpAsync(new BasicSignUpInfo("admin", "admin", "admin", "admin@user.com", null));
+                    if (signUpResult != ESignUpResult.Success)
+                    {
+                        throw new InvalidOperationException("Failed to seed development admin account.");
+                    }
+
+                    Role adminRole = dbContext.Roles.First(r => r.Name == "Admin");
+                    admin!.Roles.Add(adminRole);
+                    dbContext.SaveChanges();
+                }
+            }
         }
     }
 }

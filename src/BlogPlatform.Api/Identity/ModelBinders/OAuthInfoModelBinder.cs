@@ -9,6 +9,18 @@ using System.Security.Claims;
 
 namespace BlogPlatform.Api.Identity.ModelBinders
 {
+    public class OAuthInfoModelBinderProvider : IModelBinderProvider
+    {
+        public IModelBinder? GetBinder(ModelBinderProviderContext context)
+        {
+            if (context.Metadata.ModelType == typeof(OAuthLoginInfo) || context.Metadata.ModelType == typeof(OAuthSignUpInfo))
+            {
+                return new OAuthInfoModelBinder();
+            }
+            return null;
+        }
+    }
+
     public class OAuthInfoModelBinder : IModelBinder
     {
         public Task BindModelAsync(ModelBindingContext bindingContext)

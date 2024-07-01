@@ -71,6 +71,8 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+app.SeedDevelopmentAdminAccount();
+
 app.UseAuthentication();
 app.UseAuthorization();
 

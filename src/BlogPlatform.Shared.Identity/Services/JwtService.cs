@@ -48,15 +48,17 @@ namespace BlogPlatform.Shared.Identity.Services
                 .Select(r => r.Name)
                 .ToListAsync(cancellationToken);
 
+            List<Claim> roleClaims = roleNames.Select(roleName => new Claim(ClaimTypes.Role, roleName)).ToList();
+
             _logger.LogDebug("Found user roles for {user}: {roles}", user, roleNames);
 
-            Claim[] claims = [
+            List<Claim> claims = [
                 new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new(JwtRegisteredClaimNames.Name, user.Name),
-                new(ClaimTypes.Role, string.Join(',', roleNames)),
                 new(JwtRegisteredClaimNames.Iss, _jwtOptions.Issuer),
                 new(JwtRegisteredClaimNames.Aud, _jwtOptions.Audience)
             ];
+            claims.AddRange(roleClaims);
 
             _logger.LogDebug("Created claims for {user}: {claims}", user, claims);
 
