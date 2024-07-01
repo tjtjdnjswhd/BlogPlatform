@@ -1,4 +1,4 @@
-﻿using BlogPlatform.Shared.Identity.Attributes;
+﻿using BlogPlatform.Shared.Identity.Validations;
 
 using System.ComponentModel.DataAnnotations;
 

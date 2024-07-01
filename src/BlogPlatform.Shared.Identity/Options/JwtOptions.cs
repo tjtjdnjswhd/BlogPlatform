@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
 
 namespace BlogPlatform.Shared.Identity.Options
 {
@@ -18,6 +19,12 @@ namespace BlogPlatform.Shared.Identity.Options
         /// </summary>
         [Required(AllowEmptyStrings = false)]
         public required string Algorithm { get; set; }
+
+        /// <summary>
+        /// <see cref="ClaimsIdentity"/> 생성 시 설정할 인증 타입. <see cref="ClaimsIdentity.AuthenticationType"/>
+        /// </summary>
+        [Required(AllowEmptyStrings = false)]
+        public required string AuthenticationType { get; set; }
 
         /// <summary>
         /// 발급자

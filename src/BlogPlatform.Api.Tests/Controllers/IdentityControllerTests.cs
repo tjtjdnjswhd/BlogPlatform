@@ -1,7 +1,7 @@
 ﻿using BlogPlatform.Api.Controllers;
+using BlogPlatform.Api.Identity.ActionResults;
 using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Models;
-using BlogPlatform.Shared.Identity.ActionResults;
 using BlogPlatform.Shared.Identity.Models;
 using BlogPlatform.Shared.Identity.Services.Interfaces;
 using BlogPlatform.Shared.Models;

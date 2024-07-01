@@ -3,11 +3,13 @@ using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
 using BlogPlatform.EFCore.Models.Abstractions;
 using BlogPlatform.Shared.Identity.Models;
+using BlogPlatform.Shared.Identity.Options;
 using BlogPlatform.Shared.Identity.Services;
 using BlogPlatform.Shared.Identity.Services.Interfaces;
 
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Options;
 
 using Moq;
 
@@ -720,7 +722,7 @@ namespace BlogPlatform.Api.Tests.Identity
 
             CascadeSoftDeleteService softDeleteService = new(_setUp.DbContext, timeProvider, deleteLogger);
 
-            return new IdentityService(_setUp.DbContext, jwtService.Object, _setUp.PasswordHasher, softDeleteService, authenticationService.Object, timeProvider, serviceLogger);
+            return new IdentityService(_setUp.DbContext, jwtService.Object, _setUp.PasswordHasher, softDeleteService, authenticationService.Object, timeProvider, Options.Create(new IdentityServiceOptions() { UserRoleName = "User" }), serviceLogger);
         }
 
         private static Mock<IJwtService> CreateJwtServiceMock(int userId, bool returns)

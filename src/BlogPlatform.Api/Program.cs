@@ -1,7 +1,7 @@
+using BlogPlatform.Api.Identity.Extensions;
 using BlogPlatform.Api.Json;
 using BlogPlatform.EFCore;
 using BlogPlatform.Shared.Extensions;
-using BlogPlatform.Shared.Identity.Extensions;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Any;

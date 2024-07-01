@@ -4,7 +4,6 @@ using BlogPlatform.Shared.Identity.Models;
 using BlogPlatform.Shared.Identity.Options;
 using BlogPlatform.Shared.Identity.Services.Interfaces;
 
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
@@ -61,7 +60,7 @@ namespace BlogPlatform.Shared.Identity.Services
 
             _logger.LogDebug("Created claims for {user}: {claims}", user, claims);
 
-            ClaimsIdentity claimsIdentity = new(claims, JwtBearerDefaults.AuthenticationScheme, JwtRegisteredClaimNames.Name, ClaimTypes.Role);
+            ClaimsIdentity claimsIdentity = new(claims, _jwtOptions.AuthenticationType, JwtRegisteredClaimNames.Name, ClaimTypes.Role);
             AuthorizeToken token = GenerateToken(claimsIdentity);
 
             _logger.LogInformation("Generated token: {token}", token);
@@ -166,7 +165,7 @@ namespace BlogPlatform.Shared.Identity.Services
         /// <inheritdoc/>
         public async Task SetBodyTokenAsync(HttpResponse response, AuthorizeToken token, CancellationToken cancellationToken = default)
         {
-            await response.WriteAsJsonAsync(token, cancellationToken);
+            await response.WriteAsync(JsonSerializer.Serialize(token, _bodyTokenSerializeOption), cancellationToken);
         }
 
         /// <inheritdoc/>

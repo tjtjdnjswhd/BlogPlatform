@@ -1,8 +1,9 @@
-﻿using BlogPlatform.Api.Helper;
+﻿using BlogPlatform.Api.Attributes;
+using BlogPlatform.Api.Helper;
+using BlogPlatform.Api.Identity.Attributes;
 using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
-using BlogPlatform.Shared.Identity.Attributes;
 using BlogPlatform.Shared.Models;
 using BlogPlatform.Shared.Models.Blog;
 

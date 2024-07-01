@@ -1,12 +1,13 @@
 ﻿using BlogPlatform.Api.Attributes;
+using BlogPlatform.Api.Identity.ActionResults;
+using BlogPlatform.Api.Identity.Attributes;
+using BlogPlatform.Api.Identity.Filters;
+using BlogPlatform.Api.Identity.ModelBinders;
 using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Models;
-using BlogPlatform.Shared.Identity.ActionResults;
-using BlogPlatform.Shared.Identity.Attributes;
-using BlogPlatform.Shared.Identity.Filters;
-using BlogPlatform.Shared.Identity.ModelBinders;
 using BlogPlatform.Shared.Identity.Models;
 using BlogPlatform.Shared.Identity.Services.Interfaces;
+using BlogPlatform.Shared.Identity.Validations;
 using BlogPlatform.Shared.Models;
 using BlogPlatform.Shared.Models.User;
 

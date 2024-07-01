@@ -1,6 +1,4 @@
-﻿using BlogPlatform.Shared.Identity.Services.Interfaces;
-
-namespace BlogPlatform.Shared.Identity.Models
+﻿namespace BlogPlatform.Shared.Identity.Models
 {
     /// <summary>
     /// 회원가입 결과. <see cref="IIdentityService.SignUpAsync"/>의 반환값

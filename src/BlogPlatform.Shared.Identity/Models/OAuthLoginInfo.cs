@@ -1,8 +1,4 @@
-﻿using BlogPlatform.Shared.Identity.ModelBinders;
-
-using Microsoft.AspNetCore.Mvc;
-
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace BlogPlatform.Shared.Identity.Models
 {
@@ -12,6 +8,5 @@ namespace BlogPlatform.Shared.Identity.Models
     /// <param name="Provider"> OAuth 제공자 </param>
     /// <param name="NameIdentifier"> OAuth 제공자에서 제공하는 유저 식별자 </param>
     /// 
-    [ModelBinder<OAuthInfoModelBinder>]
     public record OAuthLoginInfo([Required(AllowEmptyStrings = false)] string Provider, [Required(AllowEmptyStrings = false)] string NameIdentifier);
 }

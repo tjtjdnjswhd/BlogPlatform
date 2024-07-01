@@ -2,7 +2,7 @@
 using BlogPlatform.Api.Tests.DbContextMock;
 using BlogPlatform.EFCore.Models;
 using BlogPlatform.EFCore.Models.Abstractions;
-using BlogPlatform.Shared.Models;
+using BlogPlatform.Shared.Models.Category;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

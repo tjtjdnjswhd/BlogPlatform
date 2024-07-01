@@ -2,7 +2,7 @@
 using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
 using BlogPlatform.Shared.Identity.Models;
-using BlogPlatform.Shared.Models;
+using BlogPlatform.Shared.Models.Category;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;

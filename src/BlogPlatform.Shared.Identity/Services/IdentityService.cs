@@ -1,8 +1,8 @@
 ﻿using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
-using BlogPlatform.Shared.Identity.Constants;
 using BlogPlatform.Shared.Identity.Models;
+using BlogPlatform.Shared.Identity.Options;
 using BlogPlatform.Shared.Identity.Services.Interfaces;
 
 using Microsoft.AspNetCore.Authentication;
@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 using System.Diagnostics;
 using System.Security.Claims;
@@ -26,9 +27,10 @@ namespace BlogPlatform.Shared.Identity.Services
         private readonly ICascadeSoftDeleteService _softDeleteService;
         private readonly IAuthenticationService _authenticationService;
         private readonly TimeProvider _timeProvider;
+        private readonly IdentityServiceOptions _options;
         private readonly ILogger<IdentityService> _logger;
 
-        public IdentityService(BlogPlatformDbContext blogPlatformDbContext, IJwtService jwtService, IPasswordHasher<BasicAccount> passwordHasher, ICascadeSoftDeleteService softDeleteService, IAuthenticationService authenticationService, TimeProvider timeProvider, ILogger<IdentityService> logger)
+        public IdentityService(BlogPlatformDbContext blogPlatformDbContext, IJwtService jwtService, IPasswordHasher<BasicAccount> passwordHasher, ICascadeSoftDeleteService softDeleteService, IAuthenticationService authenticationService, TimeProvider timeProvider, IOptions<IdentityServiceOptions> options, ILogger<IdentityService> logger)
         {
             _blogPlatformDbContext = blogPlatformDbContext;
             _passwordHasher = passwordHasher;
@@ -36,6 +38,7 @@ namespace BlogPlatform.Shared.Identity.Services
             _jwtService = jwtService;
             _logger = logger;
             _timeProvider = timeProvider;
+            _options = options.Value;
             _authenticationService = authenticationService;
         }
 
@@ -119,7 +122,7 @@ namespace BlogPlatform.Shared.Identity.Services
                     BasicAccount basicAccount = new(signUpInfo.Id, passwordHash, user.Id);
                     _blogPlatformDbContext.BasicAccounts.Add(basicAccount);
 
-                    Role userRole = await _blogPlatformDbContext.Roles.FirstAsync(r => r.Name == PolicyConstants.UserPolicy, cancellationToken);
+                    Role userRole = await _blogPlatformDbContext.Roles.FirstAsync(r => r.Name == _options.UserRoleName, cancellationToken);
                     user.Roles.Add(userRole);
                     await _blogPlatformDbContext.SaveChangesAsync(cancellationToken);
 
@@ -211,7 +214,7 @@ namespace BlogPlatform.Shared.Identity.Services
                     _blogPlatformDbContext.OAuthAccounts.Add(oAuthAccount);
                     await _blogPlatformDbContext.SaveChangesAsync(token);
 
-                    Role userRole = await _blogPlatformDbContext.Roles.FirstAsync(r => r.Name == PolicyConstants.UserPolicy, cancellationToken);
+                    Role userRole = await _blogPlatformDbContext.Roles.FirstAsync(r => r.Name == _options.UserRoleName, cancellationToken);
                     user.Roles.Add(userRole);
                     await _blogPlatformDbContext.SaveChangesAsync(cancellationToken);
 

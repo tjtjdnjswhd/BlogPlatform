@@ -1,6 +1,4 @@
-﻿using BlogPlatform.Shared.Identity.Services.Interfaces;
-
-namespace BlogPlatform.Shared.Identity.Models
+﻿namespace BlogPlatform.Shared.Identity.Models
 {
     /// <summary>
     /// 로그인 결과를 나타내는 열거형. <see cref="IIdentityService.LoginAsync"/>의 반환값
