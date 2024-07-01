@@ -5,8 +5,6 @@ using BlogPlatform.Shared.Identity.Models;
 using BlogPlatform.Shared.Identity.Options;
 using BlogPlatform.Shared.Identity.Services.Interfaces;
 
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -25,12 +23,11 @@ namespace BlogPlatform.Shared.Identity.Services
         private readonly IJwtService _jwtService;
         private readonly IPasswordHasher<BasicAccount> _passwordHasher;
         private readonly ICascadeSoftDeleteService _softDeleteService;
-        private readonly IAuthenticationService _authenticationService;
         private readonly TimeProvider _timeProvider;
         private readonly IdentityServiceOptions _options;
         private readonly ILogger<IdentityService> _logger;
 
-        public IdentityService(BlogPlatformDbContext blogPlatformDbContext, IJwtService jwtService, IPasswordHasher<BasicAccount> passwordHasher, ICascadeSoftDeleteService softDeleteService, IAuthenticationService authenticationService, TimeProvider timeProvider, IOptions<IdentityServiceOptions> options, ILogger<IdentityService> logger)
+        public IdentityService(BlogPlatformDbContext blogPlatformDbContext, IJwtService jwtService, IPasswordHasher<BasicAccount> passwordHasher, ICascadeSoftDeleteService softDeleteService, TimeProvider timeProvider, IOptions<IdentityServiceOptions> options, ILogger<IdentityService> logger)
         {
             _blogPlatformDbContext = blogPlatformDbContext;
             _passwordHasher = passwordHasher;
@@ -39,7 +36,6 @@ namespace BlogPlatform.Shared.Identity.Services
             _logger = logger;
             _timeProvider = timeProvider;
             _options = options.Value;
-            _authenticationService = authenticationService;
         }
 
         /// <inheritdoc/>
@@ -231,16 +227,8 @@ namespace BlogPlatform.Shared.Identity.Services
         }
 
         /// <inheritdoc/>
-        public async Task<EAddOAuthResult> AddOAuthAsync(HttpContext httpContext, OAuthLoginInfo oAuthInfo, CancellationToken cancellationToken = default)
+        public async Task<EAddOAuthResult> AddOAuthAsync(int userId, OAuthLoginInfo oAuthInfo, CancellationToken cancellationToken = default)
         {
-            AuthenticateResult authenticateResult = await _authenticationService.AuthenticateAsync(httpContext, null);
-            Debug.Assert(authenticateResult.Succeeded); // 인증이 성공해야 함
-
-            if (!TryGetUserId(authenticateResult.Principal, out int userId))
-            {
-                Debug.Assert(false);
-            }
-
             bool isUserExist = await _blogPlatformDbContext.Users.AnyAsync(u => u.Id == userId, cancellationToken);
             if (!isUserExist)
             {

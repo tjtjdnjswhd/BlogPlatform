@@ -1,4 +1,4 @@
-﻿namespace BlogPlatform.Api.Constants
+﻿namespace BlogPlatform.Api.Identity.Constants
 {
     /// <summary>
     /// 인증 policy 이름 상수

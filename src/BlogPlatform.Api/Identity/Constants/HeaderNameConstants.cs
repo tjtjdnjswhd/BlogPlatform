@@ -1,4 +1,4 @@
-﻿namespace BlogPlatform.Api.Constants
+﻿namespace BlogPlatform.Api.Identity.Constants
 {
     public static class HeaderNameConstants
     {

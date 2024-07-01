@@ -1,8 +1,6 @@
 ﻿using BlogPlatform.EFCore.Models;
 using BlogPlatform.Shared.Identity.Models;
 
-using Microsoft.AspNetCore.Http;
-
 using System.Security.Claims;
 
 namespace BlogPlatform.Shared.Identity.Services.Interfaces
@@ -64,14 +62,14 @@ namespace BlogPlatform.Shared.Identity.Services.Interfaces
         /// <summary>
         /// 현재 요청에 대한 유저의 계정에 OAuth 계정을 추가합니다
         /// </summary>
-        /// <param name="httpContext"></param>
+        /// <param name="userId"></param>
         /// <param name="oAuthInfo"></param>
         /// <param name="cancellationToken"></param>
         /// <returns>
         /// 요청의 성공 여부를 반환합니다
         /// </returns>
         /// <exception cref="OperationCanceledException"/>
-        Task<EAddOAuthResult> AddOAuthAsync(HttpContext httpContext, OAuthLoginInfo oAuthInfo, CancellationToken cancellationToken = default);
+        Task<EAddOAuthResult> AddOAuthAsync(int userId, OAuthLoginInfo oAuthInfo, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// 현 사용자의 OAuth 계정을 제거합니다

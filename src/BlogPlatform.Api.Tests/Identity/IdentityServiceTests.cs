@@ -224,12 +224,11 @@ namespace BlogPlatform.Api.Tests.Identity
             OAuthLoginInfo oAuthLoginInfo = new(_setUp.OAuthProvider.Name, "basicOnlyNameIdentifier");
 
             IdentityService identityService = CreateIdentityService(CreateJwtServiceMock(user.Id, true));
-            Mock<HttpContext> httpContextMock = new();
 
             int oauthAccountCount = _setUp.DbContext.OAuthAccounts.Count();
 
             // Act
-            EAddOAuthResult addResult = await identityService.AddOAuthAsync(httpContextMock.Object, oAuthLoginInfo);
+            EAddOAuthResult addResult = await identityService.AddOAuthAsync(user.Id, oAuthLoginInfo);
 
             // Assert
             Assert.Equal(EAddOAuthResult.Success, addResult);
@@ -245,12 +244,11 @@ namespace BlogPlatform.Api.Tests.Identity
             int userId = 123456789;
 
             IdentityService identityService = CreateIdentityService(CreateJwtServiceMock(userId, true));
-            Mock<HttpContext> httpContextMock = new();
 
             int oauthAccountCount = _setUp.DbContext.OAuthAccounts.Count();
 
             // Act
-            EAddOAuthResult addResult = await identityService.AddOAuthAsync(httpContextMock.Object, oAuthLoginInfo);
+            EAddOAuthResult addResult = await identityService.AddOAuthAsync(userId, oAuthLoginInfo);
 
             // Assert
             Assert.Equal(EAddOAuthResult.UserNotFound, addResult);
@@ -266,12 +264,11 @@ namespace BlogPlatform.Api.Tests.Identity
             OAuthLoginInfo oAuthLoginInfo = new("Google", "basicOnlyNameIdentifier");
 
             IdentityService identityService = CreateIdentityService(CreateJwtServiceMock(user.Id, true));
-            Mock<HttpContext> httpContextMock = new();
 
             int oauthAccountCount = _setUp.DbContext.OAuthAccounts.Count();
 
             // Act
-            EAddOAuthResult addResult = await identityService.AddOAuthAsync(httpContextMock.Object, oAuthLoginInfo);
+            EAddOAuthResult addResult = await identityService.AddOAuthAsync(user.Id, oAuthLoginInfo);
 
             // Assert
             Assert.Equal(EAddOAuthResult.ProviderNotFound, addResult);
@@ -287,12 +284,11 @@ namespace BlogPlatform.Api.Tests.Identity
             OAuthLoginInfo oAuthLoginInfo = new(_setUp.OAuthProvider.Name, _setUp.OAuthOnlyUser.OAuthAccounts.First().NameIdentifier);
 
             IdentityService identityService = CreateIdentityService(CreateJwtServiceMock(user.Id, true));
-            Mock<HttpContext> httpContextMock = new();
 
             int oauthAccountCount = _setUp.DbContext.OAuthAccounts.Count();
 
             // Act
-            EAddOAuthResult addResult = await identityService.AddOAuthAsync(httpContextMock.Object, oAuthLoginInfo);
+            EAddOAuthResult addResult = await identityService.AddOAuthAsync(user.Id, oAuthLoginInfo);
 
             // Assert
             Assert.Equal(EAddOAuthResult.OAuthAlreadyExists, addResult);
@@ -308,12 +304,11 @@ namespace BlogPlatform.Api.Tests.Identity
             OAuthLoginInfo oAuthLoginInfo = new(_setUp.OAuthProvider.Name, "otherNameIdentifier");
 
             IdentityService identityService = CreateIdentityService(CreateJwtServiceMock(user.Id, true));
-            Mock<HttpContext> httpContextMock = new();
 
             int oauthAccountCount = _setUp.DbContext.OAuthAccounts.Count();
 
             // Act
-            EAddOAuthResult addResult = await identityService.AddOAuthAsync(httpContextMock.Object, oAuthLoginInfo);
+            EAddOAuthResult addResult = await identityService.AddOAuthAsync(user.Id, oAuthLoginInfo);
 
             // Assert
             Assert.Equal(EAddOAuthResult.UserAlreadyHasOAuth, addResult);
@@ -722,7 +717,7 @@ namespace BlogPlatform.Api.Tests.Identity
 
             CascadeSoftDeleteService softDeleteService = new(_setUp.DbContext, timeProvider, deleteLogger);
 
-            return new IdentityService(_setUp.DbContext, jwtService.Object, _setUp.PasswordHasher, softDeleteService, authenticationService.Object, timeProvider, Options.Create(new IdentityServiceOptions() { UserRoleName = "User" }), serviceLogger);
+            return new IdentityService(_setUp.DbContext, jwtService.Object, _setUp.PasswordHasher, softDeleteService, timeProvider, Options.Create(new IdentityServiceOptions() { UserRoleName = "User" }), serviceLogger);
         }
 
         private static Mock<IJwtService> CreateJwtServiceMock(int userId, bool returns)

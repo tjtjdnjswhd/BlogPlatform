@@ -1,4 +1,4 @@
-﻿using BlogPlatform.Api.Constants;
+﻿using BlogPlatform.Api.Identity.Constants;
 
 using Microsoft.AspNetCore.Authorization;
 

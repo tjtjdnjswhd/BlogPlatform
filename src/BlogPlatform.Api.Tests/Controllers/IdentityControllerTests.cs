@@ -314,7 +314,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             IdentityController identityController = CreateMockController();
 
             // Act
-            IActionResult result = identityController.AddOAuth("provider", null);
+            IActionResult result = identityController.AddOAuth("provider", null, 1);
 
             // Assert
             Assert.IsType<ChallengeResult>(result);
@@ -325,13 +325,13 @@ namespace BlogPlatform.Api.Tests.Controllers
         {
             // Arrange
             Mock<IIdentityService> identityServiceMock = new();
-            identityServiceMock.Setup(i => i.AddOAuthAsync(It.IsAny<HttpContext>(), It.IsAny<OAuthLoginInfo>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult(EAddOAuthResult.Success));
+            identityServiceMock.Setup(i => i.AddOAuthAsync(It.IsAny<int>(), It.IsAny<OAuthLoginInfo>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult(EAddOAuthResult.Success));
 
             IdentityController controller = CreateMockController(identityServiceMock);
             OAuthLoginInfo loginInfo = new("TestProvider", "TestNameIdentifier");
 
             // Act
-            IActionResult result = await controller.AddOAuthCallbackAsync(loginInfo, null, CancellationToken.None);
+            IActionResult result = await controller.AddOAuthCallbackAsync(loginInfo, 1, null, CancellationToken.None);
 
             // Assert
             Assert.IsType<OkResult>(result);
@@ -342,13 +342,13 @@ namespace BlogPlatform.Api.Tests.Controllers
         {
             // Arrange
             Mock<IIdentityService> identityServiceMock = new();
-            identityServiceMock.Setup(i => i.AddOAuthAsync(It.IsAny<HttpContext>(), It.IsAny<OAuthLoginInfo>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult(EAddOAuthResult.UserNotFound));
+            identityServiceMock.Setup(i => i.AddOAuthAsync(It.IsAny<int>(), It.IsAny<OAuthLoginInfo>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult(EAddOAuthResult.UserNotFound));
 
             IdentityController controller = CreateMockController(identityServiceMock);
             OAuthLoginInfo loginInfo = new("TestProvider", "TestNameIdentifier");
 
             // Act
-            IActionResult result = await controller.AddOAuthCallbackAsync(loginInfo, null, CancellationToken.None);
+            IActionResult result = await controller.AddOAuthCallbackAsync(loginInfo, 1, null, CancellationToken.None);
 
             // Assert
             Assert.IsType<AuthenticatedUserDataNotFoundResult>(result);
@@ -361,13 +361,13 @@ namespace BlogPlatform.Api.Tests.Controllers
         {
             // Arrange
             Mock<IIdentityService> identityServiceMock = new();
-            identityServiceMock.Setup(i => i.AddOAuthAsync(It.IsAny<HttpContext>(), It.IsAny<OAuthLoginInfo>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult(addOAuthResult));
+            identityServiceMock.Setup(i => i.AddOAuthAsync(It.IsAny<int>(), It.IsAny<OAuthLoginInfo>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult(addOAuthResult));
 
             IdentityController controller = CreateMockController(identityServiceMock);
             OAuthLoginInfo loginInfo = new("TestProvider", "TestNameIdentifier");
 
             // Act
-            IActionResult result = await controller.AddOAuthCallbackAsync(loginInfo, null, CancellationToken.None);
+            IActionResult result = await controller.AddOAuthCallbackAsync(loginInfo, 1, null, CancellationToken.None);
 
             // Assert
             var actionResult = Assert.IsType<ConflictObjectResult>(result);
@@ -379,13 +379,13 @@ namespace BlogPlatform.Api.Tests.Controllers
         {
             // Arrange
             Mock<IIdentityService> identityServiceMock = new();
-            identityServiceMock.Setup(i => i.AddOAuthAsync(It.IsAny<HttpContext>(), It.IsAny<OAuthLoginInfo>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult(EAddOAuthResult.ProviderNotFound));
+            identityServiceMock.Setup(i => i.AddOAuthAsync(It.IsAny<int>(), It.IsAny<OAuthLoginInfo>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult(EAddOAuthResult.ProviderNotFound));
 
             IdentityController controller = CreateMockController(identityServiceMock);
             OAuthLoginInfo loginInfo = new("TestProvider", "TestNameIdentifier");
 
             // Act
-            IActionResult result = await controller.AddOAuthCallbackAsync(loginInfo, null, CancellationToken.None);
+            IActionResult result = await controller.AddOAuthCallbackAsync(loginInfo, 1, null, CancellationToken.None);
 
             // Assert
             var actionResult = Assert.IsType<NotFoundObjectResult>(result);

@@ -1,7 +1,7 @@
 ﻿using AspNet.Security.OAuth.KakaoTalk;
 using AspNet.Security.OAuth.Naver;
 
-using BlogPlatform.Api.Constants;
+using BlogPlatform.Api.Identity.Constants;
 using BlogPlatform.Api.Identity.Filters;
 using BlogPlatform.Api.Identity.ModelBinders;
 using BlogPlatform.EFCore.Models;

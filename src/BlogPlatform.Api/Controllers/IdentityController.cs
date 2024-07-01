@@ -174,7 +174,7 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpPost("add/oauth")]
         [UserAuthorize]
-        public IActionResult AddOAuth([FromForm] string provider, [FromQuery] string? returnUrl)
+        public IActionResult AddOAuth([FromForm] string provider, [FromQuery] string? returnUrl, [UserIdBind] int userId)
         {
             string? redirectUri = Url.Action("AddOAuthCallback", "Identity");
             Debug.Assert(redirectUri is not null);
@@ -183,24 +183,23 @@ namespace BlogPlatform.Api.Controllers
             {
                 ExpiresUtc = _timeProvider.GetUtcNow().AddMinutes(10),
                 IsPersistent = false,
-                RedirectUri = $"{redirectUri}{(returnUrl is null ? string.Empty : $"?returnUrl={returnUrl}")}",
+                RedirectUri = $"{redirectUri}?userid={userId}{(returnUrl is null ? string.Empty : $"&returnUrl={returnUrl}")}",
                 IssuedUtc = _timeProvider.GetUtcNow(),
             };
 
             return Challenge(authenticationProperties, provider);
         }
 
-        [HttpPost("add/oauth/callback")]
+        [HttpGet("add/oauth")]
         [OAuthAuthorize]
-        [UserAuthorize]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status302Found)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status409Conflict)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> AddOAuthCallbackAsync([FromSpecial] OAuthLoginInfo info, [FromQuery] string? returnUrl, CancellationToken cancellationToken)
+        public async Task<IActionResult> AddOAuthCallbackAsync([FromSpecial] OAuthLoginInfo info, [FromQuery] int userId, [FromQuery] string? returnUrl, CancellationToken cancellationToken)
         {
-            EAddOAuthResult addOAuthResult = await _identityService.AddOAuthAsync(HttpContext, info, cancellationToken);
+            EAddOAuthResult addOAuthResult = await _identityService.AddOAuthAsync(userId, info, cancellationToken);
             switch (addOAuthResult)
             {
                 case EAddOAuthResult.Success:
