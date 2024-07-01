@@ -11,7 +11,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlogPlatform.Api.Tests", "B
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlogPlatform.Api.IntegrationTest", "BlogPlatform.Api.IntegrationTest\BlogPlatform.Api.IntegrationTest.csproj", "{5766250D-F1D0-422E-B311-72640B4B63D3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlogPlatform.Api.BrowserTests", "BlogPlatform.Api.BrowserTests\BlogPlatform.Api.BrowserTests.csproj", "{1F98BE66-3571-4656-BF6C-967EB15C67AC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlogPlatform.Api.BrowserTests", "BlogPlatform.Api.BrowserTests\BlogPlatform.Api.BrowserTests.csproj", "{1F98BE66-3571-4656-BF6C-967EB15C67AC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlogPlatform.Shared", "BlogPlatform.Shared\BlogPlatform.Shared.csproj", "{1AEF194A-3785-43D8-8C11-06C06A9E9ECC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlogPlatform.Shared.Identity", "BlogPlatform.Shared.Identity\BlogPlatform.Shared.Identity.csproj", "{6787709A-DEE8-4CD4-A3CE-430F42DD41A4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,6 +43,14 @@ Global
 		{1F98BE66-3571-4656-BF6C-967EB15C67AC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1F98BE66-3571-4656-BF6C-967EB15C67AC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1F98BE66-3571-4656-BF6C-967EB15C67AC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1AEF194A-3785-43D8-8C11-06C06A9E9ECC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1AEF194A-3785-43D8-8C11-06C06A9E9ECC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1AEF194A-3785-43D8-8C11-06C06A9E9ECC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1AEF194A-3785-43D8-8C11-06C06A9E9ECC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6787709A-DEE8-4CD4-A3CE-430F42DD41A4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6787709A-DEE8-4CD4-A3CE-430F42DD41A4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6787709A-DEE8-4CD4-A3CE-430F42DD41A4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6787709A-DEE8-4CD4-A3CE-430F42DD41A4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

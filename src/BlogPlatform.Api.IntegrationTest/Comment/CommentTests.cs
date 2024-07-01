@@ -1,8 +1,8 @@
-﻿using BlogPlatform.Api.Identity.Models;
-using BlogPlatform.Api.Models;
-using BlogPlatform.EFCore;
+﻿using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
+using BlogPlatform.Shared.Identity.Models;
+using BlogPlatform.Shared.Models.Comment;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;

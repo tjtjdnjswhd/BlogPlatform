@@ -1,8 +1,8 @@
 ﻿using BlogPlatform.Api.Controllers;
-using BlogPlatform.Api.Models;
 using BlogPlatform.Api.Tests.DbContextMock;
 using BlogPlatform.EFCore.Models;
 using BlogPlatform.EFCore.Models.Abstractions;
+using BlogPlatform.Shared.Models.Comment;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

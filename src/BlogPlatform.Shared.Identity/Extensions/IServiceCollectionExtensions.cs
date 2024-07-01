@@ -1,0 +1,128 @@
+﻿using AspNet.Security.OAuth.KakaoTalk;
+using AspNet.Security.OAuth.Naver;
+
+using BlogPlatform.EFCore.Models;
+using BlogPlatform.Shared.Identity.Authentication;
+using BlogPlatform.Shared.Identity.Constants;
+using BlogPlatform.Shared.Identity.Filters;
+using BlogPlatform.Shared.Identity.Options;
+using BlogPlatform.Shared.Identity.Services;
+using BlogPlatform.Shared.Identity.Services.Interfaces;
+
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.IdentityModel.Tokens;
+
+using System.Text;
+
+namespace BlogPlatform.Shared.Identity.Extensions
+{
+    public static class IServiceCollectionExtensions
+    {
+        public static IServiceCollection AddIdentity(this IServiceCollection services, IConfigurationSection optionsSection, IConfigurationSection oauthProviderSection)
+        {
+            ServiceDescriptor authenticationSchemeProviderService = new(typeof(IAuthenticationSchemeProvider), typeof(IgnoreCaseAuthenticationSchemeProvider), ServiceLifetime.Singleton);
+            services.Replace(authenticationSchemeProviderService);
+
+            services.AddScoped<IIdentityService, IdentityService>();
+            services.AddScoped<IJwtService, JwtService>();
+            services.AddScoped<IUserEmailService, UserEmailService>();
+            services.AddScoped<IEmailVerifyService, EmailVerifyService>();
+            services.AddScoped<IPasswordHasher<BasicAccount>, PasswordHasher<BasicAccount>>();
+
+            IConfigurationSection jwtOptionsSection = optionsSection.GetRequiredSection("Jwt");
+            services.AddOptions<JwtOptions>().Bind(jwtOptionsSection).ValidateOnStart().ValidateDataAnnotations();
+
+            IConfigurationSection accountOptionsSection = optionsSection.GetRequiredSection("Account");
+            services.AddOptions<AccountOptions>().Bind(accountOptionsSection).ValidateOnStart().ValidateDataAnnotations();
+
+            IConfigurationSection userEmailOptionsSection = optionsSection.GetRequiredSection("UserEmail");
+            services.AddOptions<UserEmailOptions>().Bind(userEmailOptionsSection).ValidateOnStart().ValidateDataAnnotations();
+
+            services.AddScoped<UserBanFilter>();
+            services.Configure<MvcOptions>(m =>
+            {
+                m.Filters.AddService<UserBanFilter>();
+            });
+
+            services.AddAuthorization(options =>
+            {
+                AuthorizationPolicyBuilder userPolicyBuilder = new(JwtBearerDefaults.AuthenticationScheme);
+                userPolicyBuilder.RequireRole(PolicyConstants.UserPolicy);
+                userPolicyBuilder.RequireAuthenticatedUser();
+                options.AddPolicy(PolicyConstants.UserPolicy, userPolicyBuilder.Build());
+
+                AuthorizationPolicyBuilder adminPolicyBuilder = new(JwtBearerDefaults.AuthenticationScheme);
+                adminPolicyBuilder.RequireRole(PolicyConstants.AdminPolicy);
+                adminPolicyBuilder.RequireAuthenticatedUser();
+                options.AddPolicy(PolicyConstants.AdminPolicy, adminPolicyBuilder.Build());
+
+                AuthorizationPolicyBuilder oauthPolicyBuilder = new(GoogleDefaults.AuthenticationScheme, KakaoTalkAuthenticationDefaults.AuthenticationScheme, NaverAuthenticationDefaults.AuthenticationScheme);
+                oauthPolicyBuilder.RequireAuthenticatedUser();
+                options.AddPolicy(PolicyConstants.OAuthPolicy, oauthPolicyBuilder.Build());
+            });
+
+            JwtOptions jwtOptions = jwtOptionsSection.Get<JwtOptions>() ?? throw new Exception();
+            services.AddAuthentication(options =>
+                {
+                    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                })
+                .AddJwtBearer(options =>
+                {
+                    options.SaveToken = false;
+                    options.MapInboundClaims = false;
+
+                    options.ClaimsIssuer = jwtOptions.Issuer;
+                    options.Audience = jwtOptions.Audience;
+
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidIssuer = jwtOptions.Issuer,
+                        ValidateAudience = true,
+                        ValidAudience = jwtOptions.Audience,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SecretKey)),
+                        AuthenticationType = JwtBearerDefaults.AuthenticationScheme
+                    };
+
+                    options.Events = new()
+                    {
+                        OnMessageReceived = context =>
+                        {
+                            context.Token = context.Request.Cookies[jwtOptions.AccessTokenName];
+                            return Task.CompletedTask;
+                        }
+                    };
+                })
+                .AddGoogle(options =>
+                {
+                    options.ClientId = oauthProviderSection["Google:ClientSecret"] ?? throw new Exception();
+                    options.ClientSecret = oauthProviderSection["Google:ClientSecret"] ?? throw new Exception();
+                })
+                .AddKakaoTalk(options =>
+                {
+                    options.ClientId = oauthProviderSection["KakaoTalk:ClientId"] ?? throw new Exception();
+                    options.ClientSecret = oauthProviderSection["KakaoTalk:ClientSecret"] ?? throw new Exception();
+                })
+                .AddNaver(options =>
+                {
+                    options.ClientId = oauthProviderSection["Naver:ClientId"] ?? throw new Exception();
+                    options.ClientSecret = oauthProviderSection["Naver:ClientSecret"] ?? throw new Exception();
+                })
+                .AddCookie();
+
+            return services;
+        }
+    }
+}

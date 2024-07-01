@@ -1,10 +1,10 @@
 ﻿using BlogPlatform.Api.Controllers;
-using BlogPlatform.Api.Identity.ActionResults;
-using BlogPlatform.Api.Identity.Models;
-using BlogPlatform.Api.Identity.Services.Interfaces;
-using BlogPlatform.Api.Models;
 using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Models;
+using BlogPlatform.Shared.Identity.ActionResults;
+using BlogPlatform.Shared.Identity.Models;
+using BlogPlatform.Shared.Identity.Services.Interfaces;
+using BlogPlatform.Shared.Models;
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -592,7 +592,7 @@ namespace BlogPlatform.Api.Tests.Controllers
         {
             // Arrange
             Mock<IIdentityService> identityServiceMock = new();
-            identityServiceMock.Setup(i => i.WithDrawAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+            identityServiceMock.Setup(i => i.WithDrawAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<CancellationToken>())).ReturnsAsync(EWithDrawResult.Success);
 
             IdentityController controller = CreateMockController(identityServiceMock);
 
@@ -608,7 +608,7 @@ namespace BlogPlatform.Api.Tests.Controllers
         {
             // Arrange
             Mock<IIdentityService> identityServiceMock = new();
-            identityServiceMock.Setup(i => i.WithDrawAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+            identityServiceMock.Setup(i => i.WithDrawAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<CancellationToken>())).ReturnsAsync(EWithDrawResult.UserNotFound);
 
             IdentityController controller = CreateMockController(identityServiceMock);
 

@@ -1,4 +1,4 @@
-﻿using BlogPlatform.Api.Models;
+﻿using BlogPlatform.Shared.Models;
 
 using Microsoft.AspNetCore.Mvc;
 

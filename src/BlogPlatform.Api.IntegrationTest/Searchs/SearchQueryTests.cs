@@ -1,5 +1,6 @@
 ﻿using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Models;
+using BlogPlatform.Shared.Identity.Models;
 
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
@@ -126,7 +127,7 @@ namespace BlogPlatform.Api.IntegrationTest.Searchs
             adminUser.Roles = [adminRole];
             dbContext.SaveChanges();
 
-            Api.Identity.Models.AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, adminUser);
+            AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, adminUser);
 
             HttpClient client = CreateClient();
             Helper.SetAuthorizationHeader(client, authorizeToken);

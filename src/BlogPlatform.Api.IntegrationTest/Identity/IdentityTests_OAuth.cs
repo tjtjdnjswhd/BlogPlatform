@@ -1,7 +1,7 @@
-﻿using BlogPlatform.Api.Identity.Models;
-using BlogPlatform.EFCore;
+﻿using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
+using BlogPlatform.Shared.Identity.Models;
 
 using Microsoft.Extensions.DependencyInjection;
 
@@ -69,9 +69,10 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         {
             // Arrange
             HttpClient client = CreateClient();
+            HttpContent content = new FormUrlEncodedContent(new Dictionary<string, string>() { { "provider", "google" } });
 
             // Act
-            HttpResponseMessage response = await client.GetAsync("/api/identity/oauth?provider=google");
+            HttpResponseMessage response = await client.PostAsync("/api/identity/add/oauth", content);
 
             // Assert
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -85,9 +86,10 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(client, authorizeToken);
+            HttpContent content = new FormUrlEncodedContent(new Dictionary<string, string>() { { "provider", "google" } });
 
             // Act
-            HttpResponseMessage response = await client.GetAsync("/api/identity/oauth?provider=google");
+            HttpResponseMessage response = await client.PostAsync("/api/identity/add/oauth", content);
 
             // Assert
             Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
@@ -102,8 +104,10 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizeTokenCookie(client, authorizeToken);
 
+            HttpContent content = new FormUrlEncodedContent(new Dictionary<string, string>() { { "provider", "google" } });
+
             // Act
-            HttpResponseMessage response = await client.GetAsync("/api/identity/oauth?provider=google");
+            HttpResponseMessage response = await client.PostAsync("/api/identity/add/oauth", content);
 
             // Assert
             Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);

@@ -24,18 +24,41 @@ LIMIT 1
         @__search_Email_0 (String?): email
       },
       Text:
-SELECT `u`.`Id`, (
-    SELECT `b`.`AccountId`
-    FROM `BasicAccounts` AS `b`
-    WHERE (`b`.`SoftDeleteLevel` = 0) AND (`u`.`Id` = `b`.`UserId`)
-    LIMIT 1), `u`.`Name`, `u`.`Email`, `u`.`CreatedAt`, (
-    SELECT `b0`.`Id`
-    FROM `Blog` AS `b0`
-    WHERE (`b0`.`SoftDeleteLevel` = 0) AND (`u`.`Id` = `b0`.`UserId`)
-    LIMIT 1)
-FROM `User` AS `u`
-WHERE (`u`.`SoftDeleteLevel` = 0) AND (`u`.`Email` = @__search_Email_0)
-LIMIT 1
+SELECT `t`.`Id`, `t`.`c`, `t`.`Name`, `t`.`Email`, `t`.`CreatedAt`, `t`.`c0`, `t0`.`Name`, `t0`.`RolesId`, `t0`.`UsersId`, `t0`.`Id`, `t2`.`Name`, `t2`.`Id`, `t2`.`Id0`
+FROM (
+    SELECT `u`.`Id`, (
+        SELECT `b`.`AccountId`
+        FROM `BasicAccounts` AS `b`
+        WHERE (`b`.`SoftDeleteLevel` = 0) AND (`u`.`Id` = `b`.`UserId`)
+        LIMIT 1) AS `c`, `u`.`Name`, `u`.`Email`, `u`.`CreatedAt`, (
+        SELECT `b0`.`Id`
+        FROM `Blog` AS `b0`
+        WHERE (`b0`.`SoftDeleteLevel` = 0) AND (`u`.`Id` = `b0`.`UserId`)
+        LIMIT 1) AS `c0`
+    FROM `User` AS `u`
+    WHERE (`u`.`SoftDeleteLevel` = 0) AND (`u`.`Email` = @__search_Email_0)
+    LIMIT 1
+) AS `t`
+LEFT JOIN (
+    SELECT `t1`.`Name`, `r`.`RolesId`, `r`.`UsersId`, `t1`.`Id`
+    FROM `RoleUser` AS `r`
+    INNER JOIN (
+        SELECT `r0`.`Id`, `r0`.`Name`
+        FROM `Role` AS `r0`
+        WHERE `r0`.`SoftDeleteLevel` = 0
+    ) AS `t1` ON `r`.`RolesId` = `t1`.`Id`
+) AS `t0` ON `t`.`Id` = `t0`.`UsersId`
+LEFT JOIN (
+    SELECT `t3`.`Name`, `o`.`Id`, `t3`.`Id` AS `Id0`, `o`.`UserId`
+    FROM `OAuthAccount` AS `o`
+    INNER JOIN (
+        SELECT `o0`.`Id`, `o0`.`Name`
+        FROM `OAuthProvider` AS `o0`
+        WHERE `o0`.`SoftDeleteLevel` = 0
+    ) AS `t3` ON `o`.`ProviderId` = `t3`.`Id`
+    WHERE `o`.`SoftDeleteLevel` = 0
+) AS `t2` ON `t`.`Id` = `t2`.`UserId`
+ORDER BY `t`.`Id`, `t0`.`RolesId`, `t0`.`UsersId`, `t0`.`Id`, `t2`.`Id`
     }
   }
 ]

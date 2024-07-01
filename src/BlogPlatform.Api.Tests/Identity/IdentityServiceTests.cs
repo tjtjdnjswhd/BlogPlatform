@@ -1,10 +1,10 @@
-﻿using BlogPlatform.Api.Identity.Models;
-using BlogPlatform.Api.Services;
-using BlogPlatform.Api.Services.Interfaces;
-using BlogPlatform.EFCore;
+﻿using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
 using BlogPlatform.EFCore.Models.Abstractions;
+using BlogPlatform.Shared.Identity.Models;
+using BlogPlatform.Shared.Identity.Services;
+using BlogPlatform.Shared.Identity.Services.Interfaces;
 
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
@@ -582,10 +582,10 @@ namespace BlogPlatform.Api.Tests.Identity
             ClaimsPrincipal claimsPrincipal = new();
 
             // Act
-            bool result = await identityService.WithDrawAsync(claimsPrincipal);
+            EWithDrawResult result = await identityService.WithDrawAsync(claimsPrincipal);
 
             // Assert
-            Assert.True(result);
+            Assert.Equal(EWithDrawResult.Success, result);
             Assert.Equal(1, user.SoftDeleteLevel);
             Assert.True(user.SoftDeletedAt != EntityBase.DefaultSoftDeletedAt);
             Assert.True(user.BasicAccounts.All(b => b.SoftDeleteLevel > 1));
@@ -603,10 +603,10 @@ namespace BlogPlatform.Api.Tests.Identity
             ClaimsPrincipal claimsPrincipal = new();
 
             // Act
-            bool result = await identityService.WithDrawAsync(claimsPrincipal);
+            EWithDrawResult result = await identityService.WithDrawAsync(claimsPrincipal);
 
             // Assert
-            Assert.False(result);
+            Assert.Equal(EWithDrawResult.UserNotFound, result);
             Assert.Equal(0, user.SoftDeleteLevel);
             Assert.True(user.IsSoftDeletedAtDefault());
             Assert.True(user.BasicAccounts.All(b => b.SoftDeleteLevel == 0));

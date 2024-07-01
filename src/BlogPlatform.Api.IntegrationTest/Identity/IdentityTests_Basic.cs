@@ -1,8 +1,7 @@
-﻿using BlogPlatform.Api.Identity.Constants;
-using BlogPlatform.Api.Identity.Models;
-using BlogPlatform.Api.Identity.Services.Interfaces;
-using BlogPlatform.Api.Models;
-using BlogPlatform.EFCore.Models;
+﻿using BlogPlatform.EFCore.Models;
+using BlogPlatform.Shared.Identity.Models;
+using BlogPlatform.Shared.Identity.Services.Interfaces;
+using BlogPlatform.Shared.Models;
 
 using Moq;
 
@@ -157,20 +156,14 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             Assert.Equal("중복된 이메일입니다", error.Message);
         }
 
-        [Theory]
-        [InlineData(true)]
-        [InlineData(false)]
-        public async Task BasicSignUp_Success(bool setCookieSetToken)
+        [Fact]
+        public async Task BasicSignUp_Success()
         {
             // Arrange
             HttpClient client = CreateClient();
 
             string email = "user55@user.com";
             await Helper.SetVerifiedEmailAsync(WebApplicationFactory, email);
-            if (setCookieSetToken)
-            {
-                client.DefaultRequestHeaders.Add(HeaderNameConstants.AuthorizeTokenSetCookie, "false");
-            }
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/basic", new BasicSignUpInfo("user55Id", "user55pw", "user55", email, null));

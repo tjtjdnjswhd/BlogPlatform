@@ -1,7 +1,7 @@
-﻿using BlogPlatform.Api.Identity.Models;
-using BlogPlatform.Api.Models;
-using BlogPlatform.EFCore;
+﻿using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Models;
+using BlogPlatform.Shared.Identity.Models;
+using BlogPlatform.Shared.Models;
 
 using Microsoft.Extensions.DependencyInjection;
 

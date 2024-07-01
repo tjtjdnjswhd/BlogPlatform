@@ -1,6 +1,6 @@
-﻿using BlogPlatform.Api.Identity.Services.Interfaces;
-using BlogPlatform.EFCore;
+﻿using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Models;
+using BlogPlatform.Shared.Identity.Services.Interfaces;
 
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;

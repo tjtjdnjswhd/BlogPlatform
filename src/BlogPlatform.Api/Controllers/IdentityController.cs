@@ -1,13 +1,14 @@
 ﻿using BlogPlatform.Api.Attributes;
-using BlogPlatform.Api.Identity.ActionResults;
-using BlogPlatform.Api.Identity.Attributes;
-using BlogPlatform.Api.Identity.Filters;
-using BlogPlatform.Api.Identity.ModelBinders;
-using BlogPlatform.Api.Identity.Models;
-using BlogPlatform.Api.Identity.Services.Interfaces;
-using BlogPlatform.Api.Models;
 using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Models;
+using BlogPlatform.Shared.Identity.ActionResults;
+using BlogPlatform.Shared.Identity.Attributes;
+using BlogPlatform.Shared.Identity.Filters;
+using BlogPlatform.Shared.Identity.ModelBinders;
+using BlogPlatform.Shared.Identity.Models;
+using BlogPlatform.Shared.Identity.Services.Interfaces;
+using BlogPlatform.Shared.Models;
+using BlogPlatform.Shared.Models.User;
 
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
@@ -170,9 +171,9 @@ namespace BlogPlatform.Api.Controllers
             return HandleSignUp(signUpResult, user, returnUrl);
         }
 
-        [HttpGet("oauth")]
+        [HttpPost("add/oauth")]
         [UserAuthorize]
-        public IActionResult AddOAuth([FromQuery] string provider, [FromQuery] string? returnUrl)
+        public IActionResult AddOAuth([FromForm] string provider, [FromQuery] string? returnUrl)
         {
             string? redirectUri = Url.Action("AddOAuthCallback", "Identity");
             Debug.Assert(redirectUri is not null);
@@ -188,7 +189,7 @@ namespace BlogPlatform.Api.Controllers
             return Challenge(authenticationProperties, provider);
         }
 
-        [HttpPost("oauth")]
+        [HttpPost("add/oauth/callback")]
         [OAuthAuthorize]
         [UserAuthorize]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -326,8 +327,14 @@ namespace BlogPlatform.Api.Controllers
         [ProducesDefaultResponseType]
         public async Task<IActionResult> WithDrawAsync(CancellationToken cancellationToken)
         {
-            bool isExist = await _identityService.WithDrawAsync(User, cancellationToken);
-            return isExist ? Ok() : new AuthenticatedUserDataNotFoundResult();
+            EWithDrawResult result = await _identityService.WithDrawAsync(User, cancellationToken);
+            return result switch
+            {
+                EWithDrawResult.Success => Ok(),
+                EWithDrawResult.UserNotFound => new AuthenticatedUserDataNotFoundResult(),
+                EWithDrawResult.DatabaseError => StatusCode(StatusCodes.Status500InternalServerError, new Error("데이터베이스에서 오류가 발생했습니다")),
+                _ => throw new InvalidEnumArgumentException(nameof(result), (int)result, typeof(EWithDrawResult))
+            };
         }
 
         [HttpPost("withdraw/cancel")]

@@ -1,6 +1,6 @@
-﻿using BlogPlatform.Api.Identity.Options;
-using BlogPlatform.Api.Services.Interfaces;
-using BlogPlatform.EFCore;
+﻿using BlogPlatform.EFCore;
+using BlogPlatform.Shared.Identity.Options;
+using BlogPlatform.Shared.Services.Interfaces;
 
 using Meziantou.Extensions.Logging.Xunit;
 

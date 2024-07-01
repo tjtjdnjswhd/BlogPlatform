@@ -1,6 +1,6 @@
-﻿using BlogPlatform.Api.Identity.Models;
-using BlogPlatform.EFCore.Extensions;
+﻿using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
+using BlogPlatform.Shared.Identity.Models;
 
 using System.Net;
 using System.Net.Http.Json;

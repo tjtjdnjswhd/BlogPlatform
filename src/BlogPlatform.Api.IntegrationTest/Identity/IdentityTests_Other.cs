@@ -1,9 +1,7 @@
-﻿using BlogPlatform.Api.Identity.Constants;
-using BlogPlatform.Api.Identity.Models;
-using BlogPlatform.Api.Identity.Services.Interfaces;
-using BlogPlatform.Api.Models;
-using BlogPlatform.Api.Services.Interfaces;
-using BlogPlatform.EFCore.Models;
+﻿using BlogPlatform.EFCore.Models;
+using BlogPlatform.Shared.Identity.Models;
+using BlogPlatform.Shared.Identity.Services.Interfaces;
+using BlogPlatform.Shared.Models;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -75,10 +73,8 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
-        [Theory]
-        [InlineData(true)]
-        [InlineData(false)]
-        public async Task Refresh_Ok(bool useCookie)
+        [Fact]
+        public async Task Refresh_Ok()
         {
             // Arrange
             HttpClient client = CreateClient();
@@ -89,31 +85,13 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
 
             // Act
             HttpResponseMessage response;
-            if (useCookie)
-            {
-                client.DefaultRequestHeaders.Add(HeaderNameConstants.AuthorizeTokenSetCookie, "true");
-                Helper.SetAuthorizeTokenCookie(client, authorizeToken);
-                response = await client.PostAsync("/api/identity/refresh", null);
-            }
-            else
-            {
-                response = await client.PostAsJsonAsync("/api/identity/refresh", authorizeToken, CancellationToken.None);
-            }
+            response = await client.PostAsJsonAsync("/api/identity/refresh", authorizeToken, CancellationToken.None);
 
             // Assert
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-            if (useCookie)
-            {
-                response.Headers.TryGetValues("Set-Cookie", out IEnumerable<string>? cookieValues);
-                Assert.NotNull(cookieValues);
-                TestOutputHelper.WriteLine($"cookieValues:{cookieValues}");
-            }
-            else
-            {
-                AuthorizeToken? bodyToken = await response.Content.ReadFromJsonAsync<AuthorizeToken>();
-                Assert.NotNull(bodyToken);
-            }
+            AuthorizeToken? bodyToken = await response.Content.ReadFromJsonAsync<AuthorizeToken>();
+            Assert.NotNull(bodyToken);
         }
 
         [Fact]

@@ -1,10 +1,9 @@
-﻿using BlogPlatform.Api.Identity.Models;
-using BlogPlatform.Api.Identity.Services.Interfaces;
-using BlogPlatform.Api.Services.Interfaces;
-using BlogPlatform.EFCore;
+﻿using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
 using BlogPlatform.EFCore.Models.Abstractions;
+using BlogPlatform.Shared.Identity.Models;
+using BlogPlatform.Shared.Identity.Services.Interfaces;
 
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;

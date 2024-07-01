@@ -1,11 +1,13 @@
 ﻿using BlogPlatform.Api.Helper;
-using BlogPlatform.Api.Identity.Attributes;
-using BlogPlatform.Api.Models;
-using BlogPlatform.Api.Services;
-using BlogPlatform.Api.Services.Interfaces;
 using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
+using BlogPlatform.Shared.Identity.Attributes;
+using BlogPlatform.Shared.Models;
+using BlogPlatform.Shared.Models.Admin;
+using BlogPlatform.Shared.Models.User;
+using BlogPlatform.Shared.Services;
+using BlogPlatform.Shared.Services.Interfaces;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
