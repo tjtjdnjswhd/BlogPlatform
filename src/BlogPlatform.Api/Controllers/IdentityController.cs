@@ -230,9 +230,9 @@ namespace BlogPlatform.Api.Controllers
         [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status409Conflict)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> RemoveOAuthAsync([FromRoute] string provider, CancellationToken cancellationToken)
+        public async Task<IActionResult> RemoveOAuthAsync([FromRoute] string provider, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
-            ERemoveOAuthResult removeOAuthResult = await _identityService.RemoveOAuthAsync(User, provider, cancellationToken);
+            ERemoveOAuthResult removeOAuthResult = await _identityService.RemoveOAuthAsync(userId, provider, cancellationToken);
             switch (removeOAuthResult)
             {
                 case ERemoveOAuthResult.Success:
@@ -257,7 +257,7 @@ namespace BlogPlatform.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesDefaultResponseType]
-        public LogoutResult Logout() => new();
+        public SignOutResult Logout() => SignOut();
 
         [HttpPost("refresh")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -271,9 +271,9 @@ namespace BlogPlatform.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status401Unauthorized)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> ChangePasswordAsync([FromBody] PasswordModel password, CancellationToken cancellationToken)
+        public async Task<IActionResult> ChangePasswordAsync([FromBody] PasswordModel password, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
-            bool isUserExist = await _identityService.ChangePasswordAsync(User, password.Password, cancellationToken);
+            bool isUserExist = await _identityService.ChangePasswordAsync(userId, password.Password, cancellationToken);
             return isUserExist ? Ok() : new AuthenticatedUserDataNotFoundResult();
         }
 
@@ -298,9 +298,9 @@ namespace BlogPlatform.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status401Unauthorized)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> ChangeNameAsync([FromBody] UserNameModel name, CancellationToken cancellationToken)
+        public async Task<IActionResult> ChangeNameAsync([FromBody] UserNameModel name, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
-            bool isExist = await _identityService.ChangeNameAsync(User, name.Name, cancellationToken);
+            bool isExist = await _identityService.ChangeNameAsync(userId, name.Name, cancellationToken);
             return isExist ? Ok() : new AuthenticatedUserDataNotFoundResult();
         }
 
@@ -325,9 +325,9 @@ namespace BlogPlatform.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status401Unauthorized)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> WithDrawAsync(CancellationToken cancellationToken)
+        public async Task<IActionResult> WithDrawAsync([UserIdBind] int userId, CancellationToken cancellationToken)
         {
-            EWithDrawResult result = await _identityService.WithDrawAsync(User, cancellationToken);
+            EWithDrawResult result = await _identityService.WithDrawAsync(userId, cancellationToken);
             return result switch
             {
                 EWithDrawResult.Success => Ok(),
@@ -343,9 +343,9 @@ namespace BlogPlatform.Api.Controllers
         [ProducesResponseType(typeof(Error), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status401Unauthorized)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> CancelWithDrawAsync(CancellationToken cancellationToken)
+        public async Task<IActionResult> CancelWithDrawAsync([UserIdBind] int userId, CancellationToken cancellationToken)
         {
-            ECancelWithDrawResult result = await _identityService.CancelWithDrawAsync(User, cancellationToken);
+            ECancelWithDrawResult result = await _identityService.CancelWithDrawAsync(userId, cancellationToken);
             return result switch
             {
                 ECancelWithDrawResult.Success => Ok(),
@@ -375,7 +375,7 @@ namespace BlogPlatform.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status400BadRequest)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> ConfirmChangeEmailAsync([FromQuery] string code, CancellationToken cancellationToken)
+        public async Task<IActionResult> ConfirmChangeEmailAsync([FromQuery] string code, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             string? email = await _emailVerifyService.VerifyEmailCodeAsync(code, cancellationToken);
             if (email is null)
@@ -383,7 +383,7 @@ namespace BlogPlatform.Api.Controllers
                 return BadRequest(new Error("잘못된 코드입니다"));
             }
 
-            bool isExist = await _identityService.ChangeEmailAsync(User, email, cancellationToken);
+            bool isExist = await _identityService.ChangeEmailAsync(userId, email, cancellationToken);
             return isExist ? Ok() : new AuthenticatedUserDataNotFoundResult();
         }
 
@@ -398,20 +398,13 @@ namespace BlogPlatform.Api.Controllers
                 _ => throw new InvalidEnumArgumentException(nameof(loginResult), (int)loginResult, typeof(ELoginResult))
             };
 
-            if (returnUrl is null)
+            return loginResult switch
             {
-                return loginResult switch
-                {
-                    ELoginResult.Success => new LoginSuccessActionResult(user!),
-                    ELoginResult.NotFound => NotFound(new Error(message)),
-                    ELoginResult.WrongPassword => Unauthorized(new Error(message)),
-                    _ => throw new InvalidEnumArgumentException(nameof(loginResult), (int)loginResult, typeof(ELoginResult))
-                };
-            }
-            else
-            {
-                return new LoginRedirectActionResult(user, message, returnUrl);
-            }
+                ELoginResult.Success => new LoginActionResult(user!, returnUrl),
+                ELoginResult.NotFound => NotFound(new Error(message)),
+                ELoginResult.WrongPassword => Unauthorized(new Error(message)),
+                _ => throw new InvalidEnumArgumentException(nameof(loginResult), (int)loginResult, typeof(ELoginResult))
+            };
         }
 
         private IActionResult HandleSignUp(ESignUpResult signUpResult, User? user, string? returnUrl)
@@ -428,23 +421,16 @@ namespace BlogPlatform.Api.Controllers
                 _ => throw new InvalidEnumArgumentException(nameof(signUpResult), (int)signUpResult, typeof(ESignUpResult))
             };
 
-            if (returnUrl is null)
+            return signUpResult switch
             {
-                return signUpResult switch
-                {
-                    ESignUpResult.Success => new LoginSuccessActionResult(user!),
-                    ESignUpResult.UserIdAlreadyExists => Conflict(new Error(message)),
-                    ESignUpResult.NameAlreadyExists => Conflict(new Error(message)),
-                    ESignUpResult.EmailAlreadyExists => Conflict(new Error(message)),
-                    ESignUpResult.ProviderNotFound => Conflict(new Error(message)),
-                    ESignUpResult.OAuthAlreadyExists => Conflict(new Error(message)),
-                    _ => throw new InvalidEnumArgumentException(nameof(signUpResult), (int)signUpResult, typeof(ESignUpResult))
-                };
-            }
-            else
-            {
-                return new LoginRedirectActionResult(user, message, returnUrl);
-            }
+                ESignUpResult.Success => new LoginActionResult(user!, returnUrl),
+                ESignUpResult.UserIdAlreadyExists => Conflict(new Error(message)),
+                ESignUpResult.NameAlreadyExists => Conflict(new Error(message)),
+                ESignUpResult.EmailAlreadyExists => Conflict(new Error(message)),
+                ESignUpResult.ProviderNotFound => Conflict(new Error(message)),
+                ESignUpResult.OAuthAlreadyExists => Conflict(new Error(message)),
+                _ => throw new InvalidEnumArgumentException(nameof(signUpResult), (int)signUpResult, typeof(ESignUpResult))
+            };
         }
     }
 }

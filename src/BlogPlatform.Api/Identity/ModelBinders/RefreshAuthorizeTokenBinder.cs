@@ -1,5 +1,5 @@
-﻿using BlogPlatform.Shared.Identity.Models;
-using BlogPlatform.Shared.Identity.Services.Interfaces;
+﻿using BlogPlatform.Api.Identity.Services.Interfaces;
+using BlogPlatform.Shared.Identity.Models;
 
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 
@@ -9,11 +9,10 @@ namespace BlogPlatform.Api.Identity.ModelBinders
     {
         public async Task BindModelAsync(ModelBindingContext bindingContext)
         {
+            CancellationToken cancellationToken = bindingContext.HttpContext.RequestAborted;
             using var scope = bindingContext.HttpContext.RequestServices.CreateScope();
-            IJwtService jwtService = scope.ServiceProvider.GetRequiredService<IJwtService>();
-            AuthorizeToken? authorizeToken = await jwtService.GetBodyTokenAsync(bindingContext.HttpContext.Request, bindingContext.HttpContext.RequestAborted);
-            authorizeToken ??= jwtService.GetCookieToken(bindingContext.HttpContext.Request);
-
+            IAuthorizeTokenService authorizeTokenService = scope.ServiceProvider.GetRequiredService<IAuthorizeTokenService>();
+            AuthorizeToken? authorizeToken = await authorizeTokenService.GetAsync(bindingContext.HttpContext.Request, true, cancellationToken) ?? await authorizeTokenService.GetAsync(bindingContext.HttpContext.Request, false, cancellationToken);
             bindingContext.Result = authorizeToken is null ? ModelBindingResult.Failed() : ModelBindingResult.Success(authorizeToken);
         }
     }

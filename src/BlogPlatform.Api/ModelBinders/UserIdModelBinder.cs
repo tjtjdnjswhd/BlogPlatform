@@ -1,4 +1,4 @@
-﻿using BlogPlatform.Shared.Identity.Services.Interfaces;
+﻿using BlogPlatform.Api.Identity.Helper;
 
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 
@@ -16,9 +16,7 @@ namespace BlogPlatform.Api.ModelBinders
                 return Task.CompletedTask;
             }
 
-            using var scope = bindingContext.HttpContext.RequestServices.CreateScope();
-            IIdentityService identityService = scope.ServiceProvider.GetRequiredService<IIdentityService>();
-            if (identityService.TryGetUserId(bindingContext.HttpContext.User, out int userId))
+            if (UserClaimsHelper.TryGetUserId(bindingContext.HttpContext.User, out int userId))
             {
                 bindingContext.Result = ModelBindingResult.Success(userId);
                 return Task.CompletedTask;

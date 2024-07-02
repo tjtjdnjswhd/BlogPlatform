@@ -1,12 +1,12 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 
-namespace BlogPlatform.Shared.Identity.Options
+namespace BlogPlatform.Api.Identity.Services.Options
 {
     /// <summary>
     /// JWT 설정
     /// </summary>
-    public class JwtOptions
+    public class AuthorizeTokenOptions
     {
         /// <summary>
         /// 비밀 키

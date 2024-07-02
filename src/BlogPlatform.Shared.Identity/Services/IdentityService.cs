@@ -11,7 +11,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 using System.Diagnostics;
-using System.Security.Claims;
 
 namespace BlogPlatform.Shared.Identity.Services
 {
@@ -20,19 +19,17 @@ namespace BlogPlatform.Shared.Identity.Services
         private static readonly TimeSpan UserRestoreDuration = TimeSpan.FromDays(1);
 
         private readonly BlogPlatformDbContext _blogPlatformDbContext;
-        private readonly IJwtService _jwtService;
         private readonly IPasswordHasher<BasicAccount> _passwordHasher;
         private readonly ICascadeSoftDeleteService _softDeleteService;
         private readonly TimeProvider _timeProvider;
         private readonly IdentityServiceOptions _options;
         private readonly ILogger<IdentityService> _logger;
 
-        public IdentityService(BlogPlatformDbContext blogPlatformDbContext, IJwtService jwtService, IPasswordHasher<BasicAccount> passwordHasher, ICascadeSoftDeleteService softDeleteService, TimeProvider timeProvider, IOptions<IdentityServiceOptions> options, ILogger<IdentityService> logger)
+        public IdentityService(BlogPlatformDbContext blogPlatformDbContext, IPasswordHasher<BasicAccount> passwordHasher, ICascadeSoftDeleteService softDeleteService, TimeProvider timeProvider, IOptions<IdentityServiceOptions> options, ILogger<IdentityService> logger)
         {
             _blogPlatformDbContext = blogPlatformDbContext;
             _passwordHasher = passwordHasher;
             _softDeleteService = softDeleteService;
-            _jwtService = jwtService;
             _logger = logger;
             _timeProvider = timeProvider;
             _options = options.Value;
@@ -122,8 +119,7 @@ namespace BlogPlatform.Shared.Identity.Services
                     user.Roles.Add(userRole);
                     await _blogPlatformDbContext.SaveChangesAsync(cancellationToken);
 
-                    transaction.Commit();
-
+                    await transaction.CommitAsync(token);
                     return user;
                 }
                 catch (Exception e)
@@ -268,13 +264,8 @@ namespace BlogPlatform.Shared.Identity.Services
         }
 
         /// <inheritdoc/>
-        public async Task<ERemoveOAuthResult> RemoveOAuthAsync(ClaimsPrincipal user, string provider, CancellationToken cancellationToken = default)
+        public async Task<ERemoveOAuthResult> RemoveOAuthAsync(int userId, string provider, CancellationToken cancellationToken = default)
         {
-            if (!TryGetUserId(user, out int userId))
-            {
-                Debug.Assert(false);
-            }
-
             bool isUserExist = await _blogPlatformDbContext.Users.AnyAsync(u => u.Id == userId, cancellationToken);
             if (!isUserExist)
             {
@@ -306,13 +297,8 @@ namespace BlogPlatform.Shared.Identity.Services
         }
 
         /// <inheritdoc/>
-        public async Task<bool> ChangePasswordAsync(ClaimsPrincipal user, string newPassword, CancellationToken cancellationToken = default)
+        public async Task<bool> ChangePasswordAsync(int userId, string newPassword, CancellationToken cancellationToken = default)
         {
-            if (!TryGetUserId(user, out int userId))
-            {
-                Debug.Assert(false);
-            }
-
             _logger.LogDebug("Changing password. user id: {userId}, new password: {newPassword}", userId, newPassword);
             string newPasswordHash = _passwordHasher.HashPassword(null, newPassword);
 
@@ -324,13 +310,8 @@ namespace BlogPlatform.Shared.Identity.Services
         }
 
         /// <inheritdoc/>
-        public async Task<bool> ChangeNameAsync(ClaimsPrincipal user, string newName, CancellationToken cancellationToken = default)
+        public async Task<bool> ChangeNameAsync(int userId, string newName, CancellationToken cancellationToken = default)
         {
-            if (!TryGetUserId(user, out int userId))
-            {
-                Debug.Assert(false);
-            }
-
             _logger.LogDebug("Changing user name. user id: {userId}. newName: {newName}", userId, newName);
 
             if (await _blogPlatformDbContext.Users.AnyAsync(u => u.Name == newName, cancellationToken))
@@ -373,13 +354,8 @@ namespace BlogPlatform.Shared.Identity.Services
         }
 
         /// <inheritdoc/>
-        public async Task<EWithDrawResult> WithDrawAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)
+        public async Task<EWithDrawResult> WithDrawAsync(int userId, CancellationToken cancellationToken = default)
         {
-            if (!TryGetUserId(user, out int userId))
-            {
-                Debug.Assert(false);
-            }
-
             _logger.LogInformation("Withdrawing user. user id: {userId}", userId);
 
             User? userData = await _blogPlatformDbContext.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
@@ -397,13 +373,8 @@ namespace BlogPlatform.Shared.Identity.Services
         }
 
         /// <inheritdoc/>
-        public async Task<ECancelWithDrawResult> CancelWithDrawAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)
+        public async Task<ECancelWithDrawResult> CancelWithDrawAsync(int userId, CancellationToken cancellationToken = default)
         {
-            if (!TryGetUserId(user, out int userId))
-            {
-                Debug.Assert(false);
-            }
-
             _logger.LogInformation("Canceling withdrawal. user id: {userId}", userId);
 
             User? userData = _blogPlatformDbContext.Users.IgnoreSoftDeleteFilter().FirstOrDefault(u => u.Id == userId);
@@ -432,13 +403,8 @@ namespace BlogPlatform.Shared.Identity.Services
         }
 
         /// <inheritdoc/>
-        public async Task<bool> ChangeEmailAsync(ClaimsPrincipal user, string newEmail, CancellationToken cancellationToken = default)
+        public async Task<bool> ChangeEmailAsync(int userId, string newEmail, CancellationToken cancellationToken = default)
         {
-            if (!TryGetUserId(user, out int userId))
-            {
-                Debug.Assert(false);
-            }
-
             if (await _blogPlatformDbContext.Users.AnyAsync(u => u.Email == newEmail, cancellationToken))
             {
                 return false;
@@ -450,11 +416,6 @@ namespace BlogPlatform.Shared.Identity.Services
             Debug.Assert(result <= 1);
 
             return result != 0;
-        }
-
-        public bool TryGetUserId(ClaimsPrincipal user, out int userId)
-        {
-            return _jwtService.TryGetUserId(user, out userId);
         }
 
         private IQueryable<User> GetRestorableUsers()

@@ -1,8 +1,13 @@
-﻿using BlogPlatform.Shared.Identity.Models;
-using BlogPlatform.Shared.Identity.Services.Interfaces;
-using BlogPlatform.Shared.Models;
+﻿using BlogPlatform.Api.Identity.Services.Interfaces;
+using BlogPlatform.EFCore;
+using BlogPlatform.EFCore.Models;
+using BlogPlatform.Shared.Identity.Models;
 
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+
+using System.Diagnostics;
 
 namespace BlogPlatform.Api.Identity.ActionResults
 {
@@ -22,33 +27,38 @@ namespace BlogPlatform.Api.Identity.ActionResults
 
         public async Task ExecuteResultAsync(ActionContext context)
         {
-            using var serviceScope = context.HttpContext.RequestServices.CreateScope();
+            using var scope = context.HttpContext.RequestServices.CreateScope();
             CancellationToken cancellationToken = context.HttpContext.RequestAborted;
 
-            ILogger<RefreshResult> logger = serviceScope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger<RefreshResult>();
-            IJwtService jwtService = serviceScope.ServiceProvider.GetRequiredService<IJwtService>();
-            context.HttpContext.Response.StatusCode = StatusCodes.Status200OK;
+            ILogger<RefreshResult> logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger<RefreshResult>();
 
-            AuthorizeToken? newToken = await jwtService.RefreshAsync(_authorizeToken, cancellationToken);
-            if (newToken is null)
+            IAuthorizeTokenService authorizeTokenService = scope.ServiceProvider.GetRequiredService<IAuthorizeTokenService>();
+            string? oldAccessToken = await authorizeTokenService.GetCachedTokenAsync(_authorizeToken.RefreshToken, cancellationToken);
+            if (_authorizeToken.AccessToken != oldAccessToken)
             {
-                logger.LogInformation("Refresh token is expired.");
-                context.HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
-                await context.HttpContext.Response.WriteAsJsonAsync(new Error("토큰이 만료됬습니다. 다시 로그인 해 주시기 바랍니다."), cancellationToken);
+                context.HttpContext.Response.StatusCode = StatusCodes.Status403Forbidden;
                 return;
             }
 
-            await jwtService.SetCacheTokenAsync(newToken, cancellationToken);
-            if (_setCookie)
+            if (!Helper.UserClaimsHelper.TryGetUserId(oldAccessToken, out int userId))
             {
-                logger.LogDebug("Setting cookie token: {token}", newToken);
-                jwtService.SetCookieToken(context.HttpContext.Response, newToken);
+                Debug.Assert(false);
             }
-            else
+
+            BlogPlatformDbContext blogPlatformDbContext = scope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
+            IUserClaimsPrincipalFactory<User> claimsPrincipalFactory = scope.ServiceProvider.GetRequiredService<IUserClaimsPrincipalFactory<User>>();
+
+            User? user = await blogPlatformDbContext.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user is null)
             {
-                logger.LogDebug("Writing token to response: {token}", newToken);
-                await jwtService.SetBodyTokenAsync(context.HttpContext.Response, newToken, cancellationToken);
+                await new AuthenticatedUserDataNotFoundResult().ExecuteResultAsync(context);
+                return;
             }
+
+            System.Security.Claims.ClaimsPrincipal claimsPrincipal = await claimsPrincipalFactory.CreateAsync(user);
+            AuthorizeToken authorizeToken = authorizeTokenService.GenerateToken(claimsPrincipal, _setCookie);
+            context.HttpContext.Response.StatusCode = StatusCodes.Status200OK;
+            await authorizeTokenService.WriteAsync(context.HttpContext.Response, authorizeToken, _setCookie, cancellationToken);
         }
     }
 }

@@ -9,13 +9,6 @@ namespace BlogPlatform.Shared.Identity.Extensions
 {
     public static class IServiceCollectionExtensions
     {
-        public static IServiceCollection AddJwtService(this IServiceCollection services, IConfigurationSection jwtOptionsSection)
-        {
-            services.AddScoped<IJwtService, JwtService>();
-            services.Configure<JwtOptions>(jwtOptionsSection);
-            return services;
-        }
-
         public static IServiceCollection AddIdentityService(this IServiceCollection services, IConfigurationSection identityServiceOptionsSection)
         {
             services.AddScoped<IIdentityService, IdentityService>();

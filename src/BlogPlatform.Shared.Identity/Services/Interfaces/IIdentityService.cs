@@ -1,8 +1,6 @@
 ﻿using BlogPlatform.EFCore.Models;
 using BlogPlatform.Shared.Identity.Models;
 
-using System.Security.Claims;
-
 namespace BlogPlatform.Shared.Identity.Services.Interfaces
 {
     /// <summary>
@@ -74,38 +72,38 @@ namespace BlogPlatform.Shared.Identity.Services.Interfaces
         /// <summary>
         /// 현 사용자의 OAuth 계정을 제거합니다
         /// </summary>
-        /// <param name="user"></param>
+        /// <param name="userId"></param>
         /// <param name="provider"></param>
         /// <param name="cancellationToken"></param>
         /// <returns>
         /// 요청의 성공 여부를 반환합니다
         /// </returns>
         /// <exception cref="OperationCanceledException"/>
-        Task<ERemoveOAuthResult> RemoveOAuthAsync(ClaimsPrincipal user, string provider, CancellationToken cancellationToken = default);
+        Task<ERemoveOAuthResult> RemoveOAuthAsync(int userId, string provider, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// 현 사용자의 비밀번호를 변경합니다
         /// </summary>
-        /// <param name="user"></param>
+        /// <param name="userId"></param>
         /// <param name="newPassword"></param>
         /// <param name="cancellationToken"></param>
         /// <returns>
         /// 유저가 존재하지 않을 경우 false를 반환합니다
         /// </returns>
         /// <exception cref="OperationCanceledException"/>
-        Task<bool> ChangePasswordAsync(ClaimsPrincipal user, string newPassword, CancellationToken cancellationToken = default);
+        Task<bool> ChangePasswordAsync(int userId, string newPassword, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// 현 사용자의 이름을 변경합니다
         /// </summary>
-        /// <param name="user"></param>
+        /// <param name="userId"></param>
         /// <param name="newName"></param>
         /// <param name="cancellationToken"></param>
         /// <returns>
         /// 유저가 존재하지 않을 시 false를 반환합니다
         /// </returns>
         /// <exception cref="OperationCanceledException"/>
-        Task<bool> ChangeNameAsync(ClaimsPrincipal user, string newName, CancellationToken cancellationToken = default);
+        Task<bool> ChangeNameAsync(int userId, string newName, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// 해당 <paramref name="email"/>을 가진 유저의 이메일을 초기화합니다
@@ -133,36 +131,28 @@ namespace BlogPlatform.Shared.Identity.Services.Interfaces
         /// <summary>
         /// 해당 유저의 계정을 삭제합니다
         /// </summary>
-        /// <param name="user"></param>
+        /// <param name="userId"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task<EWithDrawResult> WithDrawAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default);
+        Task<EWithDrawResult> WithDrawAsync(int userId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// 해당 유저의 계정 삭제를 취소합니다
         /// </summary>
-        /// <param name="user"></param>
+        /// <param name="userId"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task<ECancelWithDrawResult> CancelWithDrawAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default);
+        Task<ECancelWithDrawResult> CancelWithDrawAsync(int userId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// 해당 유저의 이메일을 변경합니다
         /// </summary>
-        /// <param name="user"></param>
+        /// <param name="userId"></param>
         /// <param name="newEmail"></param>
         /// <param name="cancellationToken"></param>
         /// <returns>
         /// 
         /// </returns>
-        Task<bool> ChangeEmailAsync(ClaimsPrincipal user, string newEmail, CancellationToken cancellationToken = default);
-
-        /// <summary>
-        /// 유저 Id를 반환합니다.
-        /// </summary>
-        /// <param name="user"></param>
-        /// <param name="userId"></param>
-        /// <returns></returns>
-        bool TryGetUserId(ClaimsPrincipal user, out int userId);
+        Task<bool> ChangeEmailAsync(int userId, string newEmail, CancellationToken cancellationToken = default);
     }
 }

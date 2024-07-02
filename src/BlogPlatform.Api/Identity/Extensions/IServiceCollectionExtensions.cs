@@ -4,20 +4,24 @@ using AspNet.Security.OAuth.Naver;
 using BlogPlatform.Api.Identity.Constants;
 using BlogPlatform.Api.Identity.Filters;
 using BlogPlatform.Api.Identity.ModelBinders;
+using BlogPlatform.Api.Identity.Services;
+using BlogPlatform.Api.Identity.Services.Interfaces;
+using BlogPlatform.Api.Identity.Services.Options;
 using BlogPlatform.EFCore.Models;
 using BlogPlatform.Shared.Identity.Extensions;
-using BlogPlatform.Shared.Identity.Options;
+using BlogPlatform.Shared.Identity.Models;
 
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 
+using System.Security.Claims;
 using System.Text;
 
 namespace BlogPlatform.Api.Identity.Extensions
@@ -32,9 +36,6 @@ namespace BlogPlatform.Api.Identity.Extensions
             IConfigurationSection identityServiceOptionsSection = optionsSection.GetRequiredSection("IdentityService");
             services.AddIdentityService(identityServiceOptionsSection);
 
-            IConfigurationSection jwtOptionsSection = optionsSection.GetRequiredSection("Jwt");
-            services.AddJwtService(jwtOptionsSection);
-
             IConfigurationSection userEmailOptionsSection = optionsSection.GetRequiredSection("UserEmail");
             services.AddUserEmailService(userEmailOptionsSection);
 
@@ -44,6 +45,14 @@ namespace BlogPlatform.Api.Identity.Extensions
             services.AddEmailVerifyService();
 
             services.AddScoped<IPasswordHasher<BasicAccount>, PasswordHasher<BasicAccount>>();
+
+            services.AddScoped<IUserClaimsPrincipalFactory<User>, JwtClaimsPrincipalFactory>();
+
+            IConfigurationSection authorizeTokenOptionsSection = optionsSection.GetRequiredSection("AuthorizeToken");
+            services.AddScoped<IAuthorizeTokenService, AuthorizeTokenService>();
+            services.Configure<AuthorizeTokenOptions>(authorizeTokenOptionsSection);
+
+            services.AddScoped<JsonWebTokenHandler>();
 
             services.AddScoped<UserBanFilter>();
 
@@ -55,12 +64,12 @@ namespace BlogPlatform.Api.Identity.Extensions
 
             services.AddAuthorization(options =>
             {
-                AuthorizationPolicyBuilder userPolicyBuilder = new(JwtBearerDefaults.AuthenticationScheme);
+                AuthorizationPolicyBuilder userPolicyBuilder = new(JwtSignInHandler.AuthenticationScheme);
                 userPolicyBuilder.RequireRole(PolicyConstants.UserPolicy);
                 userPolicyBuilder.RequireAuthenticatedUser();
                 options.AddPolicy(PolicyConstants.UserPolicy, userPolicyBuilder.Build());
 
-                AuthorizationPolicyBuilder adminPolicyBuilder = new(JwtBearerDefaults.AuthenticationScheme);
+                AuthorizationPolicyBuilder adminPolicyBuilder = new(JwtSignInHandler.AuthenticationScheme);
                 adminPolicyBuilder.RequireRole(PolicyConstants.AdminPolicy);
                 adminPolicyBuilder.RequireAuthenticatedUser();
                 options.AddPolicy(PolicyConstants.AdminPolicy, adminPolicyBuilder.Build());
@@ -70,17 +79,15 @@ namespace BlogPlatform.Api.Identity.Extensions
                 options.AddPolicy(PolicyConstants.OAuthPolicy, oauthPolicyBuilder.Build());
             });
 
-            JwtOptions jwtOptions = jwtOptionsSection.Get<JwtOptions>() ?? throw new Exception();
+            AuthorizeTokenOptions jwtOptions = authorizeTokenOptionsSection.Get<AuthorizeTokenOptions>() ?? throw new Exception();
             services.AddAuthentication(options =>
                 {
-                    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-                    options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                    options.DefaultAuthenticateScheme = JwtSignInHandler.AuthenticationScheme;
+                    options.DefaultSignInScheme = JwtSignInHandler.AuthenticationScheme;
+                    options.DefaultSignOutScheme = JwtSignInHandler.AuthenticationScheme;
                 })
-                .AddJwtBearer(options =>
+                .AddJwtSignIn(options =>
                 {
-                    options.SaveToken = false;
-                    options.MapInboundClaims = false;
-
                     options.ClaimsIssuer = jwtOptions.Issuer;
                     options.Audience = jwtOptions.Audience;
 
@@ -93,15 +100,35 @@ namespace BlogPlatform.Api.Identity.Extensions
                         ValidateLifetime = true,
                         ValidateIssuerSigningKey = true,
                         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SecretKey)),
-                        AuthenticationType = JwtBearerDefaults.AuthenticationScheme
                     };
 
                     options.Events = new()
                     {
-                        OnMessageReceived = context =>
+                        OnMessageReceived = async context =>
                         {
-                            context.Token = context.Request.Cookies[jwtOptions.AccessTokenName];
-                            return Task.CompletedTask;
+                            var scope = context.HttpContext.RequestServices.CreateScope();
+                            IAuthorizeTokenService authorizeTokenService = scope.ServiceProvider.GetRequiredService<IAuthorizeTokenService>();
+                            AuthorizeToken? cookieToken = await authorizeTokenService.GetAsync(context.HttpContext.Request, true);
+                            context.Token = cookieToken?.AccessToken;
+                        },
+                        OnTokenValidated = async context =>
+                        {
+                            var scope = context.HttpContext.RequestServices.CreateScope();
+
+                            Claim? methodClaim = context.Principal?.FindFirst(ClaimTypes.AuthenticationMethod);
+                            if (methodClaim is null)
+                            {
+                                context.Fail("");
+                                return;
+                            }
+
+                            IAuthorizeTokenService authorizeTokenService = scope.ServiceProvider.GetRequiredService<IAuthorizeTokenService>();
+                            AuthorizeToken? cookieToken = await authorizeTokenService.GetAsync(context.HttpContext.Request, true);
+                            if (cookieToken is null && methodClaim.Value == JwtClaimValues.AuthenticationMethodCookie)
+                            {
+                                context.Fail("해당 토큰은 쿠키로 인증해야 합니다");
+                                return;
+                            }
                         }
                     };
                 })
@@ -109,16 +136,19 @@ namespace BlogPlatform.Api.Identity.Extensions
                 {
                     options.ClientId = oauthProviderSection["Google:ClientSecret"] ?? throw new Exception();
                     options.ClientSecret = oauthProviderSection["Google:ClientSecret"] ?? throw new Exception();
+                    options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
                 })
                 .AddKakaoTalk(options =>
                 {
                     options.ClientId = oauthProviderSection["KakaoTalk:ClientId"] ?? throw new Exception();
                     options.ClientSecret = oauthProviderSection["KakaoTalk:ClientSecret"] ?? throw new Exception();
+                    options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
                 })
                 .AddNaver(options =>
                 {
                     options.ClientId = oauthProviderSection["Naver:ClientId"] ?? throw new Exception();
                     options.ClientSecret = oauthProviderSection["Naver:ClientSecret"] ?? throw new Exception();
+                    options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
                 })
                 .AddCookie();
 
