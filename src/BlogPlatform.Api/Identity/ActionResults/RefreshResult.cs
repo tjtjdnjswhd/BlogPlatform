@@ -31,11 +31,14 @@ namespace BlogPlatform.Api.Identity.ActionResults
             CancellationToken cancellationToken = context.HttpContext.RequestAborted;
 
             ILogger<RefreshResult> logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger<RefreshResult>();
+            logger.LogInformation("Refreshing token begin");
+            logger.LogDebug("Access token: {accessToken}. Refresh token: {refreshToken}", _authorizeToken.AccessToken, _authorizeToken.RefreshToken);
 
             IAuthorizeTokenService authorizeTokenService = scope.ServiceProvider.GetRequiredService<IAuthorizeTokenService>();
             string? oldAccessToken = await authorizeTokenService.GetCachedTokenAsync(_authorizeToken.RefreshToken, cancellationToken);
             if (_authorizeToken.AccessToken != oldAccessToken)
             {
+                logger.LogInformation("Refreshing token failed. wrong access token");
                 context.HttpContext.Response.StatusCode = StatusCodes.Status403Forbidden;
                 return;
             }
@@ -51,6 +54,7 @@ namespace BlogPlatform.Api.Identity.ActionResults
             User? user = await blogPlatformDbContext.Users.FirstOrDefaultAsync(u => u.Id == userId);
             if (user is null)
             {
+                logger.LogInformation("Refreshing token failed. User not found");
                 await new AuthenticatedUserDataNotFoundResult().ExecuteResultAsync(context);
                 return;
             }
@@ -59,6 +63,7 @@ namespace BlogPlatform.Api.Identity.ActionResults
             AuthorizeToken authorizeToken = authorizeTokenService.GenerateToken(claimsPrincipal, _setCookie);
             context.HttpContext.Response.StatusCode = StatusCodes.Status200OK;
             await authorizeTokenService.WriteAsync(context.HttpContext.Response, authorizeToken, _setCookie, cancellationToken);
+            logger.LogInformation("Refreshing token successed");
         }
     }
 }

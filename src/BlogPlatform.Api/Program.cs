@@ -48,10 +48,8 @@ builder.Services.AddScoped<ICascadeSoftDeleteService, CascadeSoftDeleteService>(
 
 var app = builder.Build();
 
-app.SeedOAuthProviderData();
-app.SeedRoleData();
-
 // Configure the HTTP request pipeline.
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -70,8 +68,6 @@ if (app.Environment.IsDevelopment())
         b.AllowCredentials();
     });
 }
-
-app.SeedDevelopmentAdminAccount();
 
 app.UseAuthentication();
 app.UseAuthorization();

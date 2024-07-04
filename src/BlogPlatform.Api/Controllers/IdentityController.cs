@@ -3,6 +3,7 @@ using BlogPlatform.Api.Identity.ActionResults;
 using BlogPlatform.Api.Identity.Attributes;
 using BlogPlatform.Api.Identity.Filters;
 using BlogPlatform.Api.Identity.ModelBinders;
+using BlogPlatform.Api.QueryExtensions;
 using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Models;
 using BlogPlatform.Shared.Identity.Models;
@@ -48,7 +49,7 @@ namespace BlogPlatform.Api.Controllers
         {
             UserRead? userRead = await _blogPlatformDbContext.Users
                 .Where(u => u.Id == userId)
-                .Select(u => new UserRead(u.Id, u.BasicAccounts.First().AccountId, u.Name, u.Email, u.CreatedAt, u.Blog.First().Id, u.Roles.Select(r => r.Name), u.OAuthAccounts.Select(o => o.Provider.Name)))
+                .SelectUserRead()
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (userRead is null)
@@ -56,7 +57,8 @@ namespace BlogPlatform.Api.Controllers
                 return new AuthenticatedUserDataNotFoundResult();
             }
 
-            userRead.BlogUri = userRead.BlogId is not null ? Url.ActionLink("Get", "Blog", new { id = userRead.BlogId }) : null;
+            userRead.BlogUri = userRead.BlogId is not (null or 0) ? Url.ActionLink("Get", "Blog", new { id = userRead.BlogId }) : null;
+
             return Ok(userRead);
         }
 
@@ -255,7 +257,6 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpPost("logout")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesDefaultResponseType]
         public SignOutResult Logout() => SignOut();
 

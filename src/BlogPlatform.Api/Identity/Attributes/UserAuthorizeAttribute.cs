@@ -9,6 +9,6 @@ namespace BlogPlatform.Api.Identity.Attributes
     /// </summary>
     public class UserAuthorizeAttribute : AuthorizeAttribute
     {
-        public UserAuthorizeAttribute() : base(PolicyConstants.UserPolicy) { }
+        public UserAuthorizeAttribute() : base(PolicyConstants.UserRolePolicy) { }
     }
 }

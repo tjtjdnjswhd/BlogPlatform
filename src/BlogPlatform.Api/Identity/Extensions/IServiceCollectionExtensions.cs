@@ -21,6 +21,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 
+using System.Diagnostics;
 using System.Security.Claims;
 using System.Text;
 
@@ -65,14 +66,14 @@ namespace BlogPlatform.Api.Identity.Extensions
             services.AddAuthorization(options =>
             {
                 AuthorizationPolicyBuilder userPolicyBuilder = new(JwtSignInHandler.AuthenticationScheme);
-                userPolicyBuilder.RequireRole(PolicyConstants.UserPolicy);
+                userPolicyBuilder.RequireRole(PolicyConstants.UserRolePolicy);
                 userPolicyBuilder.RequireAuthenticatedUser();
-                options.AddPolicy(PolicyConstants.UserPolicy, userPolicyBuilder.Build());
+                options.AddPolicy(PolicyConstants.UserRolePolicy, userPolicyBuilder.Build());
 
                 AuthorizationPolicyBuilder adminPolicyBuilder = new(JwtSignInHandler.AuthenticationScheme);
-                adminPolicyBuilder.RequireRole(PolicyConstants.AdminPolicy);
+                adminPolicyBuilder.RequireRole(PolicyConstants.AdminRolePolicy);
                 adminPolicyBuilder.RequireAuthenticatedUser();
-                options.AddPolicy(PolicyConstants.AdminPolicy, adminPolicyBuilder.Build());
+                options.AddPolicy(PolicyConstants.AdminRolePolicy, adminPolicyBuilder.Build());
 
                 AuthorizationPolicyBuilder oauthPolicyBuilder = new(GoogleDefaults.AuthenticationScheme, KakaoTalkAuthenticationDefaults.AuthenticationScheme, NaverAuthenticationDefaults.AuthenticationScheme);
                 oauthPolicyBuilder.RequireAuthenticatedUser();
@@ -80,12 +81,7 @@ namespace BlogPlatform.Api.Identity.Extensions
             });
 
             AuthorizeTokenOptions jwtOptions = authorizeTokenOptionsSection.Get<AuthorizeTokenOptions>() ?? throw new Exception();
-            services.AddAuthentication(options =>
-                {
-                    options.DefaultAuthenticateScheme = JwtSignInHandler.AuthenticationScheme;
-                    options.DefaultSignInScheme = JwtSignInHandler.AuthenticationScheme;
-                    options.DefaultSignOutScheme = JwtSignInHandler.AuthenticationScheme;
-                })
+            services.AddAuthentication(JwtSignInHandler.AuthenticationScheme)
                 .AddJwtSignIn(options =>
                 {
                     options.ClaimsIssuer = jwtOptions.Issuer;
@@ -115,18 +111,26 @@ namespace BlogPlatform.Api.Identity.Extensions
                         {
                             var scope = context.HttpContext.RequestServices.CreateScope();
 
-                            Claim? methodClaim = context.Principal?.FindFirst(ClaimTypes.AuthenticationMethod);
-                            if (methodClaim is null)
+                            JsonWebToken jsonWebToken = context.SecurityToken as JsonWebToken ?? throw new Exception();
+                            if (!jsonWebToken.TryGetClaim(ClaimTypes.AuthenticationMethod, out Claim methodClaim))
                             {
                                 context.Fail("");
                                 return;
                             }
 
+                            Debug.Assert(methodClaim.Value == JwtClaimValues.AuthenticationMethodBearer || methodClaim.Value == JwtClaimValues.AuthenticationMethodCookie);
+
                             IAuthorizeTokenService authorizeTokenService = scope.ServiceProvider.GetRequiredService<IAuthorizeTokenService>();
                             AuthorizeToken? cookieToken = await authorizeTokenService.GetAsync(context.HttpContext.Request, true);
-                            if (cookieToken is null && methodClaim.Value == JwtClaimValues.AuthenticationMethodCookie)
+                            if (methodClaim.Value == JwtClaimValues.AuthenticationMethodBearer && jsonWebToken.EncodedToken == cookieToken?.AccessToken)
                             {
                                 context.Fail("해당 토큰은 쿠키로 인증해야 합니다");
+                                return;
+                            }
+
+                            if (methodClaim.Value == JwtClaimValues.AuthenticationMethodCookie && jsonWebToken.EncodedToken != cookieToken?.AccessToken)
+                            {
+                                context.Fail("해당 토큰은 Authorization 헤더로 인증해야 합니다");
                                 return;
                             }
                         }

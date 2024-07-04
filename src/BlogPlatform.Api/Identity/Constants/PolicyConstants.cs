@@ -13,11 +13,11 @@
         /// <summary>
         /// User 인증 policy 이름
         /// </summary>
-        public const string UserPolicy = "User";
+        public const string UserRolePolicy = "User";
 
         /// <summary>
         /// Admin 인증 policy 이름
         /// </summary>
-        public const string AdminPolicy = "Admin";
+        public const string AdminRolePolicy = "Admin";
     }
 }

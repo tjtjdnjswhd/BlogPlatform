@@ -1,5 +1,6 @@
 ﻿using BlogPlatform.Api.Helper;
 using BlogPlatform.Api.Identity.Attributes;
+using BlogPlatform.Api.QueryExtensions;
 using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
@@ -74,16 +75,13 @@ namespace BlogPlatform.Api.Controllers
                 users = users.Where(u => u.Name == search.Name);
             }
 
-            UserRead? userRead = await users.Select(u => new UserRead(u.Id, u.BasicAccounts.First().AccountId, u.Name, u.Email, u.CreatedAt, u.Blog.First().Id, u.Roles.Select(r => r.Name), u.OAuthAccounts.Select(o => o.Provider.Name))).FirstOrDefaultAsync(cancellationToken);
+            UserRead? userRead = await users.SelectUserRead().FirstOrDefaultAsync(cancellationToken);
             if (userRead is null)
             {
                 return NotFound(new Error("존재하지 않는 유저입니다"));
             }
 
-            if (userRead.BlogId is not null)
-            {
-                userRead.BlogUri = Url.ActionLink("Get", "Blog", new { id = userRead.BlogId });
-            }
+            userRead.BlogUri = userRead.BlogId is not (null or 0) ? Url.ActionLink("Get", "Blog", new { id = userRead.BlogId }) : null;
 
             return Ok(userRead);
         }
