@@ -1,4 +1,5 @@
-﻿using BlogPlatform.EFCore;
+﻿using BlogPlatform.Api.Identity.Constants;
+using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
 using BlogPlatform.Shared.Identity.Models;
@@ -15,9 +16,9 @@ using Xunit.Abstractions;
 
 namespace BlogPlatform.Api.IntegrationTest.Admin
 {
-    public class AdminTests : TestBase
+    public class AdminTests : TestBase, ITestDataReset
     {
-        public AdminTests(ITestOutputHelper testOutputHelper) : base(testOutputHelper, "integration_admin_test")
+        public AdminTests(WebApplicationFactoryFixture applicationFactoryFixture, ITestOutputHelper testOutputHelper) : base(applicationFactoryFixture, testOutputHelper, "integration_admin_test")
         {
         }
 
@@ -25,8 +26,8 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
         public async Task DeleteUser_Unauthorized()
         {
             // Arrange
-            HttpClient client = CreateClient();
-            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "User"));
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
+            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.UserRolePolicy));
 
             HttpRequestMessage httpRequestMessage = new(HttpMethod.Delete, "/api/admin/user")
             {
@@ -44,8 +45,8 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
         public async Task DeleteUser_Forbidden()
         {
             // Arrnage
-            HttpClient client = CreateClient();
-            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "User"));
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
+            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.UserRolePolicy));
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(client, authorizeToken);
 
@@ -65,8 +66,8 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
         public async Task DeleteUser_NotFound()
         {
             // Arrange
-            HttpClient client = CreateClient();
-            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "Admin"));
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
+            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.AdminRolePolicy));
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, admin);
             Helper.SetAuthorizationHeader(client, authorizeToken);
 
@@ -82,13 +83,13 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task DeleteUser_NoContent()
         {
             // Arrange
-            HttpClient client = CreateClient();
-            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "Admin"));
-            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "User"));
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
+            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.AdminRolePolicy));
+            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.UserRolePolicy));
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, admin);
             Helper.SetAuthorizationHeader(client, authorizeToken);
 
@@ -127,8 +128,8 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
         public async Task RestoreUser_Unauthorized()
         {
             // Arrange
-            HttpClient client = CreateClient();
-            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "User"));
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
+            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.UserRolePolicy));
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/admin/user/restore", new EmailModel(user.Email));
@@ -141,8 +142,8 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
         public async Task RestoreUser_Forbidden()
         {
             // Arrange
-            HttpClient client = CreateClient();
-            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count == 0 && u.Roles.Any(r => r.Name == "User"));
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
+            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count == 0 && u.Roles.Any(r => r.Name == PolicyConstants.UserRolePolicy));
             User blogOwnUser = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count != 0);
 
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -159,8 +160,8 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
         public async Task RestoreUser_NotFound()
         {
             // Arrange
-            HttpClient client = CreateClient();
-            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "Admin"));
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
+            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.AdminRolePolicy));
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, admin);
             Helper.SetAuthorizationHeader(client, authorizeToken);
 
@@ -175,9 +176,9 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
         public async Task RestoreUser_NotDeleted_BadRequest()
         {
             // Arrange
-            HttpClient client = CreateClient();
-            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "Admin"));
-            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "User"));
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
+            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.AdminRolePolicy));
+            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.UserRolePolicy));
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, admin);
             Helper.SetAuthorizationHeader(client, authorizeToken);
 
@@ -188,13 +189,13 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task RestoreUser_NoContent()
         {
             // Arrange
-            HttpClient client = CreateClient();
-            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "Admin"));
-            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count != 0 && u.Roles.Any(r => r.Name == "User"));
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
+            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.AdminRolePolicy));
+            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count != 0 && u.Roles.Any(r => r.Name == PolicyConstants.UserRolePolicy));
             Helper.SoftDelete(WebApplicationFactory, user);
 
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, admin);
@@ -230,8 +231,8 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
         public async Task BanUser_Unauthorized()
         {
             // Arrange
-            HttpClient client = CreateClient();
-            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "User"));
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
+            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.UserRolePolicy));
             User otherUser = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Id != user.Id);
 
             // Act
@@ -245,8 +246,8 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
         public async Task BanUser_Forbidden()
         {
             // Arrange
-            HttpClient client = CreateClient();
-            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "User"));
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
+            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.UserRolePolicy));
             User otherUser = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Id != user.Id);
 
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -263,8 +264,8 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
         public async Task BanUser_NotFound()
         {
             // Arrange
-            HttpClient client = CreateClient();
-            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "Admin"));
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
+            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.AdminRolePolicy));
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, admin);
             Helper.SetAuthorizationHeader(client, authorizeToken);
 
@@ -275,13 +276,13 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task BanUser_Ok()
         {
             // Arrange
-            HttpClient client = CreateClient();
-            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "Admin"));
-            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "User"));
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
+            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.AdminRolePolicy));
+            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.UserRolePolicy));
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, admin);
             Helper.SetAuthorizationHeader(client, authorizeToken);
 
@@ -299,8 +300,8 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
         public async Task UnbanUser_Unauthorized()
         {
             // Arrange
-            HttpClient client = CreateClient();
-            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "User"));
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
+            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.UserRolePolicy));
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/admin/user/unban", new EmailModel(user.Email));
@@ -313,8 +314,8 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
         public async Task UnbanUser_Forbidden()
         {
             // Arrange
-            HttpClient client = CreateClient();
-            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "User"));
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
+            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.UserRolePolicy));
             User otherUser = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Id != user.Id);
 
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -331,8 +332,8 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
         public async Task UnbanUser_NotFound()
         {
             // Arrange
-            HttpClient client = CreateClient();
-            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "Admin"));
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
+            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.AdminRolePolicy));
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, admin);
             Helper.SetAuthorizationHeader(client, authorizeToken);
 
@@ -343,13 +344,13 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task UnbanUser_Ok()
         {
             // Arrange
-            HttpClient client = CreateClient();
-            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "Admin"));
-            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "User"));
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
+            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.AdminRolePolicy));
+            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.UserRolePolicy));
             user.BanExpiresAt = DateTime.UtcNow.Add(TimeSpan.FromDays(1));
             Helper.UpdateEntity(WebApplicationFactory, user);
 
@@ -369,7 +370,7 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
         public async Task DeletePost_Unauthorized()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             EFCore.Models.Post post = Helper.GetFirstEntity<EFCore.Models.Post>(WebApplicationFactory);
 
             // Act
@@ -383,8 +384,8 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
         public async Task DeletePost_Forbidden()
         {
             // Arrange
-            HttpClient client = CreateClient();
-            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "User"));
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
+            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.UserRolePolicy));
             EFCore.Models.Post post = Helper.GetFirstEntity<EFCore.Models.Post>(WebApplicationFactory);
 
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -401,8 +402,8 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
         public async Task DeletePost_NotFound()
         {
             // Arrange
-            HttpClient client = CreateClient();
-            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "Admin"));
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
+            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.AdminRolePolicy));
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, admin);
             Helper.SetAuthorizationHeader(client, authorizeToken);
 
@@ -413,12 +414,12 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task DeletePost_NoContent()
         {
             // Arrange
-            HttpClient client = CreateClient();
-            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "Admin"));
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
+            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.AdminRolePolicy));
             EFCore.Models.Post post = Helper.GetFirstEntity<EFCore.Models.Post>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, admin);
             Helper.SetAuthorizationHeader(client, authorizeToken);
@@ -441,7 +442,7 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
         public async Task RestorePost_Unauthorized()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             EFCore.Models.Post post = Helper.GetFirstEntity<EFCore.Models.Post>(WebApplicationFactory);
 
             // Act
@@ -455,8 +456,8 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
         public async Task RestorePost_Forbidden()
         {
             // Arrange
-            HttpClient client = CreateClient();
-            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "User"));
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
+            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.UserRolePolicy));
             EFCore.Models.Post post = Helper.GetFirstEntity<EFCore.Models.Post>(WebApplicationFactory);
 
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -473,8 +474,8 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
         public async Task RestorePost_NotFound()
         {
             // Arrange
-            HttpClient client = CreateClient();
-            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "Admin"));
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
+            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.AdminRolePolicy));
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, admin);
             Helper.SetAuthorizationHeader(client, authorizeToken);
 
@@ -489,8 +490,8 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
         public async Task RestorePost_NotDeleted_BadRequest()
         {
             // Arrange
-            HttpClient client = CreateClient();
-            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "Admin"));
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
+            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.AdminRolePolicy));
             EFCore.Models.Post post = Helper.GetFirstEntity<EFCore.Models.Post>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, admin);
             Helper.SetAuthorizationHeader(client, authorizeToken);
@@ -502,12 +503,12 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task RestorePost_NoContent()
         {
             // Arrange
-            HttpClient client = CreateClient();
-            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "Admin"));
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
+            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.AdminRolePolicy));
             EFCore.Models.Post post = Helper.GetFirstEntity<EFCore.Models.Post>(WebApplicationFactory);
             Helper.SoftDelete(WebApplicationFactory, post);
 
@@ -532,7 +533,7 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
         public async Task DeleteComment_Unauthorized()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             EFCore.Models.Comment comment = Helper.GetFirstEntity<EFCore.Models.Comment>(WebApplicationFactory);
 
             // Act
@@ -546,8 +547,8 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
         public async Task DeleteComment_Forbidden()
         {
             // Arrange
-            HttpClient client = CreateClient();
-            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "User"));
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
+            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.UserRolePolicy));
             EFCore.Models.Comment comment = Helper.GetFirstEntity<EFCore.Models.Comment>(WebApplicationFactory);
 
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -564,8 +565,8 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
         public async Task DeleteComment_NotFound()
         {
             // Arrange
-            HttpClient client = CreateClient();
-            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "Admin"));
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
+            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.AdminRolePolicy));
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, admin);
             Helper.SetAuthorizationHeader(client, authorizeToken);
 
@@ -576,12 +577,12 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task DeleteComment_NoContent()
         {
             // Arrange
-            HttpClient client = CreateClient();
-            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "Admin"));
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
+            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.AdminRolePolicy));
             EFCore.Models.Comment comment = Helper.GetFirstEntity<EFCore.Models.Comment>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, admin);
             Helper.SetAuthorizationHeader(client, authorizeToken);
@@ -600,7 +601,7 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
         public async Task RestoreComment_Unauthorized()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             EFCore.Models.Comment comment = Helper.GetFirstEntity<EFCore.Models.Comment>(WebApplicationFactory);
 
             // Act
@@ -614,8 +615,8 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
         public async Task RestoreComment_Forbidden()
         {
             // Arrange
-            HttpClient client = CreateClient();
-            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "User"));
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
+            User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.UserRolePolicy));
             EFCore.Models.Comment comment = Helper.GetFirstEntity<EFCore.Models.Comment>(WebApplicationFactory);
 
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -632,8 +633,8 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
         public async Task RestoreComment_NotFound()
         {
             // Arrange
-            HttpClient client = CreateClient();
-            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "Admin"));
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
+            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.AdminRolePolicy));
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, admin);
             Helper.SetAuthorizationHeader(client, authorizeToken);
 
@@ -648,8 +649,8 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
         public async Task RestoreComment_NotDeleted_BadRequest()
         {
             // Arrange
-            HttpClient client = CreateClient();
-            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "Admin"));
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
+            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.AdminRolePolicy));
             EFCore.Models.Comment comment = Helper.GetFirstEntity<EFCore.Models.Comment>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, admin);
             Helper.SetAuthorizationHeader(client, authorizeToken);
@@ -661,12 +662,12 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task RestoreComment_NoContent()
         {
             // Arrange
-            HttpClient client = CreateClient();
-            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "Admin"));
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
+            User admin = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == PolicyConstants.AdminRolePolicy));
             EFCore.Models.Comment comment = Helper.GetFirstEntity<EFCore.Models.Comment>(WebApplicationFactory);
             Helper.SoftDelete(WebApplicationFactory, comment);
 
@@ -685,7 +686,12 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
 
         protected override void SeedData()
         {
-            using var scope = WebApplicationFactory.Services.CreateScope();
+            ResetData();
+        }
+
+        public static void ResetData()
+        {
+            using var scope = FixtureByTestClassName[typeof(AdminTests).Name].ApplicationFactory.Services.CreateScope();
             using BlogPlatformDbContext dbContext = Helper.GetNotLoggingDbContext<BlogPlatformDbContext>(scope.ServiceProvider);
             dbContext.Database.EnsureDeleted();
             dbContext.Database.Migrate();
@@ -696,8 +702,8 @@ namespace BlogPlatform.Api.IntegrationTest.Admin
             dbContext.Users.AddRange(admin, user1, user2);
             dbContext.SaveChanges();
 
-            Role adminRole = new("Admin", 0);
-            Role userRole = new("User", 1);
+            Role adminRole = new(PolicyConstants.AdminRolePolicy, 0);
+            Role userRole = new(PolicyConstants.UserRolePolicy, 1);
             dbContext.Roles.AddRange(adminRole, userRole);
             admin.Roles = [adminRole];
             user1.Roles = [userRole];

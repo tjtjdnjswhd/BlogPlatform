@@ -1,4 +1,5 @@
 ﻿using BlogPlatform.Api.Controllers;
+using BlogPlatform.Api.Identity.Constants;
 using BlogPlatform.Api.Tests.DbContextMock;
 using BlogPlatform.EFCore.Models;
 using BlogPlatform.EFCore.Models.Abstractions;
@@ -10,7 +11,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.EntityFrameworkCore;
 
 using Moq;
 
@@ -25,11 +25,6 @@ namespace BlogPlatform.Api.Tests.Controllers
     public class AdminControllerTests
     {
         private readonly ControllerTestsSetUp _setUp;
-        private readonly Mock<DbSet<User>> _userDbSetMock;
-        private readonly Mock<DbSet<Role>> _roleDbSetMock;
-        private readonly Mock<DbSet<Blog>> _blogDbSetMock;
-        private readonly Mock<DbSet<Category>> _categoryDbSetMock;
-        private readonly Mock<DbSet<Post>> _postDbSetMock;
         private readonly AdminController _adminController;
 
         public AdminControllerTests(ITestOutputHelper testOutputHelper)
@@ -43,14 +38,12 @@ namespace BlogPlatform.Api.Tests.Controllers
             ];
 
             List<Role> roles = [
-                new Role("Admin", 0) { Id = 1, SoftDeletedAt = EntityBase.DefaultSoftDeletedAt },
-                new Role("User", 1) { Id = 2, SoftDeletedAt = EntityBase.DefaultSoftDeletedAt },
+                new Role(PolicyConstants.AdminRolePolicy, 0) { Id = 1, SoftDeletedAt = EntityBase.DefaultSoftDeletedAt },
+                new Role(PolicyConstants.UserRolePolicy, 1) { Id = 2, SoftDeletedAt = EntityBase.DefaultSoftDeletedAt },
             ];
 
             List<Blog> blogs = [
                 new Blog("blog0", "blog0", 1) { Id = 1, SoftDeletedAt = EntityBase.DefaultSoftDeletedAt },
-                new Blog("blog1", "blog1", 2) { Id = 2, SoftDeletedAt = EntityBase.DefaultSoftDeletedAt },
-                new Blog("blog2", "blog2", 3) { Id = 3, SoftDeletedAt = EntityBase.DefaultSoftDeletedAt }
             ];
 
             List<Category> categories = [
@@ -71,14 +64,15 @@ namespace BlogPlatform.Api.Tests.Controllers
             users[0].Roles = [roles[1]];
             users[0].BasicAccounts = [new BasicAccount("userId", "asda", 1)];
             users[0].Blog = [blogs[0]];
+            users[0].OAuthAccounts = [];
             users[1].Roles = [roles[0], roles[1]];
             users[2].Roles = [roles[1]];
 
-            _userDbSetMock = _setUp.DbContextMock.SetDbSet(db => db.Users, users);
-            _roleDbSetMock = _setUp.DbContextMock.SetDbSet(db => db.Roles, roles);
-            _blogDbSetMock = _setUp.DbContextMock.SetDbSet(db => db.Blogs, blogs);
-            _categoryDbSetMock = _setUp.DbContextMock.SetDbSet(db => db.Categories, categories);
-            _postDbSetMock = _setUp.DbContextMock.SetDbSet(db => db.Posts, posts);
+            _setUp.DbContextMock.SetDbSet(db => db.Users, users);
+            _setUp.DbContextMock.SetDbSet(db => db.Roles, roles);
+            _setUp.DbContextMock.SetDbSet(db => db.Blogs, blogs);
+            _setUp.DbContextMock.SetDbSet(db => db.Categories, categories);
+            _setUp.DbContextMock.SetDbSet(db => db.Posts, posts);
             _setUp.DbContextMock.SetDbSet(db => db.Comments, comments);
 
             XUnitLogger<AdminController> controllerLogger = new(testOutputHelper);

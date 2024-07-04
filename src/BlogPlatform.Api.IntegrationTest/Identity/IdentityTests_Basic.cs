@@ -3,6 +3,10 @@ using BlogPlatform.Shared.Identity.Models;
 using BlogPlatform.Shared.Identity.Services.Interfaces;
 using BlogPlatform.Shared.Models;
 
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+
 using Moq;
 
 using System.Net;
@@ -16,7 +20,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task BasicLogin_NotFound()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/login/basic", new BasicLoginInfo("notexist", "password", null));
@@ -29,7 +33,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task BasicLogin_Unauthorized()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/login/basic", new BasicLoginInfo("user1Id", "wrongpassword", null));
@@ -42,9 +46,9 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task BasicLogin_Invalid_Id()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
-            BasicLoginInfo basicLoginInfo = new("abc", "password", null);
+            BasicLoginInfo basicLoginInfo = new("bc", "password", null);
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/login/basic", basicLoginInfo);
@@ -57,7 +61,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task BasicLogin_Invalid_Password()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             BasicLoginInfo basicLoginInfo = new("user0Id", "abc", null);
 
@@ -68,11 +72,11 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task BasicLogin_Ok()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/login/basic", new BasicLoginInfo("user1Id", "user1pw", null));
@@ -90,7 +94,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task BasicSignUp_EmailVerifyRequired()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/basic", new BasicSignUpInfo("user55", "user55pw", "user55", "user55@user.com", null));
@@ -103,7 +107,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task BasicSignUp_IdExist()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             BasicAccount basicAccount = Helper.GetFirstEntity<BasicAccount>(WebApplicationFactory, b => b.UserId == user.Id, false);
             string email = "user55@user.com";
@@ -123,7 +127,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task BasicSignUp_NameExist()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             string email = "user55@user.com";
             await Helper.SetVerifiedEmailAsync(WebApplicationFactory, email);
@@ -142,7 +146,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task BasicSignUp_EmailExist()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             await Helper.SetVerifiedEmailAsync(WebApplicationFactory, user.Email);
 
@@ -156,11 +160,11 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             Assert.Equal("중복된 이메일입니다", error.Message);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task BasicSignUp_Success()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             string email = "user55@user.com";
             await Helper.SetVerifiedEmailAsync(WebApplicationFactory, email);
@@ -179,8 +183,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task SendVerifyEmail_Ok()
         {
             // Arrange
-            SetIEmailServiceMock();
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/basic/email", new EmailModel("user@user.com"));
@@ -193,7 +196,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task VerifyEmail_BadRequest()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await client.GetAsync("/api/identity/signup/basic/email?code=123456");
@@ -206,10 +209,17 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task VerifyEmail_Ok()
         {
             // Arrange
-            Mock<IEmailVerifyService> emailVerifyServiceMock = new();
-            emailVerifyServiceMock.Setup(s => s.VerifyEmailCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("success@user.com");
-            SetIEmailVerifyServiceMock(emailVerifyServiceMock);
-            HttpClient client = CreateClient();
+            WebApplicationFactory<Program> newFactory = WebApplicationFactory.WithWebHostBuilder(builder =>
+            {
+                builder.ConfigureServices(services =>
+                {
+                    Mock<IEmailVerifyService> veriftyServiceMock = new();
+                    veriftyServiceMock.Setup(v => v.VerifyEmailCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("");
+                    services.RemoveAll<IEmailVerifyService>();
+                    services.AddSingleton(veriftyServiceMock.Object);
+                });
+            });
+            HttpClient client = newFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await client.GetAsync("/api/identity/signup/basic/email?code=123456");

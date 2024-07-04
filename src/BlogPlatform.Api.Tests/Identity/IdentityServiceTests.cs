@@ -5,7 +5,6 @@ using BlogPlatform.EFCore.Models.Abstractions;
 using BlogPlatform.Shared.Identity.Models;
 using BlogPlatform.Shared.Identity.Options;
 using BlogPlatform.Shared.Identity.Services;
-using BlogPlatform.Shared.Identity.Services.Interfaces;
 
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
@@ -223,7 +222,7 @@ namespace BlogPlatform.Api.Tests.Identity
 
             OAuthLoginInfo oAuthLoginInfo = new(_setUp.OAuthProvider.Name, "basicOnlyNameIdentifier");
 
-            IdentityService identityService = CreateIdentityService(CreateJwtServiceMock(user.Id, true));
+            IdentityService identityService = CreateIdentityService();
 
             int oauthAccountCount = _setUp.DbContext.OAuthAccounts.Count();
 
@@ -243,7 +242,7 @@ namespace BlogPlatform.Api.Tests.Identity
 
             int userId = 123456789;
 
-            IdentityService identityService = CreateIdentityService(CreateJwtServiceMock(userId, true));
+            IdentityService identityService = CreateIdentityService();
 
             int oauthAccountCount = _setUp.DbContext.OAuthAccounts.Count();
 
@@ -263,7 +262,7 @@ namespace BlogPlatform.Api.Tests.Identity
 
             OAuthLoginInfo oAuthLoginInfo = new("Google", "basicOnlyNameIdentifier");
 
-            IdentityService identityService = CreateIdentityService(CreateJwtServiceMock(user.Id, true));
+            IdentityService identityService = CreateIdentityService();
 
             int oauthAccountCount = _setUp.DbContext.OAuthAccounts.Count();
 
@@ -283,7 +282,7 @@ namespace BlogPlatform.Api.Tests.Identity
 
             OAuthLoginInfo oAuthLoginInfo = new(_setUp.OAuthProvider.Name, _setUp.OAuthOnlyUser.OAuthAccounts.First().NameIdentifier);
 
-            IdentityService identityService = CreateIdentityService(CreateJwtServiceMock(user.Id, true));
+            IdentityService identityService = CreateIdentityService();
 
             int oauthAccountCount = _setUp.DbContext.OAuthAccounts.Count();
 
@@ -303,7 +302,7 @@ namespace BlogPlatform.Api.Tests.Identity
 
             OAuthLoginInfo oAuthLoginInfo = new(_setUp.OAuthProvider.Name, "otherNameIdentifier");
 
-            IdentityService identityService = CreateIdentityService(CreateJwtServiceMock(user.Id, true));
+            IdentityService identityService = CreateIdentityService();
 
             int oauthAccountCount = _setUp.DbContext.OAuthAccounts.Count();
 
@@ -321,12 +320,11 @@ namespace BlogPlatform.Api.Tests.Identity
             // Arrange
             User user = _setUp.BasicOAuthUser;
 
-            IdentityService identityService = CreateIdentityService(CreateJwtServiceMock(user.Id, true));
+            IdentityService identityService = CreateIdentityService();
             int oauthAccountCount = _setUp.DbContext.OAuthAccounts.Count();
-            ClaimsPrincipal claimsPrincipal = new();
 
             // Act
-            ERemoveOAuthResult removeResult = await identityService.RemoveOAuthAsync(claimsPrincipal, _setUp.OAuthProvider.Name);
+            ERemoveOAuthResult removeResult = await identityService.RemoveOAuthAsync(user.Id, _setUp.OAuthProvider.Name);
 
             // Assert
             Assert.Equal(ERemoveOAuthResult.Success, removeResult);
@@ -339,12 +337,11 @@ namespace BlogPlatform.Api.Tests.Identity
             // Arrange
             User user = _setUp.OAuthOnlyUser;
 
-            IdentityService identityService = CreateIdentityService(CreateJwtServiceMock(user.Id, true));
+            IdentityService identityService = CreateIdentityService();
             int oauthAccountCount = _setUp.DbContext.OAuthAccounts.Count();
-            ClaimsPrincipal claimsPrincipal = new();
 
             // Act
-            ERemoveOAuthResult removeResult = await identityService.RemoveOAuthAsync(claimsPrincipal, _setUp.OAuthProvider.Name);
+            ERemoveOAuthResult removeResult = await identityService.RemoveOAuthAsync(user.Id, _setUp.OAuthProvider.Name);
 
             // Assert
             Assert.Equal(ERemoveOAuthResult.HasSingleAccount, removeResult);
@@ -357,13 +354,11 @@ namespace BlogPlatform.Api.Tests.Identity
             // Arrange
             int userId = 123456789;
 
-            IdentityService identityService = CreateIdentityService(CreateJwtServiceMock(userId, true));
-            ClaimsPrincipal claimsPrincipal = new();
-
+            IdentityService identityService = CreateIdentityService();
             int oauthAccountCount = _setUp.DbContext.OAuthAccounts.Count();
 
             // Act
-            ERemoveOAuthResult removeResult = await identityService.RemoveOAuthAsync(claimsPrincipal, _setUp.OAuthProvider.Name);
+            ERemoveOAuthResult removeResult = await identityService.RemoveOAuthAsync(userId, _setUp.OAuthProvider.Name);
 
             // Assert
             Assert.Equal(ERemoveOAuthResult.UserNotFound, removeResult);
@@ -375,14 +370,11 @@ namespace BlogPlatform.Api.Tests.Identity
         {
             // Arrange
             User user = _setUp.BasicOAuthUser;
-
-            IdentityService identityService = CreateIdentityService(CreateJwtServiceMock(user.Id, true));
-            ClaimsPrincipal claimsPrincipal = new();
-
+            IdentityService identityService = CreateIdentityService();
             int oauthAccountCount = _setUp.DbContext.OAuthAccounts.Count();
 
             // Act
-            ERemoveOAuthResult removeResult = await identityService.RemoveOAuthAsync(claimsPrincipal, "NotExistProvider");
+            ERemoveOAuthResult removeResult = await identityService.RemoveOAuthAsync(user.Id, "NotExistProvider");
 
             // Assert
             Assert.Equal(ERemoveOAuthResult.OAuthNotFound, removeResult);
@@ -397,14 +389,14 @@ namespace BlogPlatform.Api.Tests.Identity
             BasicAccount basicAccount = user.BasicAccounts.First();
             basicAccount.IsPasswordChangeRequired = true;
             _setUp.DbContext.SaveChanges();
+
             string oldPasswordHash = basicAccount.PasswordHash;
             string newPassword = "newPassword";
 
-            IdentityService identityService = CreateIdentityService(CreateJwtServiceMock(user.Id, true));
-            ClaimsPrincipal claimsPrincipal = new();
+            IdentityService identityService = CreateIdentityService();
 
             // Act
-            bool result = await identityService.ChangePasswordAsync(claimsPrincipal, newPassword);
+            bool result = await identityService.ChangePasswordAsync(user.Id, newPassword);
 
             // Assert
             Assert.True(result);
@@ -418,14 +410,11 @@ namespace BlogPlatform.Api.Tests.Identity
         {
             // Arrange
             string newPassword = "newPassword";
-
             int userId = 123456789;
-
-            IdentityService identityService = CreateIdentityService(CreateJwtServiceMock(userId, true));
-            ClaimsPrincipal claimsPrincipal = new();
+            IdentityService identityService = CreateIdentityService();
 
             // Act
-            bool result = await identityService.ChangePasswordAsync(claimsPrincipal, newPassword);
+            bool result = await identityService.ChangePasswordAsync(userId, newPassword);
 
             // Assert
             Assert.False(result);
@@ -437,13 +426,10 @@ namespace BlogPlatform.Api.Tests.Identity
             // Arrange
             User user = _setUp.BasicOnlyUser;
             string newName = "newName";
-
-
-            IdentityService identityService = CreateIdentityService(CreateJwtServiceMock(user.Id, true));
-            ClaimsPrincipal claimsPrincipal = new();
+            IdentityService identityService = CreateIdentityService();
 
             // Act
-            bool result = await identityService.ChangeNameAsync(claimsPrincipal, newName);
+            bool result = await identityService.ChangeNameAsync(user.Id, newName);
 
             // Assert
             Assert.True(result);
@@ -457,12 +443,10 @@ namespace BlogPlatform.Api.Tests.Identity
             // Arrange
             User user = _setUp.BasicOnlyUser;
             string newName = _setUp.BasicOAuthUser.Name;
-
-            IdentityService identityService = CreateIdentityService(CreateJwtServiceMock(user.Id, true));
-            ClaimsPrincipal claimsPrincipal = new();
+            IdentityService identityService = CreateIdentityService();
 
             // Act
-            bool result = await identityService.ChangeNameAsync(claimsPrincipal, newName);
+            bool result = await identityService.ChangeNameAsync(user.Id, newName);
 
             // Assert
             Assert.False(result);
@@ -476,7 +460,6 @@ namespace BlogPlatform.Api.Tests.Identity
             // Arrange
             User user = _setUp.BasicOnlyUser;
             BasicAccount basicAccount = user.BasicAccounts.First();
-
             IdentityService identityService = CreateIdentityService();
 
             // Act
@@ -508,12 +491,10 @@ namespace BlogPlatform.Api.Tests.Identity
             // Arrange
             User user = _setUp.BasicOnlyUser;
             string newEmail = "newEmail";
-
-            IdentityService identityService = CreateIdentityService(CreateJwtServiceMock(user.Id, true));
-            ClaimsPrincipal claimsPrincipal = new();
+            IdentityService identityService = CreateIdentityService();
 
             // Act
-            bool result = await identityService.ChangeEmailAsync(claimsPrincipal, newEmail);
+            bool result = await identityService.ChangeEmailAsync(user.Id, newEmail);
 
             // Assert
             Assert.True(result);
@@ -527,12 +508,10 @@ namespace BlogPlatform.Api.Tests.Identity
             // Arrange
             User user = _setUp.BasicOnlyUser;
             string newEmail = _setUp.BasicOAuthUser.Email;
-
-            IdentityService identityService = CreateIdentityService(CreateJwtServiceMock(user.Id, true));
-            ClaimsPrincipal claimsPrincipal = new();
+            IdentityService identityService = CreateIdentityService();
 
             // Act
-            bool result = await identityService.ChangeEmailAsync(claimsPrincipal, newEmail);
+            bool result = await identityService.ChangeEmailAsync(user.Id, newEmail);
 
             // Assert
             Assert.NotEqual(newEmail, user.Email);
@@ -545,7 +524,6 @@ namespace BlogPlatform.Api.Tests.Identity
         {
             // Arrange
             User user = _setUp.BasicOnlyUser;
-
             IdentityService identityService = CreateIdentityService();
 
             // Act
@@ -574,12 +552,10 @@ namespace BlogPlatform.Api.Tests.Identity
         {
             // Arrange
             User user = _setUp.BasicOnlyUser;
-
-            IdentityService identityService = CreateIdentityService(CreateJwtServiceMock(user.Id, true));
-            ClaimsPrincipal claimsPrincipal = new();
+            IdentityService identityService = CreateIdentityService();
 
             // Act
-            EWithDrawResult result = await identityService.WithDrawAsync(claimsPrincipal);
+            EWithDrawResult result = await identityService.WithDrawAsync(user.Id);
 
             // Assert
             Assert.Equal(EWithDrawResult.Success, result);
@@ -593,14 +569,11 @@ namespace BlogPlatform.Api.Tests.Identity
         {
             // Arrange
             User user = _setUp.BasicOnlyUser;
-
             int userId = 123456789;
-
-            IdentityService identityService = CreateIdentityService(CreateJwtServiceMock(userId, true));
-            ClaimsPrincipal claimsPrincipal = new();
+            IdentityService identityService = CreateIdentityService();
 
             // Act
-            EWithDrawResult result = await identityService.WithDrawAsync(claimsPrincipal);
+            EWithDrawResult result = await identityService.WithDrawAsync(userId);
 
             // Assert
             Assert.Equal(EWithDrawResult.UserNotFound, result);
@@ -620,11 +593,10 @@ namespace BlogPlatform.Api.Tests.Identity
             user.BasicAccounts.First().SoftDeletedAt = DateTimeOffset.UtcNow;
             _setUp.DbContext.SaveChanges();
 
-            IdentityService identityService = CreateIdentityService(CreateJwtServiceMock(user.Id, true));
-            ClaimsPrincipal claimsPrincipal = new();
+            IdentityService identityService = CreateIdentityService();
 
             // Act
-            ECancelWithDrawResult result = await identityService.CancelWithDrawAsync(claimsPrincipal);
+            ECancelWithDrawResult result = await identityService.CancelWithDrawAsync(user.Id);
 
             // Assert
             Assert.Equal(ECancelWithDrawResult.Success, result);
@@ -645,12 +617,10 @@ namespace BlogPlatform.Api.Tests.Identity
             _setUp.DbContext.SaveChanges();
 
             int userId = 123456789;
-
-            IdentityService identityService = CreateIdentityService(CreateJwtServiceMock(userId, true));
-            ClaimsPrincipal claimsPrincipal = new();
+            IdentityService identityService = CreateIdentityService();
 
             // Act
-            ECancelWithDrawResult result = await identityService.CancelWithDrawAsync(claimsPrincipal);
+            ECancelWithDrawResult result = await identityService.CancelWithDrawAsync(userId);
 
             // Assert
             Assert.Equal(ECancelWithDrawResult.UserNotFound, result);
@@ -670,11 +640,10 @@ namespace BlogPlatform.Api.Tests.Identity
             user.BasicAccounts.First().SoftDeletedAt = DateTimeOffset.UtcNow.AddHours(-25);
             _setUp.DbContext.SaveChanges();
 
-            IdentityService identityService = CreateIdentityService(CreateJwtServiceMock(user.Id, true));
-            ClaimsPrincipal claimsPrincipal = new();
+            IdentityService identityService = CreateIdentityService();
 
             // Act
-            ECancelWithDrawResult result = await identityService.CancelWithDrawAsync(claimsPrincipal);
+            ECancelWithDrawResult result = await identityService.CancelWithDrawAsync(user.Id);
 
             // Assert
             Assert.Equal(ECancelWithDrawResult.Expired, result);
@@ -688,12 +657,10 @@ namespace BlogPlatform.Api.Tests.Identity
         {
             // Arrange
             User user = _setUp.BasicOnlyUser;
-
-            IdentityService identityService = CreateIdentityService(CreateJwtServiceMock(user.Id, true));
-            ClaimsPrincipal claimsPrincipal = new();
+            IdentityService identityService = CreateIdentityService();
 
             // Act
-            ECancelWithDrawResult result = await identityService.CancelWithDrawAsync(claimsPrincipal);
+            ECancelWithDrawResult result = await identityService.CancelWithDrawAsync(user.Id);
 
             // Assert
             Assert.Equal(ECancelWithDrawResult.WithDrawNotRequested, result);
@@ -702,9 +669,8 @@ namespace BlogPlatform.Api.Tests.Identity
             Assert.True(user.BasicAccounts.All(b => b.SoftDeleteLevel == 0));
         }
 
-        private IdentityService CreateIdentityService(Mock<IJwtService>? jwtService = null, DateTimeOffset? baseTime = null)
+        private IdentityService CreateIdentityService(DateTimeOffset? baseTime = null)
         {
-            jwtService ??= new();
             baseTime ??= DateTimeOffset.UtcNow;
 
             TimeProvider timeProvider = new TestTimeProvider(baseTime.Value);
@@ -717,16 +683,7 @@ namespace BlogPlatform.Api.Tests.Identity
 
             CascadeSoftDeleteService softDeleteService = new(_setUp.DbContext, timeProvider, deleteLogger);
 
-            return new IdentityService(_setUp.DbContext, jwtService.Object, _setUp.PasswordHasher, softDeleteService, timeProvider, Options.Create(new IdentityServiceOptions() { UserRoleName = "User" }), serviceLogger);
-        }
-
-        private static Mock<IJwtService> CreateJwtServiceMock(int userId, bool returns)
-        {
-            Mock<IJwtService> jwtServiceMock = new();
-            jwtServiceMock.Setup(j => j.TryGetUserId(It.IsAny<ClaimsPrincipal>(), out userId))
-                          .Returns(returns);
-
-            return jwtServiceMock;
+            return new IdentityService(_setUp.DbContext, _setUp.PasswordHasher, softDeleteService, timeProvider, Options.Create(new IdentityServiceOptions() { UserRoleName = "User" }), serviceLogger);
         }
 
         public void Dispose()

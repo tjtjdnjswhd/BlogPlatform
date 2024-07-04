@@ -13,7 +13,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task WithDraw_Unauthorize()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await client.PostAsync("/api/identity/withdraw", null);
@@ -26,7 +26,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task WithDraw_UserNotFound()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -41,10 +41,11 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         }
 
         [Fact]
+        [ResetDataAfterTest]
         public async Task WithDraw_Ok()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -57,11 +58,11 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task WithDraw_SignUpSameId_Conflict()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             BasicAccount basicAccount = Helper.GetFirstEntity<BasicAccount>(WebApplicationFactory, b => b.UserId == user.Id, false);
@@ -85,11 +86,11 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             Assert.False(user.IsSoftDeletedAtDefault());
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task WithDraw_SignUpSameEmail_Conflict()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             Helper.LoadCollection(WebApplicationFactory, user, u => u.BasicAccounts, true);
@@ -113,11 +114,11 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             Assert.False(user.IsSoftDeletedAtDefault());
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task WithDraw_Expired_SignUpSame_Id_Email_Ok()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -154,7 +155,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task CancelWithDraw_UserNotFound()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -168,11 +169,11 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task CancelWithDraw_Expired()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -192,7 +193,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task CancelWithDraw_WithDrawNotRequested()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -209,7 +210,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task CancelWithDraw_Unauthorize()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await httpClient.PostAsync("/api/identity/withdraw/cancel", null);
@@ -218,11 +219,11 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task CancelWithDraw_Ok()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);

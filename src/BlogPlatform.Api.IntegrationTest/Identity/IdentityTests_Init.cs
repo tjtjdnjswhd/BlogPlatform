@@ -1,25 +1,27 @@
-﻿using BlogPlatform.EFCore;
+﻿using BlogPlatform.Api.Identity.Constants;
+using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Models;
-using BlogPlatform.Shared.Identity.Services.Interfaces;
 
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-
-using Moq;
 
 using Xunit.Abstractions;
 
 namespace BlogPlatform.Api.IntegrationTest.Identity
 {
-    public partial class IdentityTests : TestBase
+    public partial class IdentityTests : TestBase, ITestDataReset
     {
-        public IdentityTests(ITestOutputHelper testOutputHelper) : base(testOutputHelper, "integration_identity_test") { }
+        public IdentityTests(WebApplicationFactoryFixture applicationFactoryFixture, ITestOutputHelper testOutputHelper) : base(applicationFactoryFixture, testOutputHelper, "integration_identity_test") { }
 
         protected override void SeedData()
         {
-            using var scope = WebApplicationFactory.Services.CreateScope();
+            ResetData();
+        }
+
+        public static void ResetData()
+        {
+            using var scope = FixtureByTestClassName[typeof(IdentityTests).Name].ApplicationFactory.Services.CreateScope();
             using BlogPlatformDbContext dbContext = Helper.GetNotLoggingDbContext<BlogPlatformDbContext>(scope.ServiceProvider);
             IPasswordHasher<BasicAccount> passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<BasicAccount>>();
 
@@ -36,8 +38,8 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             dbContext.SaveChanges();
 
             List<Role> roles = [
-                new Role("User", 1),
-                new Role("Admin", 0)
+                new Role(PolicyConstants.UserRolePolicy, 1),
+                new Role(PolicyConstants.AdminRolePolicy, 0)
             ];
 
             dbContext.Roles.AddRange(roles);
@@ -45,7 +47,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
 
             users[0].Roles = [roles[0]];
             users[1].Roles = [roles[0]];
-            users[2].Roles = [roles[1]];
+            users[2].Roles = roles;
 
             dbContext.SaveChanges();
 
@@ -57,40 +59,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
 
             dbContext.BasicAccounts.AddRange(basicAccounts);
             dbContext.SaveChanges();
-
-            List<OAuthProvider> oAuthProviders = [
-                new OAuthProvider("Google"),
-                new OAuthProvider("Naver")
-            ];
-
-            dbContext.OAuthProviders.AddRange(oAuthProviders);
-            dbContext.SaveChanges();
-        }
-
-        private void SetIEmailServiceMock(Mock<IUserEmailService>? emailServiceMock = null)
-        {
-            WebApplicationFactory = WebApplicationFactory.WithWebHostBuilder(builder =>
-            {
-                builder.ConfigureServices(services =>
-                {
-                    services.RemoveAll<IUserEmailService>();
-                    emailServiceMock ??= new();
-                    services.AddSingleton(emailServiceMock.Object);
-                });
-            });
-        }
-
-        private void SetIEmailVerifyServiceMock(Mock<IEmailVerifyService>? emailVerifyServiceMock = null)
-        {
-            WebApplicationFactory = WebApplicationFactory.WithWebHostBuilder(builder =>
-            {
-                builder.ConfigureServices(services =>
-                {
-                    services.RemoveAll<IEmailVerifyService>();
-                    emailVerifyServiceMock ??= new();
-                    services.AddSingleton(emailVerifyServiceMock.Object);
-                });
-            });
         }
     }
 }

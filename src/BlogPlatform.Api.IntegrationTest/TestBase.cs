@@ -1,5 +1,5 @@
 ﻿using BlogPlatform.EFCore;
-using BlogPlatform.Shared.Identity.Options;
+using BlogPlatform.Shared.Identity.Services.Interfaces;
 using BlogPlatform.Shared.Services.Interfaces;
 
 using Meziantou.Extensions.Logging.Xunit;
@@ -7,6 +7,7 @@ using Meziantou.Extensions.Logging.Xunit;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
@@ -20,80 +21,84 @@ using Xunit.Abstractions;
 
 namespace BlogPlatform.Api.IntegrationTest
 {
-    public abstract class TestBase
+    public abstract class TestBase : IClassFixture<WebApplicationFactoryFixture>
     {
-        public WebApplicationFactory<Program> WebApplicationFactory { get; set; }
+        public static Dictionary<string, WebApplicationFactoryFixture> FixtureByTestClassName { get; private set; } = [];
+
+        public WebApplicationFactory<Program> WebApplicationFactory => FixtureByTestClassName[GetType().Name].ApplicationFactory;
 
         public ITestOutputHelper TestOutputHelper { get; }
 
         public ServiceLifetime DbContextLifeTime { get; }
 
-        protected TestBase(ITestOutputHelper testOutputHelper, string dbName, ServiceLifetime dbContextLifeTime = ServiceLifetime.Scoped)
+        protected TestBase(WebApplicationFactoryFixture applicationFactoryFixture, ITestOutputHelper testOutputHelper, string dbName, ServiceLifetime dbContextLifeTime = ServiceLifetime.Scoped)
         {
-            WebApplicationFactory = new();
+            string testClassName = GetType().Name;
+            FixtureByTestClassName.TryAdd(testClassName, applicationFactoryFixture);
             TestOutputHelper = testOutputHelper;
             DbContextLifeTime = dbContextLifeTime;
-            InitWebApplicationFactory(dbName);
-            SeedData();
-        }
 
-        protected virtual void InitWebApplicationFactory(string dbName)
-        {
-            XUnitLoggerProvider loggerProvider = new(TestOutputHelper, new XUnitLoggerOptions() { IncludeCategory = true, IncludeLogLevel = true });
-            WebApplicationFactory = WebApplicationFactory.WithWebHostBuilder(cnf =>
+            applicationFactoryFixture.Init(factory =>
             {
-                cnf.ConfigureLogging(lb =>
+                var newFactory = factory.WithWebHostBuilder(builder =>
+                {
+                    InitWebApplicationFactory(builder, dbName);
+                });
+                SeedData();
+                return newFactory;
+            });
+
+            XUnitLoggerProvider loggerProvider = new(TestOutputHelper, new XUnitLoggerOptions() { IncludeCategory = true, IncludeLogLevel = true });
+            applicationFactoryFixture.Configure(builder =>
+            {
+                builder.ConfigureLogging(lb =>
                 {
                     lb.ClearProviders();
                     lb.AddProvider(loggerProvider);
                 });
+            });
+        }
 
-                cnf.ConfigureServices(services =>
+        protected virtual void InitWebApplicationFactory(IWebHostBuilder builder, string dbName)
+        {
+            builder.ConfigureServices(services =>
+            {
+                JsonNode connectionStringNode = JsonNode.Parse(File.ReadAllText(Path.Combine(Directory.GetCurrentDirectory(), "testConnectionStrings.json"))) ?? throw new Exception();
+                string connectionString = connectionStringNode["BlogPlatformDb"]?.GetValue<string>() ?? throw new Exception();
+                connectionString += $"database={dbName};";
+
+                services.RemoveAll<DbContextOptions>();
+
+                services.RemoveAll<DbContextOptions<BlogPlatformDbContext>>();
+                services.RemoveAll<BlogPlatformDbContext>();
+                services.AddDbContext<BlogPlatformDbContext>(opt =>
                 {
-                    services.AddOptions<JwtOptions>().Configure(options =>
-                    {
-                        options.AccessTokenName = Helper.ACCESS_TOKEN_NAME;
-                        options.RefreshTokenName = Helper.REFRESH_TOKEN_NAME;
-                    }).ValidateDataAnnotations().ValidateOnStart();
+                    opt.UseMySql(connectionString, MySqlServerVersion.LatestSupportedServerVersion);
+                    opt.EnableDetailedErrors();
+                    opt.EnableSensitiveDataLogging();
+                }, DbContextLifeTime, DbContextLifeTime);
 
-                    services.AddOptions<AccountOptions>().Configure(options =>
-                    {
-                        options.MinIdLength = 5;
-                        options.MaxIdLength = 20;
-                        options.MinNameLength = 3;
-                        options.MaxNameLength = 50;
-                        options.MinPasswordLength = 4;
-                        options.MaxPasswordLength = int.MaxValue;
-                    }).ValidateDataAnnotations().ValidateOnStart();
+                services.RemoveAll<DbContextOptions<BlogPlatformImgDbContext>>();
+                services.RemoveAll<BlogPlatformImgDbContext>();
+                services.AddDbContext<BlogPlatformImgDbContext>(opt =>
+                {
+                    opt.UseMySql(connectionString, MySqlServerVersion.LatestSupportedServerVersion);
+                    opt.EnableDetailedErrors();
+                    opt.EnableSensitiveDataLogging();
+                }, DbContextLifeTime, DbContextLifeTime);
 
-                    JsonNode connectionStringNode = JsonNode.Parse(File.ReadAllText(Path.Combine(Directory.GetCurrentDirectory(), "testConnectionStrings.json"))) ?? throw new Exception();
-                    string connectionString = connectionStringNode["BlogPlatformDb"]?.GetValue<string>() ?? throw new Exception();
-                    connectionString += $"database={dbName};";
+                services.RemoveAll<IMailSender>();
+                services.AddScoped(_ => new Mock<IMailSender>().Object);
 
-                    services.RemoveAll<DbContextOptions<BlogPlatformDbContext>>();
-                    services.RemoveAll<BlogPlatformDbContext>();
-                    services.RemoveAll<DbContextOptions>();
+                services.RemoveAll<IDistributedCache>();
+                services.AddDistributedMemoryCache();
 
-                    services.AddDbContext<BlogPlatformDbContext>(opt =>
-                    {
-                        opt.UseMySql(connectionString, MySqlServerVersion.LatestSupportedServerVersion);
-                        opt.EnableDetailedErrors();
-                        opt.EnableSensitiveDataLogging();
-                    }, DbContextLifeTime, DbContextLifeTime);
-
-                    services.RemoveAll<IMailSender>();
-                    services.AddScoped(_ => new Mock<IMailSender>().Object);
-
-                    services.AddDistributedMemoryCache();
-                });
+                services.RemoveAll<IUserEmailService>();
+                Mock<IUserEmailService> userEmailServiceMock = new();
+                services.AddSingleton(userEmailServiceMock.Object);
             });
         }
 
         protected abstract void SeedData();
-
-        protected HttpClient CreateClient()
-        {
-            return WebApplicationFactory.CreateDefaultClient(new HttpClientLogHandler(TestOutputHelper));
-        }
     }
 }

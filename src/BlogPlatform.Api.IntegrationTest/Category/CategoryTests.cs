@@ -1,4 +1,5 @@
-﻿using BlogPlatform.EFCore;
+﻿using BlogPlatform.Api.Identity.Constants;
+using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
 using BlogPlatform.Shared.Identity.Models;
@@ -14,9 +15,9 @@ using Xunit.Abstractions;
 
 namespace BlogPlatform.Api.IntegrationTest.Category
 {
-    public class CategoryTests : TestBase
+    public class CategoryTests : TestBase, ITestDataReset
     {
-        public CategoryTests(ITestOutputHelper testOutputHelper) : base(testOutputHelper, "integration_category_test")
+        public CategoryTests(WebApplicationFactoryFixture applicationFactoryFixture, ITestOutputHelper testOutputHelper) : base(applicationFactoryFixture, testOutputHelper, "integration_category_test")
         {
         }
 
@@ -24,7 +25,7 @@ namespace BlogPlatform.Api.IntegrationTest.Category
         public async Task Get_NotFound()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await client.GetAsync("/api/category/222");
@@ -37,7 +38,7 @@ namespace BlogPlatform.Api.IntegrationTest.Category
         public async Task Get_Ok()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await client.GetAsync("/api/category/1");
@@ -52,7 +53,7 @@ namespace BlogPlatform.Api.IntegrationTest.Category
         public async Task Create_Unauthorized()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/category", new CategoryNameModel("CategoryName"));
@@ -65,7 +66,7 @@ namespace BlogPlatform.Api.IntegrationTest.Category
         public async Task Create_BlogNotExist_BadRequest()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count == 0);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(client, authorizeToken);
@@ -77,11 +78,11 @@ namespace BlogPlatform.Api.IntegrationTest.Category
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task Create_Ok()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Any(b => b.Categories.Count > 0));
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(client, authorizeToken);
@@ -97,7 +98,7 @@ namespace BlogPlatform.Api.IntegrationTest.Category
         public async Task Update_Unauthorized()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await client.PutAsJsonAsync("/api/category/1", new CategoryNameModel("CategoryName"));
@@ -110,7 +111,7 @@ namespace BlogPlatform.Api.IntegrationTest.Category
         public async Task Update_CategoryNotExist_NotFound()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Any(b => b.Categories.Count > 0));
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(client, authorizeToken);
@@ -126,7 +127,7 @@ namespace BlogPlatform.Api.IntegrationTest.Category
         public async Task Update_Forbid()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count == 0);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(client, authorizeToken);
@@ -138,11 +139,11 @@ namespace BlogPlatform.Api.IntegrationTest.Category
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task Update_NoContent()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Any(b => b.Categories.Count > 0));
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(client, authorizeToken);
@@ -160,7 +161,7 @@ namespace BlogPlatform.Api.IntegrationTest.Category
         public async Task Delete_Unauthorized()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await client.DeleteAsync("/api/category/1");
@@ -173,7 +174,7 @@ namespace BlogPlatform.Api.IntegrationTest.Category
         public async Task Delete_NotFound()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Any(b => b.Categories.Count > 0));
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(client, authorizeToken);
@@ -189,7 +190,7 @@ namespace BlogPlatform.Api.IntegrationTest.Category
         public async Task Delete_Forbid()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count == 0);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(client, authorizeToken);
@@ -201,11 +202,11 @@ namespace BlogPlatform.Api.IntegrationTest.Category
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task Delete_NoContent()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Any(b => b.Categories.Count > 0));
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(client, authorizeToken);
@@ -225,7 +226,7 @@ namespace BlogPlatform.Api.IntegrationTest.Category
         public async Task Restore_Unauthorized()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await client.PostAsync("/api/category/restore/1", null);
@@ -238,7 +239,7 @@ namespace BlogPlatform.Api.IntegrationTest.Category
         public async Task Restore_NotFound()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Any(b => b.Categories.Count > 0));
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(client, authorizeToken);
@@ -250,11 +251,11 @@ namespace BlogPlatform.Api.IntegrationTest.Category
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task Restore_Forbid()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count == 0);
             EFCore.Models.Category category = Helper.GetFirstEntity<EFCore.Models.Category>(WebApplicationFactory);
             Helper.SoftDelete(WebApplicationFactory, category);
@@ -268,11 +269,11 @@ namespace BlogPlatform.Api.IntegrationTest.Category
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task Restore_NotDeleted_BadRequest()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Any(b => b.Categories.Count > 0));
             EFCore.Models.Category category = Helper.GetFirstEntity<EFCore.Models.Category>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -285,11 +286,11 @@ namespace BlogPlatform.Api.IntegrationTest.Category
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task Restore_Expired_BadRequest()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Any(b => b.Categories.Count > 0));
             EFCore.Models.Category category = Helper.GetFirstEntity<EFCore.Models.Category>(WebApplicationFactory);
             Helper.SoftDelete(WebApplicationFactory, category);
@@ -306,11 +307,11 @@ namespace BlogPlatform.Api.IntegrationTest.Category
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task Restore_NoContent()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Any(b => b.Categories.Count > 0));
             EFCore.Models.Category category = Helper.GetFirstEntity<EFCore.Models.Category>(WebApplicationFactory);
             Helper.SoftDelete(WebApplicationFactory, category);
@@ -340,7 +341,12 @@ namespace BlogPlatform.Api.IntegrationTest.Category
 
         protected override void SeedData()
         {
-            using var scope = WebApplicationFactory.Services.CreateScope();
+            ResetData();
+        }
+
+        public static void ResetData()
+        {
+            using var scope = FixtureByTestClassName[typeof(CategoryTests).Name].ApplicationFactory.Services.CreateScope();
             using BlogPlatformDbContext dbContext = Helper.GetNotLoggingDbContext<BlogPlatformDbContext>(scope.ServiceProvider);
 
             dbContext.Database.EnsureDeleted();
@@ -351,7 +357,7 @@ namespace BlogPlatform.Api.IntegrationTest.Category
             dbContext.Users.AddRange(blogOwner, withoutBlog);
             dbContext.SaveChanges();
 
-            Role userRole = new("User", 1);
+            Role userRole = new(PolicyConstants.UserRolePolicy, 1);
             blogOwner.Roles = [userRole];
             withoutBlog.Roles = [userRole];
             dbContext.SaveChanges();

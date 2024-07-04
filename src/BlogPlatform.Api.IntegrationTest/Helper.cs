@@ -1,26 +1,27 @@
-﻿using BlogPlatform.EFCore;
+﻿using BlogPlatform.Api.Identity.Services.Interfaces;
+using BlogPlatform.Api.Identity.Services.Options;
+using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
 using BlogPlatform.EFCore.Models.Abstractions;
 using BlogPlatform.Shared.Identity.Models;
 using BlogPlatform.Shared.Identity.Services.Interfaces;
 
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 using System.Linq.Expressions;
+using System.Security.Claims;
 
 namespace BlogPlatform.Api.IntegrationTest
 {
     public static class Helper
     {
-        public const string ACCESS_TOKEN_NAME = "access_token";
-
-        public const string REFRESH_TOKEN_NAME = "refresh_token";
-
         public static void AddEntity<T>(WebApplicationFactory<Program> applicationFactory, T entity)
             where T : EntityBase
         {
@@ -70,11 +71,13 @@ namespace BlogPlatform.Api.IntegrationTest
             return dbContext.Set<T>().Any(predicate);
         }
 
-        public static async Task<AuthorizeToken> GetAuthorizeTokenAsync(WebApplicationFactory<Program> applicationFactory, User user)
+        public static async Task<AuthorizeToken> GetAuthorizeTokenAsync(WebApplicationFactory<Program> applicationFactory, User user, bool setCookie = false)
         {
             using var scope = applicationFactory.Services.CreateScope();
-            IJwtService jwtService = scope.ServiceProvider.GetRequiredService<IJwtService>();
-            return await jwtService.GenerateTokenAsync(user);
+            IAuthorizeTokenService authorizeTokenService = scope.ServiceProvider.GetRequiredService<IAuthorizeTokenService>();
+            IUserClaimsPrincipalFactory<User> userClaimsPrincipalFactory = scope.ServiceProvider.GetRequiredService<IUserClaimsPrincipalFactory<User>>();
+            ClaimsPrincipal claimsPrincipal = await userClaimsPrincipalFactory.CreateAsync(user);
+            return authorizeTokenService.GenerateToken(claimsPrincipal, setCookie);
         }
 
         public static void SetAuthorizationHeader(HttpClient client, AuthorizeToken token)
@@ -82,9 +85,11 @@ namespace BlogPlatform.Api.IntegrationTest
             client.DefaultRequestHeaders.Authorization = new("Bearer", token.AccessToken);
         }
 
-        public static void SetAuthorizeTokenCookie(HttpClient client, AuthorizeToken token)
+        public static void SetAuthorizeTokenCookie(WebApplicationFactory<Program> applicationFactory, HttpClient client, AuthorizeToken token)
         {
-            client.DefaultRequestHeaders.Add("cookie", $"{ACCESS_TOKEN_NAME}={token.AccessToken}; {REFRESH_TOKEN_NAME}={token.RefreshToken}");
+            using var scope = applicationFactory.Services.CreateScope();
+            AuthorizeTokenOptions authorizeTokenOptions = scope.ServiceProvider.GetRequiredService<IOptions<AuthorizeTokenOptions>>().Value;
+            client.DefaultRequestHeaders.Add("cookie", $"{authorizeTokenOptions.AccessTokenName}={token.AccessToken}; {authorizeTokenOptions.RefreshTokenName}={token.RefreshToken}");
         }
 
         public static void ResetAuthorizationHeader(HttpClient client)
@@ -100,8 +105,8 @@ namespace BlogPlatform.Api.IntegrationTest
         public static async Task SetAuthorizeTokenCache(WebApplicationFactory<Program> applicationFactory, AuthorizeToken authorizeToken)
         {
             using var scope = applicationFactory.Services.CreateScope();
-            IJwtService jwtService = scope.ServiceProvider.GetRequiredService<IJwtService>();
-            await jwtService.SetCacheTokenAsync(authorizeToken, CancellationToken.None);
+            IAuthorizeTokenService authorizeTokenService = scope.ServiceProvider.GetRequiredService<IAuthorizeTokenService>();
+            await authorizeTokenService.CacheTokenAsync(authorizeToken, CancellationToken.None);
         }
 
         public static void SoftDelete<T>(WebApplicationFactory<Program> applicationFactory, T entity)

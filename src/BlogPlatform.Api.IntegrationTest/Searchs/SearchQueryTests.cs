@@ -1,8 +1,9 @@
-﻿using BlogPlatform.EFCore;
+﻿using BlogPlatform.Api.Identity.Constants;
+using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Models;
 using BlogPlatform.Shared.Identity.Models;
 
-using Microsoft.AspNetCore.TestHost;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -14,11 +15,11 @@ using Xunit.Abstractions;
 
 namespace BlogPlatform.Api.IntegrationTest.Searchs
 {
-    public class SearchQueryTests : TestBase
+    public class SearchQueryTests : TestBase, ITestDataReset
     {
         public const string Identifier = "DbContextVerify";
 
-        public SearchQueryTests(ITestOutputHelper testOutputHelper) : base(testOutputHelper, "integration_searchQuery_test", ServiceLifetime.Singleton)
+        public SearchQueryTests(WebApplicationFactoryFixture applicationFactoryFixture, ITestOutputHelper testOutputHelper) : base(applicationFactoryFixture, testOutputHelper, "integration_searchQuery_test", ServiceLifetime.Singleton)
         {
         }
 
@@ -41,7 +42,7 @@ namespace BlogPlatform.Api.IntegrationTest.Searchs
         public async Task Post_Search_QueryVerify(string query)
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             Recording.Start(Identifier);
 
             // Act
@@ -59,7 +60,7 @@ namespace BlogPlatform.Api.IntegrationTest.Searchs
         public async Task Comment_ByPost_QueryVerify()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             Recording.Start(Identifier);
 
             // Act
@@ -91,7 +92,7 @@ namespace BlogPlatform.Api.IntegrationTest.Searchs
         public async Task Comment_Search_QueryVerify(string query)
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             Recording.Start(Identifier);
 
             // Act
@@ -119,17 +120,11 @@ namespace BlogPlatform.Api.IntegrationTest.Searchs
         {
             // Arrange
             using var scope = WebApplicationFactory.Services.CreateScope();
-            BlogPlatformDbContext dbContext = scope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
-            User adminUser = new("admin", "admin@user.com");
-            Role adminRole = new("Admin", 0);
-            dbContext.Users.Add(adminUser);
-            dbContext.Roles.Add(adminRole);
-            adminUser.Roles = [adminRole];
-            dbContext.SaveChanges();
 
+            User adminUser = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Roles.Any(r => r.Name == "Admin"));
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, adminUser);
 
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             Helper.SetAuthorizationHeader(client, authorizeToken);
             Recording.Start(Identifier);
 
@@ -142,30 +137,42 @@ namespace BlogPlatform.Api.IntegrationTest.Searchs
             await Verify(entries).UseHashedParameters(query);
         }
 
-        protected override void InitWebApplicationFactory(string dbName)
+        protected override void InitWebApplicationFactory(IWebHostBuilder builder, string dbName)
         {
-            base.InitWebApplicationFactory(dbName);
-            DbContextOptions<BlogPlatformDbContext> dbContextOptions = WebApplicationFactory.Services.GetRequiredService<DbContextOptions<BlogPlatformDbContext>>();
-            DbContextOptionsBuilder<BlogPlatformDbContext> optionsBuilder = new(dbContextOptions);
-            optionsBuilder.EnableRecording(Identifier);
-
-            WebApplicationFactory = WebApplicationFactory.WithWebHostBuilder(builder =>
+            base.InitWebApplicationFactory(builder, dbName);
+            builder.ConfigureServices(services =>
             {
-                builder.ConfigureTestServices(services =>
-                {
-                    services.RemoveAll<DbContextOptions<BlogPlatformDbContext>>();
-                    services.AddSingleton(optionsBuilder.Options);
-                });
+                IServiceProvider serviceProvider = services.BuildServiceProvider();
+                var scope = serviceProvider.CreateScope();
+
+                DbContextOptions<BlogPlatformDbContext> dbContextOptions = serviceProvider.GetRequiredService<DbContextOptions<BlogPlatformDbContext>>();
+                DbContextOptionsBuilder<BlogPlatformDbContext> optionsBuilder = new(dbContextOptions);
+                optionsBuilder.EnableRecording(Identifier);
+
+                services.RemoveAll<DbContextOptions<BlogPlatformDbContext>>();
+                services.AddSingleton(optionsBuilder.Options);
             });
         }
 
         protected override void SeedData()
         {
-            using var scope = WebApplicationFactory.Services.CreateScope();
+            ResetData();
+        }
+
+        public static void ResetData()
+        {
+            using var scope = FixtureByTestClassName[typeof(SearchQueryTests).Name].ApplicationFactory.Services.CreateScope();
             BlogPlatformDbContext dbContext = Helper.GetNotLoggingDbContext<BlogPlatformDbContext>(scope.ServiceProvider);
 
             dbContext.Database.EnsureDeleted();
             dbContext.Database.Migrate();
+
+            User adminUser = new("admin", "admin@user.com");
+            Role adminRole = new(PolicyConstants.AdminRolePolicy, 0);
+            dbContext.Users.Add(adminUser);
+            dbContext.Roles.Add(adminRole);
+            adminUser.Roles = [adminRole];
+            dbContext.SaveChanges();
         }
 
         [ModuleInitializer]

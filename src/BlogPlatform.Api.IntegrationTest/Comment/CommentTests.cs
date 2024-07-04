@@ -1,4 +1,5 @@
-﻿using BlogPlatform.EFCore;
+﻿using BlogPlatform.Api.Identity.Constants;
+using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
 using BlogPlatform.Shared.Identity.Models;
@@ -14,9 +15,9 @@ using Xunit.Abstractions;
 
 namespace BlogPlatform.Api.IntegrationTest.Comment
 {
-    public class CommentTests : TestBase
+    public class CommentTests : TestBase, ITestDataReset
     {
-        public CommentTests(ITestOutputHelper testOutputHelper) : base(testOutputHelper, "integration_comment_test")
+        public CommentTests(WebApplicationFactoryFixture applicationFactoryFixture, ITestOutputHelper testOutputHelper) : base(applicationFactoryFixture, testOutputHelper, "integration_comment_test")
         {
         }
 
@@ -24,7 +25,7 @@ namespace BlogPlatform.Api.IntegrationTest.Comment
         public async Task Get_NotFound()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await httpClient.GetAsync("/api/comment/111");
@@ -37,7 +38,7 @@ namespace BlogPlatform.Api.IntegrationTest.Comment
         public async Task Get_Ok()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await httpClient.GetAsync("/api/comment/1");
@@ -55,7 +56,7 @@ namespace BlogPlatform.Api.IntegrationTest.Comment
         public async Task GetByPost_Ok()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await httpClient.GetAsync("/api/comment/post/1");
@@ -74,7 +75,7 @@ namespace BlogPlatform.Api.IntegrationTest.Comment
         public async Task Create_Unauthorized()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await httpClient.PostAsJsonAsync("/api/comment", new CommentCreate("newContent", 1, null));
@@ -87,7 +88,7 @@ namespace BlogPlatform.Api.IntegrationTest.Comment
         public async Task Create_PostNotExist_NotFound()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(httpClient, authorizeToken);
@@ -103,7 +104,7 @@ namespace BlogPlatform.Api.IntegrationTest.Comment
         public async Task Create_ParentCommentNotExist_NotFound()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(httpClient, authorizeToken);
@@ -119,7 +120,7 @@ namespace BlogPlatform.Api.IntegrationTest.Comment
         public async Task Create_PostIdAndParentCommentIdSet_BadRequest()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(httpClient, authorizeToken);
@@ -131,11 +132,11 @@ namespace BlogPlatform.Api.IntegrationTest.Comment
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task Create_Root_CreatedAt()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(httpClient, authorizeToken);
@@ -152,11 +153,11 @@ namespace BlogPlatform.Api.IntegrationTest.Comment
             Assert.Null(comment.ParentCommentId);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task Create_Child_CreatedAt()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             EFCore.Models.Comment parentComment = Helper.GetFirstEntity<EFCore.Models.Comment>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -179,7 +180,7 @@ namespace BlogPlatform.Api.IntegrationTest.Comment
         public async Task Update_Unauthorized()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await httpClient.PutAsJsonAsync("/api/comment/1", new CommentUpdate("newContent"));
@@ -192,7 +193,7 @@ namespace BlogPlatform.Api.IntegrationTest.Comment
         public async Task Update_NotFound()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(httpClient, authorizeToken);
@@ -208,7 +209,7 @@ namespace BlogPlatform.Api.IntegrationTest.Comment
         public async Task Update_Forbidden()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Comments.Count == 0);
             EFCore.Models.Comment comment = Helper.GetFirstEntity<EFCore.Models.Comment>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -221,11 +222,11 @@ namespace BlogPlatform.Api.IntegrationTest.Comment
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task Update_NoContent()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             EFCore.Models.Comment comment = Helper.GetFirstEntity<EFCore.Models.Comment>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -244,7 +245,7 @@ namespace BlogPlatform.Api.IntegrationTest.Comment
         public async Task Delete_Unauthorized()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await httpClient.DeleteAsync("/api/comment/1");
@@ -257,7 +258,7 @@ namespace BlogPlatform.Api.IntegrationTest.Comment
         public async Task Delete_NotFound()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(httpClient, authorizeToken);
@@ -273,7 +274,7 @@ namespace BlogPlatform.Api.IntegrationTest.Comment
         public async Task Delete_Forbidden()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Comments.Count == 0);
             EFCore.Models.Comment comment = Helper.GetFirstEntity<EFCore.Models.Comment>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -286,11 +287,11 @@ namespace BlogPlatform.Api.IntegrationTest.Comment
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task Delete_NoContent()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             EFCore.Models.Comment comment = Helper.GetFirstEntity<EFCore.Models.Comment>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -312,7 +313,12 @@ namespace BlogPlatform.Api.IntegrationTest.Comment
 
         protected override void SeedData()
         {
-            using var scope = WebApplicationFactory.Services.CreateScope();
+            ResetData();
+        }
+
+        public static void ResetData()
+        {
+            using var scope = FixtureByTestClassName[typeof(CommentTests).Name].ApplicationFactory.Services.CreateScope();
             using BlogPlatformDbContext dbContext = Helper.GetNotLoggingDbContext<BlogPlatformDbContext>(scope.ServiceProvider);
 
             dbContext.Database.EnsureDeleted();
@@ -324,7 +330,7 @@ namespace BlogPlatform.Api.IntegrationTest.Comment
             dbContext.Users.Add(notHasCommentUser);
             dbContext.SaveChanges();
 
-            Role role = new("User", 1);
+            Role role = new(PolicyConstants.UserRolePolicy, 1);
             dbContext.Roles.Add(role);
             commentOwner.Roles = [role];
             dbContext.SaveChanges();

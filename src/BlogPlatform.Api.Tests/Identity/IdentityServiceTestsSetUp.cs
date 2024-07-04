@@ -1,4 +1,5 @@
-﻿using BlogPlatform.EFCore;
+﻿using BlogPlatform.Api.Identity.Constants;
+using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Models;
 
 using Microsoft.AspNetCore.Identity;
@@ -68,6 +69,11 @@ namespace BlogPlatform.Api.Tests.Identity
 
             DbContext.Add(basicOAuthUserBasic);
             DbContext.Add(basicOAuthUserOAuth);
+            DbContext.SaveChanges();
+
+            Role userRole = new(PolicyConstants.UserRolePolicy, 1);
+            Role adminRole = new(PolicyConstants.AdminRolePolicy, 0);
+            DbContext.AddRange(userRole, adminRole);
             DbContext.SaveChanges();
 
             Mock<IPasswordHasher<BasicAccount>> passwordHasher = new();

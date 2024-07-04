@@ -7,20 +7,6 @@
       Type: ReaderExecutedAsync,
       HasTransaction: false,
       Parameters: {
-        @__userId_0 (Int32): 1
-      },
-      Text:
-SELECT `u`.`BanExpiresAt`
-FROM `User` AS `u`
-WHERE (`u`.`SoftDeleteLevel` = 0) AND (`u`.`Id` = @__userId_0)
-LIMIT 1
-    }
-  },
-  {
-    ef: {
-      Type: ReaderExecutedAsync,
-      HasTransaction: false,
-      Parameters: {
         @__search_Name_0 (String?): username
       },
       Text:
@@ -30,11 +16,11 @@ FROM (
         SELECT `b`.`AccountId`
         FROM `BasicAccounts` AS `b`
         WHERE (`b`.`SoftDeleteLevel` = 0) AND (`u`.`Id` = `b`.`UserId`)
-        LIMIT 1) AS `c`, `u`.`Name`, `u`.`Email`, `u`.`CreatedAt`, (
+        LIMIT 1) AS `c`, `u`.`Name`, `u`.`Email`, `u`.`CreatedAt`, COALESCE((
         SELECT `b0`.`Id`
         FROM `Blog` AS `b0`
         WHERE (`b0`.`SoftDeleteLevel` = 0) AND (`u`.`Id` = `b0`.`UserId`)
-        LIMIT 1) AS `c0`
+        LIMIT 1), 0) AS `c0`
     FROM `User` AS `u`
     WHERE (`u`.`SoftDeleteLevel` = 0) AND (`u`.`Name` = @__search_Name_0)
     LIMIT 1

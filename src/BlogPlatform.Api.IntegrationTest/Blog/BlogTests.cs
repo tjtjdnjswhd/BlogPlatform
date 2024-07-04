@@ -1,4 +1,5 @@
-﻿using BlogPlatform.EFCore;
+﻿using BlogPlatform.Api.Identity.Constants;
+using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
 using BlogPlatform.Shared.Identity.Models;
@@ -14,9 +15,9 @@ using Xunit.Abstractions;
 
 namespace BlogPlatform.Api.IntegrationTest.Blog
 {
-    public class BlogTests : TestBase
+    public class BlogTests : TestBase, ITestDataReset
     {
-        public BlogTests(ITestOutputHelper testOutputHelper) : base(testOutputHelper, "integration_blog_test")
+        public BlogTests(WebApplicationFactoryFixture applicationFactoryFixture, ITestOutputHelper testOutputHelper) : base(applicationFactoryFixture, testOutputHelper, "integration_blog_test")
         {
         }
 
@@ -24,7 +25,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         public async Task Get_NotFound()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await client.GetAsync("/api/blog/222");
@@ -37,8 +38,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         public async Task Get_Ok()
         {
             // Arrange
-            SeedData();
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await client.GetAsync("/api/blog/1");
@@ -53,7 +53,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         public async Task Create_Unauthorized()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/blog", new BlogCreate("blogName", "description"));
@@ -66,7 +66,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         public async Task Create_BlogExist_Conflict()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count != 0);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(client, authorizeToken);
@@ -84,7 +84,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         public async Task Create_BlogNameDuplicate_Conflict()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count == 0);
             EFCore.Models.Blog blog = Helper.GetFirstEntity<EFCore.Models.Blog>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -99,11 +99,11 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
             Assert.Empty(user.Blog);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task Create_Ok()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count == 0);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(client, authorizeToken);
@@ -121,7 +121,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         public async Task Update_Unauthorized()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await client.PutAsJsonAsync("/api/blog/1", new BlogCreate("newblogName", "newdescription"));
@@ -134,7 +134,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         public async Task Update_NotFound()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count != 0);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(client, authorizeToken);
@@ -150,7 +150,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         public async Task Update_Forbid()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count == 0);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(client, authorizeToken);
@@ -162,11 +162,11 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task Update_BlogNameDuplicate_Conflict()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User blogOwner = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count != 0);
             EFCore.Models.Blog blog = Helper.GetFirstEntity<EFCore.Models.Blog>(WebApplicationFactory, b => b.UserId == blogOwner.Id);
 
@@ -187,11 +187,11 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
             Assert.NotEqual(anotherBlog.Name, blog.Name);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task Update_Ok()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count != 0);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(client, authorizeToken);
@@ -210,7 +210,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         public async Task Delete_NotFound()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count != 0);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(client, authorizeToken);
@@ -222,11 +222,11 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task Delete_AlreadyDeleted_NotFound()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count != 0);
             EFCore.Models.Blog blog = Helper.GetFirstEntity<EFCore.Models.Blog>(WebApplicationFactory, b => b.UserId == user.Id);
             Helper.SoftDelete(WebApplicationFactory, blog);
@@ -244,7 +244,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         public async Task Delete_Forbid()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count == 0);
             EFCore.Models.Blog blog = Helper.GetFirstEntity<EFCore.Models.Blog>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -257,11 +257,11 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task Delete_NoContent()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count != 0);
             EFCore.Models.Blog blog = Helper.GetFirstEntity<EFCore.Models.Blog>(WebApplicationFactory, b => b.UserId == user.Id);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -297,7 +297,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         public async Task Restore_Unauthorized()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await client.PostAsync("/api/blog/restore/1", null);
@@ -310,7 +310,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         public async Task Restore_NotFound()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count != 0);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(client, authorizeToken);
@@ -326,7 +326,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
         public async Task Restore_NotDeleted()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count != 0);
             EFCore.Models.Blog blog = Helper.GetFirstEntity<EFCore.Models.Blog>(WebApplicationFactory, b => b.UserId == user.Id);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
@@ -339,11 +339,11 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task Restore_Forbid()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User blogOwner = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count != 0);
             User withoutBlog = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count == 0);
             Assert.NotEqual(blogOwner.Id, withoutBlog.Id);
@@ -360,11 +360,11 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task Restore_BlogAlreadyExist_Conflict()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count != 0);
             EFCore.Models.Blog blog = Helper.GetFirstEntity<EFCore.Models.Blog>(WebApplicationFactory, b => b.UserId == user.Id);
             Helper.SoftDelete(WebApplicationFactory, blog);
@@ -388,11 +388,11 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
             Assert.Equal(0, anotherBlog.SoftDeleteLevel);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task Restore_Expired_BadRequest()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count != 0);
             EFCore.Models.Blog blog = Helper.GetFirstEntity<EFCore.Models.Blog>(WebApplicationFactory, b => b.UserId == user.Id);
             Helper.SoftDelete(WebApplicationFactory, blog);
@@ -410,13 +410,13 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
             Assert.Null(restoredBlog);
         }
 
-        [Theory]
+        [Theory, ResetDataAfterTest]
         [InlineData(true)]
         [InlineData(false)]
         public async Task Restore_NoContent(bool changeName)
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count != 0);
             EFCore.Models.Blog blog = Helper.GetFirstEntity<EFCore.Models.Blog>(WebApplicationFactory, b => b.UserId == user.Id);
             Helper.SoftDelete(WebApplicationFactory, blog);
@@ -463,13 +463,13 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
             Assert.Equal(0, comment.SoftDeleteLevel);
         }
 
-        [Theory]
+        [Theory, ResetDataAfterTest]
         [InlineData(true)]
         [InlineData(false)]
         public async Task Restore_BlogNameDuplicate_Conflict(bool addBody)
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User blogOwner = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count != 0);
             User withoutBlog = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count == 0);
             Assert.NotEqual(blogOwner.Id, withoutBlog.Id);
@@ -506,7 +506,12 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
 
         protected override void SeedData()
         {
-            using var scope = WebApplicationFactory.Services.CreateScope();
+            ResetData();
+        }
+
+        public static void ResetData()
+        {
+            using var scope = FixtureByTestClassName[typeof(BlogTests).Name].ApplicationFactory.Services.CreateScope();
             using BlogPlatformDbContext dbContext = Helper.GetNotLoggingDbContext<BlogPlatformDbContext>(scope.ServiceProvider);
             dbContext.Database.EnsureDeleted();
             dbContext.Database.Migrate();
@@ -517,7 +522,7 @@ namespace BlogPlatform.Api.IntegrationTest.Blog
             dbContext.Users.Add(withoutBlog);
             dbContext.SaveChanges();
 
-            Role userRole = new("User", 1);
+            Role userRole = new(PolicyConstants.UserRolePolicy, 1);
             dbContext.Roles.Add(userRole);
             blogOwner.Roles = [userRole];
             withoutBlog.Roles = [userRole];

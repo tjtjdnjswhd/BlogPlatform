@@ -1,4 +1,6 @@
-﻿using Xunit.Abstractions;
+﻿using System.Text;
+
+using Xunit.Abstractions;
 
 namespace BlogPlatform.Api.IntegrationTest
 {
@@ -19,39 +21,22 @@ namespace BlogPlatform.Api.IntegrationTest
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             _testOutputHelper.WriteLine(request.ToString());
-            if (request.Content is not null and not StreamContent)
+            if (request.Content?.Headers.ContentLength < 10000)
             {
-                if (request.Content is MultipartContent multipart)
-                {
-                    foreach (HttpContent content in multipart.Where(content => content is not StreamContent))
-                    {
-                        _testOutputHelper.WriteLine(await content.ReadAsStringAsync(cancellationToken));
-                    }
-                }
-                else
-                {
-                    _testOutputHelper.WriteLine(await request.Content.ReadAsStringAsync(cancellationToken));
-                }
+                Stream requestContentStream = request.Content.ReadAsStream(cancellationToken);
+                StreamReader streamReader = new(requestContentStream, Encoding.UTF8);
+                _testOutputHelper.WriteLine(await streamReader.ReadToEndAsync(cancellationToken));
             }
 
             HttpResponseMessage response = await base.SendAsync(request, cancellationToken);
-
             _testOutputHelper.WriteLine(response.ToString());
-            if (response.Content is not null && (!response.Content.Headers.ContentType?.MediaType?.StartsWith("image") ?? true))
-            {
-                if (response.Content is MultipartContent multipart)
-                {
-                    foreach (HttpContent content in multipart.Where(content => (!response.Content.Headers.ContentType?.MediaType?.StartsWith("image") ?? true)))
-                    {
-                        _testOutputHelper.WriteLine(await content.ReadAsStringAsync(cancellationToken));
-                    }
-                }
-                else
-                {
-                    _testOutputHelper.WriteLine(await response.Content.ReadAsStringAsync(cancellationToken));
-                }
-            }
 
+            if (response.Content.Headers.ContentLength < 10000)
+            {
+                Stream responseContentStream = response.Content.ReadAsStream(cancellationToken);
+                StreamReader streamReader = new(responseContentStream, Encoding.UTF8);
+                _testOutputHelper.WriteLine(await streamReader.ReadToEndAsync(cancellationToken));
+            }
             return response;
         }
     }

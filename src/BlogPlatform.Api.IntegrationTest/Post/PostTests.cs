@@ -1,4 +1,5 @@
-﻿using BlogPlatform.EFCore;
+﻿using BlogPlatform.Api.Identity.Constants;
+using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
 using BlogPlatform.Shared.Identity.Models;
@@ -6,21 +7,19 @@ using BlogPlatform.Shared.Models.Post;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 
 using System.Net;
 using System.Net.Http.Json;
-using System.Text.Json.Nodes;
 
 using Xunit.Abstractions;
 
 namespace BlogPlatform.Api.IntegrationTest.Post
 {
-    public class PostTests : TestBase
+    public class PostTests : TestBase, ITestDataReset
     {
         private const string SeedImgFileName = "seedImg";
 
-        public PostTests(ITestOutputHelper testOutputHelper) : base(testOutputHelper, "integration_post_test")
+        public PostTests(WebApplicationFactoryFixture applicationFactoryFixture, ITestOutputHelper testOutputHelper) : base(applicationFactoryFixture, testOutputHelper, "integration_post_test")
         {
         }
 
@@ -28,7 +27,7 @@ namespace BlogPlatform.Api.IntegrationTest.Post
         public async Task Get_NotFound()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await httpClient.GetAsync("/api/post/222");
@@ -41,7 +40,7 @@ namespace BlogPlatform.Api.IntegrationTest.Post
         public async Task Get_Ok()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await httpClient.GetAsync("/api/post/1");
@@ -63,7 +62,7 @@ namespace BlogPlatform.Api.IntegrationTest.Post
             EFCore.Models.Post post = new("title", code, 1);
             Helper.AddEntity(WebApplicationFactory, post);
 
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await httpClient.GetAsync($"/api/post/{post.Id}");
@@ -91,7 +90,7 @@ namespace BlogPlatform.Api.IntegrationTest.Post
         public async Task Get_Search(string query)
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await httpClient.GetAsync($"/api/post?{query}");
@@ -107,7 +106,7 @@ namespace BlogPlatform.Api.IntegrationTest.Post
         public async Task Create_Unauthorized()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             PostCreate postCreate = new("title", "content", [], 1);
 
@@ -122,7 +121,7 @@ namespace BlogPlatform.Api.IntegrationTest.Post
         public async Task Create_CategoryNotExist_NotFound()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(httpClient, authorizeToken);
@@ -136,11 +135,11 @@ namespace BlogPlatform.Api.IntegrationTest.Post
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task Create_WithoutImg_CreatedAt()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(httpClient, authorizeToken);
@@ -153,11 +152,11 @@ namespace BlogPlatform.Api.IntegrationTest.Post
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task Create_WithImg_CreatedAt()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(httpClient, authorizeToken);
@@ -180,7 +179,7 @@ namespace BlogPlatform.Api.IntegrationTest.Post
         public async Task Update_Unauthorized()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             PostCreate postUpdate = new("title", "content", [], 1);
 
@@ -195,7 +194,7 @@ namespace BlogPlatform.Api.IntegrationTest.Post
         public async Task Update_CategoryNotExist_NotFound()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(httpClient, authorizeToken);
@@ -213,7 +212,7 @@ namespace BlogPlatform.Api.IntegrationTest.Post
         public async Task Update_PostNotExist_NotFound()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(httpClient, authorizeToken);
@@ -231,7 +230,7 @@ namespace BlogPlatform.Api.IntegrationTest.Post
         public async Task Update_Category_Forbid()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count == 0);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(httpClient, authorizeToken);
@@ -245,11 +244,11 @@ namespace BlogPlatform.Api.IntegrationTest.Post
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task Update_WithoutImg_NoContent()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(httpClient, authorizeToken);
@@ -263,11 +262,11 @@ namespace BlogPlatform.Api.IntegrationTest.Post
             Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task Update_WithImg_NewImgOnly_NoContent()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(httpClient, authorizeToken);
@@ -286,11 +285,11 @@ namespace BlogPlatform.Api.IntegrationTest.Post
             Assert.True(await IsImageDataExist(imgLocation[(imgLocation.LastIndexOf('/') + 1)..]));
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task Update_ImgRemoved_NoContent()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(httpClient, authorizeToken);
@@ -307,11 +306,11 @@ namespace BlogPlatform.Api.IntegrationTest.Post
             Assert.False(await IsImageDataExist(SeedImgFileName));
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task Update_ImgAdded_NoContent()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(httpClient, authorizeToken);
@@ -332,11 +331,11 @@ namespace BlogPlatform.Api.IntegrationTest.Post
             Assert.True(await IsImageDataExist(imgLocation[(imgLocation.LastIndexOf('/') + 1)..]));
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task Update_ImgReplaced_NoContent()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(httpClient, authorizeToken);
@@ -363,7 +362,7 @@ namespace BlogPlatform.Api.IntegrationTest.Post
         public async Task Delete_Unauthorized()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await httpClient.DeleteAsync("/api/post/1");
@@ -376,7 +375,7 @@ namespace BlogPlatform.Api.IntegrationTest.Post
         public async Task Delete_PostNotExist_NotFound()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(httpClient, authorizeToken);
@@ -392,7 +391,7 @@ namespace BlogPlatform.Api.IntegrationTest.Post
         public async Task Delete_Forbid()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count == 0);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(httpClient, authorizeToken);
@@ -404,11 +403,11 @@ namespace BlogPlatform.Api.IntegrationTest.Post
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task Delete_NoContent()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(httpClient, authorizeToken);
@@ -433,7 +432,7 @@ namespace BlogPlatform.Api.IntegrationTest.Post
         public async Task Restore_Unauthorized()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await httpClient.PostAsync("/api/post/restore/1", null);
@@ -446,7 +445,7 @@ namespace BlogPlatform.Api.IntegrationTest.Post
         public async Task Restore_NotFound()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(httpClient, authorizeToken);
@@ -462,7 +461,7 @@ namespace BlogPlatform.Api.IntegrationTest.Post
         public async Task Restore_NotDeleted_BadRequest()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(httpClient, authorizeToken);
@@ -474,11 +473,11 @@ namespace BlogPlatform.Api.IntegrationTest.Post
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task Restore_Forbid()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count == 0);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(httpClient, authorizeToken);
@@ -493,11 +492,11 @@ namespace BlogPlatform.Api.IntegrationTest.Post
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task Restore_Expired_BadRequest()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count == 1);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(httpClient, authorizeToken);
@@ -514,11 +513,11 @@ namespace BlogPlatform.Api.IntegrationTest.Post
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task Restore_NoContent()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory, u => u.Blog.Count == 1);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(httpClient, authorizeToken);
@@ -547,7 +546,7 @@ namespace BlogPlatform.Api.IntegrationTest.Post
         public async Task CacheImages_Unauthorized()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await httpClient.PostAsync("/api/post/image", null);
@@ -564,7 +563,7 @@ namespace BlogPlatform.Api.IntegrationTest.Post
         public async Task CacheImages_InvalidFile_BadRequest(string fileName, string contentType)
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(httpClient, authorizeToken);
@@ -580,7 +579,7 @@ namespace BlogPlatform.Api.IntegrationTest.Post
         public async Task CacheImages_TooLarge_BadRequest()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(httpClient, authorizeToken);
@@ -596,7 +595,7 @@ namespace BlogPlatform.Api.IntegrationTest.Post
         public async Task GetImage_NotFound()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await httpClient.GetAsync("/api/post/image/notexist");
@@ -609,7 +608,7 @@ namespace BlogPlatform.Api.IntegrationTest.Post
         public async Task GetImage_Ok()
         {
             // Arrange
-            HttpClient httpClient = CreateClient();
+            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await httpClient.GetAsync("/api/post/image/seedImg");
@@ -620,7 +619,13 @@ namespace BlogPlatform.Api.IntegrationTest.Post
 
         protected override void SeedData()
         {
-            using var scope = WebApplicationFactory.Services.CreateScope();
+            ResetData();
+        }
+
+        public static void ResetData()
+        {
+            var fixture = FixtureByTestClassName[typeof(PostTests).Name];
+            using var scope = fixture.ApplicationFactory.Services.CreateScope();
             using BlogPlatformDbContext dbContext = Helper.GetNotLoggingDbContext<BlogPlatformDbContext>(scope.ServiceProvider);
             using BlogPlatformImgDbContext imgDbContext = Helper.GetNotLoggingDbContext<BlogPlatformImgDbContext>(scope.ServiceProvider);
 
@@ -633,7 +638,7 @@ namespace BlogPlatform.Api.IntegrationTest.Post
             seedImg.Read(imgByte, 0, imgByte.Length);
             imgDbContext.Images.Add(new Image(SeedImgFileName, "image/jpg", imgByte));
             imgDbContext.SaveChanges();
-            string imgUrl = WebApplicationFactory.ClientOptions.BaseAddress.ToString() + "api/post/image/seedImg";
+            string imgUrl = fixture.ApplicationFactory.ClientOptions.BaseAddress.ToString() + "api/post/image/seedImg";
 
             User user1 = new("user1", "user1@user.com");
             User user2 = new("user2", "user2@user.com");
@@ -641,7 +646,7 @@ namespace BlogPlatform.Api.IntegrationTest.Post
             dbContext.Users.AddRange(user1, user2);
             dbContext.SaveChanges();
 
-            Role role = new("User", 1);
+            Role role = new(PolicyConstants.UserRolePolicy, 1);
             dbContext.Roles.Add(role);
             user1.Roles = [role];
             user2.Roles = [role];
@@ -675,29 +680,6 @@ namespace BlogPlatform.Api.IntegrationTest.Post
             EFCore.Models.Comment comment = new("content1", posts[0].Id, user1.Id, null);
             dbContext.Comments.Add(comment);
             dbContext.SaveChanges();
-        }
-
-        protected override void InitWebApplicationFactory(string dbName)
-        {
-            base.InitWebApplicationFactory(dbName);
-            WebApplicationFactory = WebApplicationFactory.WithWebHostBuilder(cnf =>
-            {
-                cnf.ConfigureServices(services =>
-                {
-                    services.RemoveAll<DbContextOptions<BlogPlatformImgDbContext>>();
-                    services.RemoveAll<BlogPlatformImgDbContext>();
-                    JsonNode connectionStringNode = JsonNode.Parse(File.ReadAllText(Path.Combine(Directory.GetCurrentDirectory(), "testConnectionStrings.json"))) ?? throw new Exception();
-                    string connectionString = connectionStringNode["BlogPlatformImgDb"]?.GetValue<string>() ?? throw new Exception();
-                    connectionString += $"database={dbName};";
-
-                    services.AddDbContext<BlogPlatformImgDbContext>(options =>
-                    {
-                        options.UseMySql(connectionString, MySqlServerVersion.LatestSupportedServerVersion);
-                        options.EnableDetailedErrors();
-                        options.EnableSensitiveDataLogging();
-                    });
-                });
-            });
         }
 
         private static async Task<HttpResponseMessage> UploadImageAsync(HttpClient httpClient, string fileName, string contentType)

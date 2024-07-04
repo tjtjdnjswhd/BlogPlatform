@@ -1,12 +1,11 @@
 ﻿using BlogPlatform.EFCore.Models;
 using BlogPlatform.Shared.Identity.Models;
-using BlogPlatform.Shared.Identity.Services.Interfaces;
 using BlogPlatform.Shared.Models;
+using BlogPlatform.Shared.Models.User;
 
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-
-using Moq;
 
 using System.Net;
 using System.Net.Http.Json;
@@ -16,29 +15,47 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
     public partial class IdentityTests
     {
         [Fact]
-        public async Task Logout_NoContent()
+        public async Task GetUserInfo_Unauthorize()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
+
+            // Act
+            HttpResponseMessage response = await client.GetAsync("/api/identity");
+
+            // Assert
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task GetUserInfo_Ok()
+        {
+            // Arrange
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(client, authorizeToken);
 
             // Act
-            HttpResponseMessage response = await client.PostAsync("/api/identity/logout", null);
+            HttpResponseMessage response = await client.GetAsync("/api/identity");
 
             // Assert
-            Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            UserRead? read = await response.Content.ReadFromJsonAsync<UserRead>();
+            Assert.NotNull(read);
+            Assert.Equal(user.Id, read.Id);
+            Assert.Equal(user.Name, read.Name);
+            Assert.Equal(user.Email, read.Email);
         }
 
         [Fact]
         public async Task Logout_Ok()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
-            AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
-            Helper.SetAuthorizeTokenCookie(client, authorizeToken);
+            AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user, true);
+            Helper.SetAuthorizeTokenCookie(WebApplicationFactory, client, authorizeToken);
 
             // Act
             HttpResponseMessage response = await client.PostAsync("/api/identity/logout", null);
@@ -51,7 +68,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task Refresh_Empty()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await client.PostAsync("/api/identity/refresh", null);
@@ -64,20 +81,20 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task Refresh_InvalidToken()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/refresh", new AuthorizeToken("InvalidToken", "InvalidToken"), CancellationToken.None);
 
             // Assert
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
         }
 
         [Fact]
         public async Task Refresh_Ok()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
 
@@ -99,11 +116,10 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         {
             // Arrange
             using var scope = WebApplicationFactory.Services.CreateScope();
-            IJwtService jwtService = scope.ServiceProvider.GetRequiredService<IJwtService>();
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
-            AuthorizeToken authorizeToken = await jwtService.GenerateTokenAsync(user);
+            AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
 
-            WebApplicationFactory = WebApplicationFactory.WithWebHostBuilder(conf =>
+            WebApplicationFactory<Program> newFactory = WebApplicationFactory.WithWebHostBuilder(conf =>
             {
                 conf.ConfigureServices(services =>
                 {
@@ -111,20 +127,20 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
                 });
             });
 
-            HttpClient client = CreateClient();
+            HttpClient client = newFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/refresh", authorizeToken, CancellationToken.None);
 
             // Assert
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
         }
 
         [Fact]
         public async Task FindId_NotFound()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/id/find", new EmailModel("notExist@user.com"));
@@ -137,8 +153,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task FindId_Ok()
         {
             // Arrange
-            SetIEmailServiceMock(new Mock<IUserEmailService>());
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/id/find", new EmailModel("user1@user.com"));

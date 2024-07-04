@@ -1,4 +1,5 @@
-﻿using BlogPlatform.EFCore;
+﻿using BlogPlatform.Api.Identity.Constants;
+using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
 using BlogPlatform.Shared.Identity.Models;
@@ -15,7 +16,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task OAuthLogin_Challenge()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             Dictionary<string, string> content = new()
             {
                 { "provider", "google" }
@@ -32,7 +33,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task OAuthSignUp_InvalidUserName()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             FormUrlEncodedContent content = new(new Dictionary<string, string>
             {
                 { "provider", "google" },
@@ -50,7 +51,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task OAuthSignUp_Challenge()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             FormUrlEncodedContent content = new(new Dictionary<string, string>
             {
                 { "provider", "google" },
@@ -68,7 +69,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task AddOAuth_Unauthorize()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             HttpContent content = new FormUrlEncodedContent(new Dictionary<string, string>() { { "provider", "google" } });
 
             // Act
@@ -82,7 +83,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task AddOAuth_Challenge_Header()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
             Helper.SetAuthorizationHeader(client, authorizeToken);
@@ -99,10 +100,10 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task AddOAuth_Challenge_Cookie()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
-            AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
-            Helper.SetAuthorizeTokenCookie(client, authorizeToken);
+            AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user, true);
+            Helper.SetAuthorizeTokenCookie(WebApplicationFactory, client, authorizeToken);
 
             HttpContent content = new FormUrlEncodedContent(new Dictionary<string, string>() { { "provider", "google" } });
 
@@ -117,7 +118,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
         public async Task RemoveOAuth_Unauthorize()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             // Act
             HttpResponseMessage response = await client.DeleteAsync("/api/identity/oauth/google");
@@ -126,22 +127,26 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task RemoveOAuth_Conflict()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             using var scope = WebApplicationFactory.Services.CreateScope();
             BlogPlatformDbContext dbContext = scope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
             User oauthUser = new("oauthOnly", "oauthOnly@user.com");
             dbContext.Users.Add(oauthUser);
             dbContext.SaveChanges();
 
-            OAuthAccount oAuthAccount = new("googleNameIdentifier", 1, oauthUser.Id);
+            OAuthProvider oauthProvider = new("Google");
+            dbContext.OAuthProviders.Add(oauthProvider);
+            dbContext.SaveChanges();
+
+            OAuthAccount oAuthAccount = new("googleNameIdentifier", oauthProvider.Id, oauthUser.Id);
             dbContext.OAuthAccounts.Add(oAuthAccount);
             dbContext.SaveChanges();
 
-            oauthUser.Roles = [dbContext.Roles.Where(r => r.Name == "user").First()];
+            oauthUser.Roles = [dbContext.Roles.Where(r => r.Name == PolicyConstants.UserRolePolicy).First()];
             dbContext.SaveChanges();
 
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, oauthUser);
@@ -155,22 +160,26 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             Assert.True(dbContext.OAuthAccounts.Any(o => o.Id == oAuthAccount.Id));
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task RemoveOAuth_UserNotFound()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             using var scope = WebApplicationFactory.Services.CreateScope();
             BlogPlatformDbContext dbContext = scope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
             User oauthUser = new("oauthOnly", "oauthOnly@user.com");
             dbContext.Users.Add(oauthUser);
             dbContext.SaveChanges();
 
-            OAuthAccount oAuthAccount = new("googleNameIdentifier", 1, oauthUser.Id);
+            OAuthProvider googleProvider = new("Google");
+            dbContext.OAuthProviders.Add(googleProvider);
+            dbContext.SaveChanges();
+
+            OAuthAccount oAuthAccount = new("googleNameIdentifier", googleProvider.Id, oauthUser.Id);
             dbContext.OAuthAccounts.Add(oAuthAccount);
             dbContext.SaveChanges();
 
-            oauthUser.Roles = [dbContext.Roles.Where(r => r.Name == "user").First()];
+            oauthUser.Roles = [dbContext.Roles.Where(r => r.Name == PolicyConstants.UserRolePolicy).First()];
             dbContext.SaveChanges();
 
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, oauthUser);
@@ -186,22 +195,26 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             Assert.True(dbContext.OAuthAccounts.IgnoreSoftDeleteFilter().Any(o => o.Id == oAuthAccount.Id));
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task RemoveOAuth_ProviderNotFound()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             using var scope = WebApplicationFactory.Services.CreateScope();
             BlogPlatformDbContext dbContext = scope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
             User oauthUser = new("newUser", "newUser@user.com");
             dbContext.Users.Add(oauthUser);
             dbContext.SaveChanges();
 
-            OAuthAccount oAuthAccount = new("google", 1, oauthUser.Id);
+            OAuthProvider googleProvider = new("Google");
+            dbContext.OAuthProviders.Add(googleProvider);
+            dbContext.SaveChanges();
+
+            OAuthAccount oAuthAccount = new("google", googleProvider.Id, oauthUser.Id);
             dbContext.OAuthAccounts.Add(oAuthAccount);
             dbContext.SaveChanges();
 
-            oauthUser.Roles = [dbContext.Roles.Where(r => r.Name == "user").First()];
+            oauthUser.Roles = [dbContext.Roles.Where(r => r.Name == PolicyConstants.UserRolePolicy).First()];
             dbContext.SaveChanges();
 
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, oauthUser);
@@ -215,24 +228,29 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             Assert.True(dbContext.OAuthAccounts.Any(o => o.Id == oAuthAccount.Id));
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task RemoveOAuth_OAuthOnly_Ok()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             using var scope = WebApplicationFactory.Services.CreateScope();
             BlogPlatformDbContext dbContext = scope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
             User oauthUser = new("newUser", "newUser@user.com");
             dbContext.Users.Add(oauthUser);
             dbContext.SaveChanges();
 
-            OAuthAccount googleAccount = new("googleNameIdentifier", 1, oauthUser.Id);
-            OAuthAccount naverAccount = new("naverNameIdentifier", 2, oauthUser.Id);
+            OAuthProvider googleProvider = new("Google");
+            OAuthProvider naverProvider = new("Naver");
+            dbContext.OAuthProviders.AddRange(googleProvider, naverProvider);
+            dbContext.SaveChanges();
+
+            OAuthAccount googleAccount = new("googleNameIdentifier", googleProvider.Id, oauthUser.Id);
+            OAuthAccount naverAccount = new("naverNameIdentifier", naverProvider.Id, oauthUser.Id);
 
             dbContext.OAuthAccounts.AddRange(googleAccount, naverAccount);
             dbContext.SaveChanges();
 
-            oauthUser.Roles = [dbContext.Roles.Where(r => r.Name == "user").First()];
+            oauthUser.Roles = [dbContext.Roles.Where(r => r.Name == PolicyConstants.UserRolePolicy).First()];
             dbContext.SaveChanges();
 
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, oauthUser);
@@ -248,25 +266,29 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             Assert.True(dbContext.OAuthAccounts.Any(o => o.Id == naverAccount.Id));
         }
 
-        [Fact]
+        [Fact, ResetDataAfterTest]
         public async Task RemoveOAuth_OneOAuthWithBasic_Ok()
         {
             // Arrange
-            HttpClient client = CreateClient();
+            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             using var scope = WebApplicationFactory.Services.CreateScope();
             BlogPlatformDbContext dbContext = scope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
             User oauthUser = new("newUser", "newUser@user.com");
             dbContext.Users.Add(oauthUser);
             dbContext.SaveChanges();
 
-            OAuthAccount googleAccount = new("googleNameIdentifier", 1, oauthUser.Id);
+            OAuthProvider googleProvider = new("Google");
+            dbContext.OAuthProviders.Add(googleProvider);
+            dbContext.SaveChanges();
+
+            OAuthAccount googleAccount = new("googleNameIdentifier", googleProvider.Id, oauthUser.Id);
             BasicAccount basicAccount = new("newUser", "newUser", oauthUser.Id);
 
             dbContext.OAuthAccounts.Add(googleAccount);
             dbContext.BasicAccounts.Add(basicAccount);
             dbContext.SaveChanges();
 
-            oauthUser.Roles = [dbContext.Roles.Where(r => r.Name == "user").First()];
+            oauthUser.Roles = [dbContext.Roles.Where(r => r.Name == PolicyConstants.UserRolePolicy).First()];
             dbContext.SaveChanges();
 
             AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, oauthUser);
