@@ -1,5 +1,4 @@
-﻿using BlogPlatform.Api.Identity.Constants;
-using BlogPlatform.Api.Identity.Services.Interfaces;
+﻿using BlogPlatform.Api.Identity.Services.Interfaces;
 using BlogPlatform.Shared.Identity.Models;
 
 using Microsoft.AspNetCore.Authentication;
@@ -23,7 +22,12 @@ namespace BlogPlatform.Api.Identity
 
         public async Task SignInAsync(ClaimsPrincipal user, AuthenticationProperties? properties)
         {
-            bool setCookie = properties?.GetParameter<bool>(AuthenticationPropertiesParameterKeys.IsSignInCookie) ?? false;
+            if (properties is not JwtAuthenticationProperties jwtProperties)
+            {
+                throw new ArgumentException("The properties must be of type JwtAuthenticationProperties", nameof(properties));
+            }
+
+            bool setCookie = jwtProperties.IsSignInCookie;
             AuthorizeToken authorizeToken = _authorizeTokenService.GenerateToken(user, setCookie);
 
             if (setCookie)
@@ -34,7 +38,12 @@ namespace BlogPlatform.Api.Identity
             {
                 await _authorizeTokenService.WriteBodyTokenAsync(Response, authorizeToken, Context.RequestAborted);
             }
+
             await _authorizeTokenService.CacheTokenAsync(authorizeToken, Context.RequestAborted);
+            if (properties?.RedirectUri != null)
+            {
+                Response.Redirect(properties.RedirectUri);
+            }
         }
 
         public async Task SignOutAsync(AuthenticationProperties? properties)
@@ -45,6 +54,10 @@ namespace BlogPlatform.Api.Identity
 
             await _authorizeTokenService.RemoveTokenAsync(Request, Response, null, Context.RequestAborted);
             _authorizeTokenService.ExpireCookieToken(Response);
+            if (properties?.RedirectUri != null)
+            {
+                Response.Redirect(properties.RedirectUri);
+            }
         }
     }
 }

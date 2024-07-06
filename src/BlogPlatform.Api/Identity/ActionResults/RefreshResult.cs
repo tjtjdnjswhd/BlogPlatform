@@ -17,13 +17,13 @@ namespace BlogPlatform.Api.Identity.ActionResults
     /// </summary>
     public class RefreshResult : IActionResult
     {
-        private readonly AuthorizeToken _authorizeToken;
-        private readonly string? _returnUrl;
+        private AuthorizeToken AuthorizeToken { get; init; }
+        private string? ReturnUrl { get; init; }
 
         public RefreshResult(AuthorizeToken authorizeToken, string? returnUrl)
         {
-            _authorizeToken = authorizeToken;
-            _returnUrl = returnUrl;
+            AuthorizeToken = authorizeToken;
+            ReturnUrl = returnUrl;
         }
 
         public async Task ExecuteResultAsync(ActionContext context)
@@ -33,11 +33,11 @@ namespace BlogPlatform.Api.Identity.ActionResults
 
             ILogger<RefreshResult> logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger<RefreshResult>();
             logger.LogInformation("Refreshing token begin");
-            logger.LogDebug("Access token: {accessToken}. Refresh token: {refreshToken}", _authorizeToken.AccessToken, _authorizeToken.RefreshToken);
+            logger.LogDebug("Access token: {accessToken}. Refresh token: {refreshToken}", AuthorizeToken.AccessToken, AuthorizeToken.RefreshToken);
 
             IAuthorizeTokenService authorizeTokenService = scope.ServiceProvider.GetRequiredService<IAuthorizeTokenService>();
-            string? oldAccessToken = await authorizeTokenService.GetCachedTokenAsync(_authorizeToken.RefreshToken, cancellationToken);
-            if (_authorizeToken.AccessToken != oldAccessToken)
+            string? oldAccessToken = await authorizeTokenService.GetCachedTokenAsync(AuthorizeToken.RefreshToken, cancellationToken);
+            if (AuthorizeToken.AccessToken != oldAccessToken)
             {
                 logger.LogInformation("Refreshing token failed. wrong access token");
                 context.HttpContext.Response.StatusCode = StatusCodes.Status403Forbidden;
@@ -58,11 +58,11 @@ namespace BlogPlatform.Api.Identity.ActionResults
                 return;
             }
 
-            await authorizeTokenService.RemoveCachedTokenAsync(_authorizeToken.RefreshToken, cancellationToken);
+            await authorizeTokenService.RemoveCachedTokenAsync(AuthorizeToken.RefreshToken, cancellationToken);
 
             IUserClaimsPrincipalFactory<User> claimsPrincipalFactory = scope.ServiceProvider.GetRequiredService<IUserClaimsPrincipalFactory<User>>();
             System.Security.Claims.ClaimsPrincipal claimsPrincipal = await claimsPrincipalFactory.CreateAsync(user);
-            JwtAuthenticationProperties authenticationProperties = new(_returnUrl);
+            JwtAuthenticationProperties authenticationProperties = new(ReturnUrl);
             await context.HttpContext.SignInAsync(claimsPrincipal, authenticationProperties);
         }
     }

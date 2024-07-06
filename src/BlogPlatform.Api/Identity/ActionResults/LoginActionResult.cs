@@ -13,9 +13,8 @@ namespace BlogPlatform.Api.Identity.ActionResults
     /// </summary>
     public class LoginActionResult : IActionResult
     {
-        public User User { get; }
-
-        public string? ReturnUrl { get; }
+        public User User { get; init; }
+        public string? ReturnUrl { get; init; }
 
         public LoginActionResult(User user, string? returnUrl)
         {
