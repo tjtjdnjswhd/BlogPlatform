@@ -1,5 +1,4 @@
-﻿using BlogPlatform.Api.Identity.Constants;
-using BlogPlatform.EFCore.Models;
+﻿using BlogPlatform.EFCore.Models;
 
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
@@ -16,12 +15,12 @@ namespace BlogPlatform.Api.Identity.ActionResults
     {
         public User User { get; }
 
-        public string? ReturnUrl { get; }
+        public string? ReturnUri { get; }
 
-        public LoginActionResult(User user, string? returnUrl)
+        public LoginActionResult(User user, string? returnUri)
         {
             User = user;
-            ReturnUrl = returnUrl;
+            ReturnUri = returnUri;
         }
 
         public async Task ExecuteResultAsync(ActionContext context)
@@ -36,17 +35,7 @@ namespace BlogPlatform.Api.Identity.ActionResults
 
             IUserClaimsPrincipalFactory<User> claimsPrincipalFactory = serviceScope.ServiceProvider.GetRequiredService<IUserClaimsPrincipalFactory<User>>();
             ClaimsPrincipal principal = await claimsPrincipalFactory.CreateAsync(User);
-
-            AuthenticationProperties authenticationProperties = new();
-            if (ReturnUrl is null)
-            {
-                authenticationProperties.SetParameter(AuthenticationPropertiesParameterKeys.IsSignInCookie, false);
-            }
-            else
-            {
-                authenticationProperties.SetParameter(AuthenticationPropertiesParameterKeys.IsSignInCookie, true);
-                authenticationProperties.RedirectUri = ReturnUrl;
-            }
+            JwtAuthenticationProperties authenticationProperties = new(ReturnUri);
             await context.HttpContext.SignInAsync(principal, authenticationProperties);
         }
     }

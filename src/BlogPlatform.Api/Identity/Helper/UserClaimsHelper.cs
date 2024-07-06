@@ -6,7 +6,7 @@ namespace BlogPlatform.Api.Identity.Helper
 {
     public static class UserClaimsHelper
     {
-        private static JsonWebTokenHandler DefaultJsonWebTokenHandler = new();
+        private static readonly JsonWebTokenHandler DefaultJsonWebTokenHandler = new();
 
         public static bool TryGetUserId(ClaimsPrincipal principal, out int userId)
         {

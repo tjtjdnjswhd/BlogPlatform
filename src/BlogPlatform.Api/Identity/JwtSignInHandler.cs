@@ -31,8 +31,11 @@ namespace BlogPlatform.Api.Identity
 
         public async Task SignOutAsync(AuthenticationProperties? properties)
         {
-            string? refreshToken = properties?.GetParameter<string>(AuthenticationPropertiesParameterKeys.RefreshToken);
-            await _authorizeTokenService.RemoveTokenAsync(Response, refreshToken, Context.RequestAborted);
+            using var scope = Context.RequestServices.CreateScope();
+            ILogger<JwtSignInHandler> logger = scope.ServiceProvider.GetRequiredService<ILogger<JwtSignInHandler>>();
+            logger.LogInformation("Signing out user");
+
+            await _authorizeTokenService.RemoveTokenAsync(Request, Response, null, Context.RequestAborted);
         }
     }
 }

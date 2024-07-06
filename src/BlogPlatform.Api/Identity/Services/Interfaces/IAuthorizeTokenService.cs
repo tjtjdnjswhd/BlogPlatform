@@ -16,6 +16,6 @@ namespace BlogPlatform.Api.Identity.Services.Interfaces
 
         Task<string?> GetCachedTokenAsync(string refreshToken, CancellationToken cancellationToken = default);
 
-        Task RemoveTokenAsync(HttpResponse response, string? refreshToken, CancellationToken cancellationToken = default);
+        Task RemoveTokenAsync(HttpRequest request, HttpResponse response, string? refreshToken, CancellationToken cancellationToken = default);
     }
 }

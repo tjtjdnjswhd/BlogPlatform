@@ -265,7 +265,7 @@ namespace BlogPlatform.Api.Controllers
         [ProducesResponseType(typeof(Error), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
         [ProducesDefaultResponseType]
-        public RefreshResult Refresh([ModelBinder<RefreshAuthorizeTokenBinder>, FromSpecial] AuthorizeToken authorizeToken, [TokenSetCookie] bool setCookie) => new(authorizeToken, setCookie);
+        public RefreshResult Refresh([ModelBinder<RefreshAuthorizeTokenBinder>, FromSpecial] AuthorizeToken authorizeToken, [RefreshTokenSetCookie] bool setCookie) => new(authorizeToken, setCookie);
 
         [HttpPost("password/change")]
         [UserAuthorize]

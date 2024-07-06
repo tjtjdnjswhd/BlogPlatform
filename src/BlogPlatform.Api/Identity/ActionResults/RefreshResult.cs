@@ -3,6 +3,7 @@ using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Models;
 using BlogPlatform.Shared.Identity.Models;
 
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -49,8 +50,6 @@ namespace BlogPlatform.Api.Identity.ActionResults
             }
 
             BlogPlatformDbContext blogPlatformDbContext = scope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
-            IUserClaimsPrincipalFactory<User> claimsPrincipalFactory = scope.ServiceProvider.GetRequiredService<IUserClaimsPrincipalFactory<User>>();
-
             User? user = await blogPlatformDbContext.Users.FirstOrDefaultAsync(u => u.Id == userId);
             if (user is null)
             {
@@ -59,11 +58,12 @@ namespace BlogPlatform.Api.Identity.ActionResults
                 return;
             }
 
+            await authorizeTokenService.RemoveTokenAsync(context.HttpContext.Request, context.HttpContext.Response, _authorizeToken.RefreshToken, context.HttpContext.RequestAborted);
+
+            IUserClaimsPrincipalFactory<User> claimsPrincipalFactory = scope.ServiceProvider.GetRequiredService<IUserClaimsPrincipalFactory<User>>();
             System.Security.Claims.ClaimsPrincipal claimsPrincipal = await claimsPrincipalFactory.CreateAsync(user);
-            AuthorizeToken authorizeToken = authorizeTokenService.GenerateToken(claimsPrincipal, _setCookie);
-            context.HttpContext.Response.StatusCode = StatusCodes.Status200OK;
-            await authorizeTokenService.WriteAsync(context.HttpContext.Response, authorizeToken, _setCookie, cancellationToken);
-            logger.LogInformation("Refreshing token successed");
+            JwtAuthenticationProperties authenticationProperties = new(_setCookie);
+            await context.HttpContext.SignInAsync(claimsPrincipal, authenticationProperties);
         }
     }
 }

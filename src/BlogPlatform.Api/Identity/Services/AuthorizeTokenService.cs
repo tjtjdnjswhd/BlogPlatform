@@ -150,13 +150,14 @@ namespace BlogPlatform.Api.Identity.Services
             return accessToken;
         }
 
-        public async Task RemoveTokenAsync(HttpResponse response, string? refreshToken, CancellationToken cancellationToken = default)
+        public async Task RemoveTokenAsync(HttpRequest request, HttpResponse response, string? refreshToken, CancellationToken cancellationToken = default)
         {
             _logger.LogDebug("Removing token: {refresh}", refreshToken);
 
             response.Cookies.Delete(_jwtOptions.RefreshTokenName);
             response.Cookies.Delete(_jwtOptions.AccessTokenName);
 
+            refreshToken ??= request.Cookies[_jwtOptions.RefreshTokenName];
             if (refreshToken is not null)
             {
                 await _cache.RemoveAsync($"{CacheKeyPrefix}{refreshToken}", cancellationToken);

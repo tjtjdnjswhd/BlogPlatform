@@ -20,7 +20,7 @@ namespace BlogPlatform.Api.Identity.ActionResults
             logger.LogWarning("Authenticated user data not found. Logging out. user: {user}", context.HttpContext.User.Identities);
 
             IAuthorizeTokenService authorizeTokenService = scope.ServiceProvider.GetRequiredService<IAuthorizeTokenService>();
-            authorizeTokenService.RemoveTokenAsync(context.HttpContext.Response, null, default);
+            authorizeTokenService.RemoveTokenAsync(context.HttpContext.Request, context.HttpContext.Response, null, default);
 
             context.HttpContext.Response.StatusCode = StatusCode!.Value;
             return Task.CompletedTask;

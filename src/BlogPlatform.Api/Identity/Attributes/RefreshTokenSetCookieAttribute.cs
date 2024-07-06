@@ -5,11 +5,11 @@ using Microsoft.AspNetCore.Mvc;
 namespace BlogPlatform.Api.Identity.Attributes
 {
     /// <summary>
-    /// JWT 토큰을 쿠키에 설정하는 헤더를 가져오는 Attribute
+    /// 토큰 갱신시 쿠키 저장 여부 헤더를 받아올 때 사용하는 <see cref="FromHeaderAttribute"/>
     /// </summary>
-    public class TokenSetCookieAttribute : FromHeaderAttribute
+    public class RefreshTokenSetCookieAttribute : FromHeaderAttribute
     {
-        public TokenSetCookieAttribute()
+        public RefreshTokenSetCookieAttribute()
         {
             Name = HeaderNameConstants.AuthorizeTokenSetCookie;
         }
