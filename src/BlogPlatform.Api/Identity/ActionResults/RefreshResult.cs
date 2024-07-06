@@ -18,12 +18,12 @@ namespace BlogPlatform.Api.Identity.ActionResults
     public class RefreshResult : IActionResult
     {
         private readonly AuthorizeToken _authorizeToken;
-        private readonly bool _setCookie;
+        private readonly string? _returnUrl;
 
-        public RefreshResult(AuthorizeToken authorizeToken, bool setCookie)
+        public RefreshResult(AuthorizeToken authorizeToken, string? returnUrl)
         {
-            _setCookie = setCookie;
             _authorizeToken = authorizeToken;
+            _returnUrl = returnUrl;
         }
 
         public async Task ExecuteResultAsync(ActionContext context)
@@ -58,11 +58,11 @@ namespace BlogPlatform.Api.Identity.ActionResults
                 return;
             }
 
-            await authorizeTokenService.RemoveTokenAsync(context.HttpContext.Request, context.HttpContext.Response, _authorizeToken.RefreshToken, context.HttpContext.RequestAborted);
+            await authorizeTokenService.RemoveCachedTokenAsync(_authorizeToken.RefreshToken, cancellationToken);
 
             IUserClaimsPrincipalFactory<User> claimsPrincipalFactory = scope.ServiceProvider.GetRequiredService<IUserClaimsPrincipalFactory<User>>();
             System.Security.Claims.ClaimsPrincipal claimsPrincipal = await claimsPrincipalFactory.CreateAsync(user);
-            JwtAuthenticationProperties authenticationProperties = new(_setCookie);
+            JwtAuthenticationProperties authenticationProperties = new(_returnUrl);
             await context.HttpContext.SignInAsync(claimsPrincipal, authenticationProperties);
         }
     }

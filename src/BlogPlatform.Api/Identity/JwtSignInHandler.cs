@@ -25,7 +25,15 @@ namespace BlogPlatform.Api.Identity
         {
             bool setCookie = properties?.GetParameter<bool>(AuthenticationPropertiesParameterKeys.IsSignInCookie) ?? false;
             AuthorizeToken authorizeToken = _authorizeTokenService.GenerateToken(user, setCookie);
-            await _authorizeTokenService.WriteAsync(Response, authorizeToken, setCookie);
+
+            if (setCookie)
+            {
+                _authorizeTokenService.SetCookieToken(Response, authorizeToken);
+            }
+            else
+            {
+                await _authorizeTokenService.WriteBodyTokenAsync(Response, authorizeToken, Context.RequestAborted);
+            }
             await _authorizeTokenService.CacheTokenAsync(authorizeToken, Context.RequestAborted);
         }
 
@@ -36,6 +44,7 @@ namespace BlogPlatform.Api.Identity
             logger.LogInformation("Signing out user");
 
             await _authorizeTokenService.RemoveTokenAsync(Request, Response, null, Context.RequestAborted);
+            _authorizeTokenService.ExpireCookieToken(Response);
         }
     }
 }

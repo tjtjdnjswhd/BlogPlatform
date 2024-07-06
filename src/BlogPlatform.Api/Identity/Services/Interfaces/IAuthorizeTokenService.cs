@@ -8,13 +8,19 @@ namespace BlogPlatform.Api.Identity.Services.Interfaces
     {
         AuthorizeToken GenerateToken(ClaimsPrincipal user, bool setCookie);
 
-        Task WriteAsync(HttpResponse response, AuthorizeToken token, bool setCookie, CancellationToken cancellationToken = default);
-
         Task<AuthorizeToken?> GetAsync(HttpRequest request, bool fromCookie, CancellationToken cancellationToken = default);
 
         Task CacheTokenAsync(AuthorizeToken token, CancellationToken cancellationToken = default);
 
         Task<string?> GetCachedTokenAsync(string refreshToken, CancellationToken cancellationToken = default);
+
+        Task RemoveCachedTokenAsync(string refreshToken, CancellationToken cancellationToken = default);
+
+        Task WriteBodyTokenAsync(HttpResponse response, AuthorizeToken token, CancellationToken cancellationToken = default);
+
+        void SetCookieToken(HttpResponse response, AuthorizeToken token);
+
+        void ExpireCookieToken(HttpResponse response);
 
         Task RemoveTokenAsync(HttpRequest request, HttpResponse response, string? refreshToken, CancellationToken cancellationToken = default);
     }

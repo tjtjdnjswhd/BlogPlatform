@@ -72,22 +72,6 @@ namespace BlogPlatform.Api.Identity.Services
             return authorizeToken;
         }
 
-        public async Task WriteAsync(HttpResponse response, AuthorizeToken token, bool setCookie, CancellationToken cancellationToken = default)
-        {
-            _logger.LogInformation("Writing token to {dest}. token: {token}", setCookie ? "Cookie" : "Body", token);
-
-            if (setCookie)
-            {
-                CookieOptions cookieOptions = new(DefaultCookieOptions) { Expires = _timeProvider.GetUtcNow().UtcDateTime.Add(_jwtOptions.RefreshTokenExpiration) };
-                response.Cookies.Append(_jwtOptions.AccessTokenName, token.AccessToken, cookieOptions);
-                response.Cookies.Append(_jwtOptions.RefreshTokenName, token.RefreshToken, cookieOptions);
-            }
-            else
-            {
-                await response.WriteAsJsonAsync(token, cancellationToken);
-            }
-        }
-
         public async Task<AuthorizeToken?> GetAsync(HttpRequest request, bool fromCookie, CancellationToken cancellationToken = default)
         {
             if (fromCookie)
@@ -148,6 +132,33 @@ namespace BlogPlatform.Api.Identity.Services
             }
 
             return accessToken;
+        }
+
+        public async Task RemoveCachedTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
+        {
+            await _cache.RemoveAsync($"{CacheKeyPrefix}{refreshToken}", cancellationToken);
+        }
+
+        public async Task WriteBodyTokenAsync(HttpResponse response, AuthorizeToken token, CancellationToken cancellationToken = default)
+        {
+            response.Headers.ContentType = "application/json";
+            await response.WriteAsJsonAsync(token, cancellationToken);
+        }
+
+        public void SetCookieToken(HttpResponse response, AuthorizeToken token)
+        {
+            CookieOptions cookieOptions = new(DefaultCookieOptions)
+            {
+                Expires = _timeProvider.GetUtcNow().UtcDateTime.Add(_jwtOptions.RefreshTokenExpiration)
+            };
+            response.Cookies.Append(_jwtOptions.AccessTokenName, token.AccessToken, cookieOptions);
+            response.Cookies.Append(_jwtOptions.RefreshTokenName, token.RefreshToken, cookieOptions);
+        }
+
+        public void ExpireCookieToken(HttpResponse response)
+        {
+            response.Cookies.Delete(_jwtOptions.RefreshTokenName);
+            response.Cookies.Delete(_jwtOptions.AccessTokenName);
         }
 
         public async Task RemoveTokenAsync(HttpRequest request, HttpResponse response, string? refreshToken, CancellationToken cancellationToken = default)

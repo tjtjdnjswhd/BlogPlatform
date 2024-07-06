@@ -12,11 +12,6 @@ namespace BlogPlatform.Api.Identity
             IsSignInCookie = redirectUri != null;
         }
 
-        public JwtAuthenticationProperties(bool isSignInCookie)
-        {
-            IsSignInCookie = isSignInCookie;
-        }
-
         public bool IsSignInCookie
         {
             get => GetParameter<bool>(AuthenticationPropertiesParameterKeys.IsSignInCookie);

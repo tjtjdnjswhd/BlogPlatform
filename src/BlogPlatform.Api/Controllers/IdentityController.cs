@@ -86,7 +86,7 @@ namespace BlogPlatform.Api.Controllers
             return HandleSignUp(signUpResult, user, signUpInfo.ReturnUrl);
         }
 
-        [HttpPost("signup/basic/email")]
+        [HttpPost("email/verify")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesDefaultResponseType]
         public async Task<IActionResult> SendVerifyEmailAsync([FromBody] EmailModel newEmail, CancellationToken cancellationToken)
@@ -95,15 +95,15 @@ namespace BlogPlatform.Api.Controllers
             Debug.Assert(verifyUri is not null); // VerifyEmailAsync가 존재하므로 null이 아니어야 함
             string code = _emailVerifyService.GenerateVerificationCode();
             await _emailVerifyService.SetVerifyCodeAsync(newEmail.Email, code, cancellationToken);
-            _userEmailService.SendEmailVerifyMail(newEmail.Email, $"{verifyUri}&code={code}", cancellationToken);
+            _userEmailService.SendEmailVerifyMail(newEmail.Email, $"{verifyUri}?code={code}", cancellationToken);
             return Ok();
         }
 
-        [HttpGet("signup/basic/email")]
+        [HttpGet("email/confirm")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status400BadRequest)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> VerifyEmailAsync([FromQuery] string code, CancellationToken cancellationToken)
+        public async Task<IActionResult> ConfirmEmailAsync([FromQuery] string code, CancellationToken cancellationToken)
         {
             string? email = await _emailVerifyService.VerifyEmailCodeAsync(code, cancellationToken);
             return email is not null ? Ok() : BadRequest(new Error("잘못된 코드입니다"));
@@ -258,14 +258,14 @@ namespace BlogPlatform.Api.Controllers
         [HttpPost("logout")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesDefaultResponseType]
-        public SignOutResult Logout() => SignOut();
+        public SignOutResult Logout([FromQuery] string? returnUrl) => SignOut(new AuthenticationProperties() { RedirectUri = returnUrl });
 
         [HttpPost("refresh")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
         [ProducesDefaultResponseType]
-        public RefreshResult Refresh([ModelBinder<RefreshAuthorizeTokenBinder>, FromSpecial] AuthorizeToken authorizeToken, [RefreshTokenSetCookie] bool setCookie) => new(authorizeToken, setCookie);
+        public RefreshResult Refresh([ModelBinder<RefreshAuthorizeTokenBinder>, FromSpecial] AuthorizeToken authorizeToken, [FromQuery] string? returnUrl) => new(authorizeToken, returnUrl);
 
         [HttpPost("password/change")]
         [UserAuthorize]
@@ -357,21 +357,7 @@ namespace BlogPlatform.Api.Controllers
             };
         }
 
-        [HttpPost("email/change")]
-        [UserAuthorize]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesDefaultResponseType]
-        public async Task<IActionResult> ChangeEmailAsync([FromBody] EmailModel email, CancellationToken cancellationToken)
-        {
-            string? confirmUri = Url.Action("ConfirmChangeEmail", "Identity");
-            Debug.Assert(confirmUri is not null); // ConfirmChangeEmailAsync가 존재하므로 null이 아니어야 함
-            string code = _emailVerifyService.GenerateVerificationCode();
-            await _emailVerifyService.SetVerifyCodeAsync(email.Email, code, cancellationToken);
-            _userEmailService.SendEmailVerifyMail(email.Email, $"{confirmUri}&code={code}", cancellationToken);
-            return Ok();
-        }
-
-        [HttpGet("email/change/confirm")]
+        [HttpGet("email/change")]
         [UserAuthorize]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status400BadRequest)]
@@ -391,19 +377,11 @@ namespace BlogPlatform.Api.Controllers
         private IActionResult HandleLogin(ELoginResult loginResult, User? user, string? returnUrl)
         {
             Debug.Assert(loginResult is ELoginResult.Success ^ user is null);
-            string message = loginResult switch
-            {
-                ELoginResult.Success => "로그인 성공",
-                ELoginResult.NotFound => "존재하지 않는 계정입니다",
-                ELoginResult.WrongPassword => "틀린 비밀번호입니다",
-                _ => throw new InvalidEnumArgumentException(nameof(loginResult), (int)loginResult, typeof(ELoginResult))
-            };
-
             return loginResult switch
             {
                 ELoginResult.Success => new LoginActionResult(user!, returnUrl),
-                ELoginResult.NotFound => NotFound(new Error(message)),
-                ELoginResult.WrongPassword => Unauthorized(new Error(message)),
+                ELoginResult.NotFound => NotFound(new Error("존재하지 않는 계정입니다")),
+                ELoginResult.WrongPassword => Unauthorized(new Error("틀린 비밀번호입니다")),
                 _ => throw new InvalidEnumArgumentException(nameof(loginResult), (int)loginResult, typeof(ELoginResult))
             };
         }
@@ -411,25 +389,14 @@ namespace BlogPlatform.Api.Controllers
         private IActionResult HandleSignUp(ESignUpResult signUpResult, User? user, string? returnUrl)
         {
             Debug.Assert(signUpResult is ESignUpResult.Success ^ user is null);
-            string message = signUpResult switch
-            {
-                ESignUpResult.Success => "회원가입 성공",
-                ESignUpResult.UserIdAlreadyExists => "중복된 Id입니다",
-                ESignUpResult.NameAlreadyExists => "중복된 이름입니다",
-                ESignUpResult.EmailAlreadyExists => "중복된 이메일입니다",
-                ESignUpResult.OAuthAlreadyExists => "이미 존재하는 계정입니다",
-                ESignUpResult.ProviderNotFound => "잘못된 OAuth 제공자입니다",
-                _ => throw new InvalidEnumArgumentException(nameof(signUpResult), (int)signUpResult, typeof(ESignUpResult))
-            };
-
             return signUpResult switch
             {
                 ESignUpResult.Success => new LoginActionResult(user!, returnUrl),
-                ESignUpResult.UserIdAlreadyExists => Conflict(new Error(message)),
-                ESignUpResult.NameAlreadyExists => Conflict(new Error(message)),
-                ESignUpResult.EmailAlreadyExists => Conflict(new Error(message)),
-                ESignUpResult.ProviderNotFound => Conflict(new Error(message)),
-                ESignUpResult.OAuthAlreadyExists => Conflict(new Error(message)),
+                ESignUpResult.UserIdAlreadyExists => Conflict(new Error("중복된 Id입니다")),
+                ESignUpResult.NameAlreadyExists => Conflict(new Error("중복된 이름입니다")),
+                ESignUpResult.EmailAlreadyExists => Conflict(new Error("중복된 이메일입니다")),
+                ESignUpResult.ProviderNotFound => Conflict(new Error("잘못된 OAuth 제공자입니다")),
+                ESignUpResult.OAuthAlreadyExists => Conflict(new Error("이미 존재하는 계정입니다")),
                 _ => throw new InvalidEnumArgumentException(nameof(signUpResult), (int)signUpResult, typeof(ESignUpResult))
             };
         }

@@ -15,12 +15,12 @@ namespace BlogPlatform.Api.Identity.ActionResults
     {
         public User User { get; }
 
-        public string? ReturnUri { get; }
+        public string? ReturnUrl { get; }
 
-        public LoginActionResult(User user, string? returnUri)
+        public LoginActionResult(User user, string? returnUrl)
         {
             User = user;
-            ReturnUri = returnUri;
+            ReturnUrl = returnUrl;
         }
 
         public async Task ExecuteResultAsync(ActionContext context)
@@ -35,7 +35,7 @@ namespace BlogPlatform.Api.Identity.ActionResults
 
             IUserClaimsPrincipalFactory<User> claimsPrincipalFactory = serviceScope.ServiceProvider.GetRequiredService<IUserClaimsPrincipalFactory<User>>();
             ClaimsPrincipal principal = await claimsPrincipalFactory.CreateAsync(User);
-            JwtAuthenticationProperties authenticationProperties = new(ReturnUri);
+            JwtAuthenticationProperties authenticationProperties = new(ReturnUrl);
             await context.HttpContext.SignInAsync(principal, authenticationProperties);
         }
     }
