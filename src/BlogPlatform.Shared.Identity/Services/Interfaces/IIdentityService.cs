@@ -1,5 +1,8 @@
 ﻿using BlogPlatform.EFCore.Models;
 using BlogPlatform.Shared.Identity.Models;
+using BlogPlatform.Shared.Models.User;
+
+using System.Linq.Expressions;
 
 namespace BlogPlatform.Shared.Identity.Services.Interfaces
 {
@@ -154,5 +157,14 @@ namespace BlogPlatform.Shared.Identity.Services.Interfaces
         /// 
         /// </returns>
         Task<bool> ChangeEmailAsync(int userId, string newEmail, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// 해당 유저의 정보를 반환합니다
+        /// </summary>
+        /// <param name="isRemoved"></param>
+        /// <returns></returns>
+        /// <param name="filters"></param>
+        /// <param name="cancellationToken"></param>
+        Task<UserRead?> GetFirstUserReadAsync(bool isRemoved, IEnumerable<Expression<Func<User, bool>>> filters, CancellationToken cancellationToken = default);
     }
 }

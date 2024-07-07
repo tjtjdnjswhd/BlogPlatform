@@ -4,6 +4,7 @@ using BlogPlatform.EFCore.Models;
 using BlogPlatform.Shared.Identity.Models;
 using BlogPlatform.Shared.Identity.Options;
 using BlogPlatform.Shared.Identity.Services.Interfaces;
+using BlogPlatform.Shared.Models.User;
 
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 using System.Diagnostics;
+using System.Linq.Expressions;
 
 namespace BlogPlatform.Shared.Identity.Services
 {
@@ -416,6 +418,23 @@ namespace BlogPlatform.Shared.Identity.Services
             Debug.Assert(result <= 1);
 
             return result != 0;
+        }
+
+        /// <inheritdoc/>
+        public async Task<UserRead?> GetFirstUserReadAsync(bool isRemoved, IEnumerable<Expression<Func<User, bool>>> filters, CancellationToken cancellationToken = default)
+        {
+            IQueryable<User> query = isRemoved ? _blogPlatformDbContext.Users.IgnoreQueryFilters().Where(u => u.SoftDeleteLevel == 0) : _blogPlatformDbContext.Users;
+            query = filters.Aggregate(query, (current, filter) => current.Where(filter));
+            UserRead? userRead = await query.Select(u => new UserRead(u.Id,
+                                                                     u.BasicAccounts.Select(b => b.AccountId).FirstOrDefault(),
+                                                                     u.Name,
+                                                                     u.Email,
+                                                                     u.CreatedAt,
+                                                                     u.Blog.Select(b => b.Id).FirstOrDefault(),
+                                                                     u.Roles.Select(r => r.Name),
+                                                                     u.OAuthAccounts.Select(o => o.Provider.Name)))
+                .FirstOrDefaultAsync(cancellationToken);
+            return userRead;
         }
 
         private IQueryable<User> GetRestorableUsers()
