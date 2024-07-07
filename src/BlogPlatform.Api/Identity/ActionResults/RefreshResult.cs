@@ -2,8 +2,10 @@
 using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Models;
 using BlogPlatform.Shared.Identity.Models;
+using BlogPlatform.Shared.Models;
 
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -39,8 +41,20 @@ namespace BlogPlatform.Api.Identity.ActionResults
             string? oldAccessToken = await authorizeTokenService.GetCachedTokenAsync(AuthorizeToken.RefreshToken, cancellationToken);
             if (AuthorizeToken.AccessToken != oldAccessToken)
             {
-                logger.LogInformation("Refreshing token failed. wrong access token");
-                context.HttpContext.Response.StatusCode = StatusCodes.Status403Forbidden;
+                logger.LogInformation("Refreshing token failed. Expired");
+                if (ReturnUrl is null)
+                {
+                    context.HttpContext.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    await context.HttpContext.Response.WriteAsJsonAsync(new Error("Token expired"), cancellationToken: CancellationToken.None);
+                }
+                else
+                {
+                    UriHelper.FromAbsolute(ReturnUrl, out _, out _, out _, query: out var query, out _);
+                    string error = "Token expired";
+                    query = query.Add("error", error);
+                    context.HttpContext.Response.Redirect(ReturnUrl.Split('?')[0] + query);
+                }
+
                 return;
             }
 

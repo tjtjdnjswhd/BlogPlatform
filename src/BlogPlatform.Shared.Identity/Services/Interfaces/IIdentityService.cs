@@ -90,11 +90,9 @@ namespace BlogPlatform.Shared.Identity.Services.Interfaces
         /// <param name="userId"></param>
         /// <param name="newPassword"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns>
-        /// 유저가 존재하지 않을 경우 false를 반환합니다
-        /// </returns>
+        /// <returns></returns>
         /// <exception cref="OperationCanceledException"/>
-        Task<bool> ChangePasswordAsync(int userId, string newPassword, CancellationToken cancellationToken = default);
+        Task<EChangePasswordResult> ChangePasswordAsync(int userId, string newPassword, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// 현 사용자의 이름을 변경합니다
@@ -102,11 +100,9 @@ namespace BlogPlatform.Shared.Identity.Services.Interfaces
         /// <param name="userId"></param>
         /// <param name="newName"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns>
-        /// 유저가 존재하지 않을 시 false를 반환합니다
-        /// </returns>
+        /// <returns></returns>
         /// <exception cref="OperationCanceledException"/>
-        Task<bool> ChangeNameAsync(int userId, string newName, CancellationToken cancellationToken = default);
+        Task<EChangeNameResult> ChangeNameAsync(int userId, string newName, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// 해당 <paramref name="email"/>을 가진 유저의 이메일을 초기화합니다
@@ -153,10 +149,8 @@ namespace BlogPlatform.Shared.Identity.Services.Interfaces
         /// <param name="userId"></param>
         /// <param name="newEmail"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns>
-        /// 
-        /// </returns>
-        Task<bool> ChangeEmailAsync(int userId, string newEmail, CancellationToken cancellationToken = default);
+        /// <returns></returns>
+        Task<EChangeEmailResult> ChangeEmailAsync(int userId, string newEmail, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// 해당 유저의 정보를 반환합니다

@@ -75,26 +75,26 @@ namespace BlogPlatform.Api.Controllers
             return HandleSignUp(signUpResult, user, returnUrl);
         }
 
-        [HttpPost("email/verify")]
+        [HttpPost("signup/email/verify")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> SendVerifyEmailAsync([FromBody] EmailModel newEmail, CancellationToken cancellationToken)
+        public async Task<IActionResult> SendSignUpVerifyEmailAsync([FromBody] EmailModel newEmail, CancellationToken cancellationToken)
         {
-            string? verifyUri = Url.ActionLink("VerifyEmail", "Identity");
-            Debug.Assert(verifyUri is not null); // VerifyEmailAsync가 존재하므로 null이 아니어야 함
+            string? verifyUri = Url.ActionLink("ConfirmSignUpEmail", "Identity");
+            Debug.Assert(!string.IsNullOrWhiteSpace(verifyUri)); // VerifyEmailAsync가 존재하므로 null이 아니어야 함
             string code = _emailVerifyService.GenerateVerificationCode();
-            await _emailVerifyService.SetVerifyCodeAsync(newEmail.Email, code, cancellationToken);
+            await _emailVerifyService.SetSignUpVerifyCodeAsync(newEmail.Email, code, cancellationToken);
             _userEmailService.SendEmailVerifyMail(newEmail.Email, $"{verifyUri}?code={code}", cancellationToken);
             return Ok();
         }
 
-        [HttpGet("email/confirm")]
+        [HttpGet("signup/email/confirm")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status400BadRequest)]
         [ProducesDefaultResponseType]
-        public async Task<IActionResult> ConfirmEmailAsync([FromQuery] string code, CancellationToken cancellationToken)
+        public async Task<IActionResult> ConfirmSignUpEmailAsync([FromQuery] string code, CancellationToken cancellationToken)
         {
-            string? email = await _emailVerifyService.VerifyEmailCodeAsync(code, cancellationToken);
+            string? email = await _emailVerifyService.VerifySignUpEmailCodeAsync(code, cancellationToken);
             return email is not null ? Ok() : BadRequest(new Error("잘못된 코드입니다"));
         }
 
@@ -271,11 +271,18 @@ namespace BlogPlatform.Api.Controllers
         [UserAuthorize]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(Error), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
         [ProducesDefaultResponseType]
         public async Task<IActionResult> ChangePasswordAsync([FromBody] PasswordModel password, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
-            bool isUserExist = await _identityService.ChangePasswordAsync(userId, password.Password, cancellationToken);
-            return isUserExist ? Ok() : new AuthenticatedUserDataNotFoundResult();
+            EChangePasswordResult changeResult = await _identityService.ChangePasswordAsync(userId, password.Password, cancellationToken);
+            return changeResult switch
+            {
+                EChangePasswordResult.Success => Ok(),
+                EChangePasswordResult.UserNotFound => new AuthenticatedUserDataNotFoundResult(),
+                EChangePasswordResult.BasicAccountNotFound => NotFound(new Error("BasicAccountNotFound")),
+                _ => throw new InvalidEnumArgumentException(nameof(changeResult), (int)changeResult, typeof(EChangePasswordResult))
+            };
         }
 
         [HttpPost("password/reset")]
@@ -301,8 +308,14 @@ namespace BlogPlatform.Api.Controllers
         [ProducesDefaultResponseType]
         public async Task<IActionResult> ChangeNameAsync([FromBody] UserNameModel name, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
-            bool isExist = await _identityService.ChangeNameAsync(userId, name.Name, cancellationToken);
-            return isExist ? Ok() : new AuthenticatedUserDataNotFoundResult();
+            EChangeNameResult result = await _identityService.ChangeNameAsync(userId, name.Name, cancellationToken);
+            return result switch
+            {
+                EChangeNameResult.Success => Ok(),
+                EChangeNameResult.UserNotFound => new AuthenticatedUserDataNotFoundResult(),
+                EChangeNameResult.NameDuplicate => Conflict(new Error("NameDuplicate")),
+                _ => throw new InvalidEnumArgumentException(nameof(result), (int)result, typeof(EChangeNameResult))
+            };
         }
 
         [HttpPost("id/find")]
@@ -357,6 +370,21 @@ namespace BlogPlatform.Api.Controllers
             };
         }
 
+        [HttpPost("email/change")]
+        [UserAuthorize]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Error), StatusCodes.Status400BadRequest)]
+        [ProducesDefaultResponseType]
+        public async Task<IActionResult> VerifyChangeEmailAsync([FromBody] EmailModel newEmail, [UserIdBind] int userId, CancellationToken cancellationToken)
+        {
+            string? verifyUri = Url.ActionLink("ConfirmChangeEmail", "Identity");
+            Debug.Assert(!string.IsNullOrWhiteSpace(verifyUri)); // ConfirmChangeEmailAsync가 존재하므로 null이 아니어야 함
+            string code = _emailVerifyService.GenerateVerificationCode();
+            await _emailVerifyService.SetChangeVerifyCodeAsync(userId, newEmail.Email, code, cancellationToken);
+            _userEmailService.SendEmailVerifyMail(newEmail.Email, $"{verifyUri}?code={code}", cancellationToken);
+            return Ok();
+        }
+
         [HttpGet("email/change")]
         [UserAuthorize]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -364,14 +392,20 @@ namespace BlogPlatform.Api.Controllers
         [ProducesDefaultResponseType]
         public async Task<IActionResult> ConfirmChangeEmailAsync([FromQuery] string code, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
-            string? email = await _emailVerifyService.VerifyEmailCodeAsync(code, cancellationToken);
+            string? email = await _emailVerifyService.VerifyChangeEmailCodeAsync(userId, code, cancellationToken);
             if (email is null)
             {
                 return BadRequest(new Error("Invalid code"));
             }
 
-            bool isExist = await _identityService.ChangeEmailAsync(userId, email, cancellationToken);
-            return isExist ? Ok() : new AuthenticatedUserDataNotFoundResult();
+            EChangeEmailResult result = await _identityService.ChangeEmailAsync(userId, email, cancellationToken);
+            return result switch
+            {
+                EChangeEmailResult.Success => Ok(),
+                EChangeEmailResult.UserNotFound => new AuthenticatedUserDataNotFoundResult(),
+                EChangeEmailResult.EmailDuplicate => Conflict(new Error("EmailDuplicate")),
+                _ => throw new InvalidEnumArgumentException(nameof(result), (int)result, typeof(EChangeEmailResult))
+            };
         }
 
         private IActionResult HandleLogin(ELoginResult loginResult, User? user, string? returnUrl)

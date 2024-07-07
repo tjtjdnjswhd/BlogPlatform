@@ -106,14 +106,14 @@ namespace BlogPlatform.Api.Identity.Extensions
                     {
                         OnMessageReceived = async context =>
                         {
-                            var scope = context.HttpContext.RequestServices.CreateScope();
+                            using var scope = context.HttpContext.RequestServices.CreateScope();
                             IAuthorizeTokenService authorizeTokenService = scope.ServiceProvider.GetRequiredService<IAuthorizeTokenService>();
                             AuthorizeToken? cookieToken = await authorizeTokenService.GetAsync(context.HttpContext.Request, true);
                             context.Token = cookieToken?.AccessToken;
                         },
                         OnTokenValidated = async context =>
                         {
-                            var scope = context.HttpContext.RequestServices.CreateScope();
+                            using var scope = context.HttpContext.RequestServices.CreateScope();
 
                             JsonWebToken jsonWebToken = context.SecurityToken as JsonWebToken ?? throw new Exception();
                             if (!jsonWebToken.TryGetClaim(ClaimTypes.AuthenticationMethod, out Claim methodClaim))

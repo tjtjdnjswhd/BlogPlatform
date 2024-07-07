@@ -299,32 +299,37 @@ namespace BlogPlatform.Shared.Identity.Services
         }
 
         /// <inheritdoc/>
-        public async Task<bool> ChangePasswordAsync(int userId, string newPassword, CancellationToken cancellationToken = default)
+        public async Task<EChangePasswordResult> ChangePasswordAsync(int userId, string newPassword, CancellationToken cancellationToken = default)
         {
             _logger.LogDebug("Changing password. user id: {userId}, new password: {newPassword}", userId, newPassword);
             string newPasswordHash = _passwordHasher.HashPassword(null, newPassword);
+            bool isUserExist = await _blogPlatformDbContext.Users.AnyAsync(u => u.Id == userId, cancellationToken);
+            if (!isUserExist)
+            {
+                return EChangePasswordResult.UserNotFound;
+            }
 
             int result = await _blogPlatformDbContext.BasicAccounts.Where(b => b.User.Id == userId).ExecuteUpdateAsync(set => set.SetProperty(b => b.PasswordHash, newPasswordHash).SetProperty(b => b.IsPasswordChangeRequired, false), cancellationToken);
             Debug.Assert(result <= 1);
 
             _logger.LogInformation("Password changed. user id: {userId}", userId);
-            return result == 1;
+            return result == 1 ? EChangePasswordResult.Success : EChangePasswordResult.BasicAccountNotFound;
         }
 
         /// <inheritdoc/>
-        public async Task<bool> ChangeNameAsync(int userId, string newName, CancellationToken cancellationToken = default)
+        public async Task<EChangeNameResult> ChangeNameAsync(int userId, string newName, CancellationToken cancellationToken = default)
         {
             _logger.LogDebug("Changing user name. user id: {userId}. newName: {newName}", userId, newName);
 
             if (await _blogPlatformDbContext.Users.AnyAsync(u => u.Name == newName, cancellationToken))
             {
-                return false;
+                return EChangeNameResult.NameDuplicate;
             }
 
             int result = await _blogPlatformDbContext.Users.Where(u => u.Id == userId).ExecuteUpdateAsync(set => set.SetProperty(u => u.Name, newName), cancellationToken);
             Debug.Assert(result <= 1);
 
-            return result != 0;
+            return result == 0 ? EChangeNameResult.UserNotFound : EChangeNameResult.Success;
         }
 
         /// <inheritdoc/>
@@ -405,11 +410,11 @@ namespace BlogPlatform.Shared.Identity.Services
         }
 
         /// <inheritdoc/>
-        public async Task<bool> ChangeEmailAsync(int userId, string newEmail, CancellationToken cancellationToken = default)
+        public async Task<EChangeEmailResult> ChangeEmailAsync(int userId, string newEmail, CancellationToken cancellationToken = default)
         {
             if (await _blogPlatformDbContext.Users.AnyAsync(u => u.Email == newEmail, cancellationToken))
             {
-                return false;
+                return EChangeEmailResult.EmailDuplicate;
             }
 
             _logger.LogInformation("Changing email. user id: {userId}, new email: {newEmail}", userId, newEmail);
@@ -417,7 +422,7 @@ namespace BlogPlatform.Shared.Identity.Services
             int result = await _blogPlatformDbContext.Users.Where(u => u.Id == userId).ExecuteUpdateAsync(set => set.SetProperty(u => u.Email, newEmail), cancellationToken);
             Debug.Assert(result <= 1);
 
-            return result != 0;
+            return result == 0 ? EChangeEmailResult.UserNotFound : EChangeEmailResult.Success;
         }
 
         /// <inheritdoc/>

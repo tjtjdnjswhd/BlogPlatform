@@ -15,7 +15,7 @@ namespace BlogPlatform.Api.Identity.ActionResults
         public Task ExecuteResultAsync(ActionContext context)
         {
             using var scope = context.HttpContext.RequestServices.CreateScope();
-            using var loggerFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
+            ILoggerFactory loggerFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
             ILogger<AuthenticatedUserDataNotFoundResult> logger = loggerFactory.CreateLogger<AuthenticatedUserDataNotFoundResult>();
             logger.LogWarning("Authenticated user data not found. Logging out. user: {user}", context.HttpContext.User.Identities);
 
