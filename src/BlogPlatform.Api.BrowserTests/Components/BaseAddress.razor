@@ -1,7 +1,0 @@
-﻿@inject ApiClient ApiClient
-@inject IJSRuntime JSRuntime
-
-<form>
-    <label for="baseAddress">Base Address:</label>
-    <input id="baseAddress" type="text" @onchange="@((ChangeEventArgs e) => ApiClient.BaseAddress = e.Value?.ToString() ?? string.Empty )" />
-</form>

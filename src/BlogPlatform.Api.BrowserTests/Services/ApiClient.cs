@@ -1,84 +1,132 @@
-﻿using System.Net.Http.Json;
+﻿using BlogPlatform.Api.BrowserTests.Options;
+using BlogPlatform.Shared.Identity.Models;
+using BlogPlatform.Shared.Models;
+
+using Microsoft.Extensions.Options;
+using Microsoft.JSInterop;
+
+using System.Net.Http.Json;
 
 namespace BlogPlatform.Api.BrowserTests.Services
 {
     public class ApiClient
     {
-        private string? _baseAddress;
+        private readonly HttpClient _httpClient;
+        private readonly IJSRuntime _jsRuntime;
 
-        public string BaseAddress
+        public ApiUrls Urls { get; private set; }
+
+        public ApiClient(HttpClient httpClient, IJSRuntime jsRuntime, IOptions<ApiUrls> urls)
         {
-            get => _baseAddress ?? string.Empty;
-            set
-            {
-                _baseAddress = value;
-                NotifyStateChanged();
-            }
+            _httpClient = httpClient;
+            _jsRuntime = jsRuntime;
+            Urls = urls.Value;
         }
 
-        public string OAuthSignUpUri => BaseAddress + "/api/identity/signup/oauth";
-
-        public string OAuthLoginUri => BaseAddress + "/api/identity/login/oauth";
-
-        public string OAuthAddUri => BaseAddress + "/api/identity/oauth";
-
-        public string EmailSendUri => BaseAddress + "/api/admin/send-email";
-
-        public event Action? OnChange;
-
-        public async Task BasicSignUp(string id, string password, string name, string email, bool setCookie)
+        public async Task<string?> GetUserInfoAsync()
         {
-            HttpClient httpClient = new() { BaseAddress = new(BaseAddress) };
+            HttpRequestMessage httpRequestMessage = new(HttpMethod.Get, "/api/identity");
+            var response = await _httpClient.SendAsync(httpRequestMessage);
+            return response.IsSuccessStatusCode ? await response.Content.ReadAsStringAsync() : null;
+        }
+
+        public async Task BasicSignUpAsync(BasicSignUpInfo signUpInfo)
+        {
             HttpRequestMessage httpRequestMessage = new(HttpMethod.Post, "/api/identity/signup/basic")
             {
-                Content = JsonContent.Create(new { id, password, name, email })
+                Content = JsonContent.Create(signUpInfo)
             };
 
-            if (setCookie)
+            var response = await _httpClient.SendAsync(httpRequestMessage);
+            await _jsRuntime.InvokeVoidAsync("alert", $"Status code: {response.StatusCode}. Header: {response.Headers} Content: {await response.Content.ReadAsStringAsync()}");
+            if (!response.IsSuccessStatusCode)
             {
-                httpRequestMessage.Headers.Add("token-set-cookie", "true");
+                return;
             }
-
-            var response = await httpClient.SendAsync(httpRequestMessage);
-            response.EnsureSuccessStatusCode();
         }
 
-        public async Task BasicLoginAsync(string id, string password, bool setCookie)
+        public async Task BasicLoginAsync(BasicLoginInfo loginInfo)
         {
-            HttpClient httpClient = new() { BaseAddress = new(BaseAddress) };
             HttpRequestMessage httpRequestMessage = new(HttpMethod.Post, "/api/identity/login/basic")
             {
-                Content = JsonContent.Create(new { id, password })
+                Content = JsonContent.Create(loginInfo)
             };
 
-            if (setCookie)
+            var response = await _httpClient.SendAsync(httpRequestMessage);
+            await _jsRuntime.InvokeVoidAsync("alert", $"Status code: {response.StatusCode}. Header: {response.Headers} Content: {await response.Content.ReadAsStringAsync()}");
+            if (!response.IsSuccessStatusCode)
             {
-                httpRequestMessage.Headers.Add("token-set-cookie", "true");
+                return;
             }
-
-            var response = await httpClient.SendAsync(httpRequestMessage);
-            response.EnsureSuccessStatusCode();
         }
 
-        public async Task LogoutAsync()
+        public async Task LogoutAsync(string? returnUrl)
         {
-            HttpClient httpClient = new() { BaseAddress = new(BaseAddress) };
-            var response = await httpClient.PostAsync("/api/identity/logout", null);
-            response.EnsureSuccessStatusCode();
+            var response = await _httpClient.PostAsync($"/api/identity/logout?returnurl={returnUrl}", null);
+            await _jsRuntime.InvokeVoidAsync("alert", $"Status code: {response.StatusCode}. Header: {response.Headers} Content: {await response.Content.ReadAsStringAsync()}");
         }
 
-        public async Task SendEmailAsync(string subject, string body, List<int>? userIds)
+        public async Task RemoveOAuthAsync(string provider)
         {
-            HttpClient httpClient = new() { BaseAddress = new(BaseAddress) };
-            HttpRequestMessage request = new(HttpMethod.Post, EmailSendUri)
+            HttpRequestMessage httpRequestMessage = new(HttpMethod.Delete, string.Format(Urls.Identity.OAuthRemove, provider));
+            var response = await _httpClient.SendAsync(httpRequestMessage);
+            await _jsRuntime.InvokeVoidAsync("alert", $"Status code: {response.StatusCode}. Header: {response.Headers} Content: {await response.Content.ReadAsStringAsync()}");
+        }
+
+        public async Task RefreshAsync(string? returnUrl)
+        {
+            HttpRequestMessage httpRequestMessage = new(HttpMethod.Post, $"/api/identity/refresh?returnUrl={returnUrl}");
+
+            var response = await _httpClient.SendAsync(httpRequestMessage);
+            await _jsRuntime.InvokeVoidAsync("alert", $"Status code: {response.StatusCode}. Header: {response.Headers} Content: {await response.Content.ReadAsStringAsync()}");
+            if (!response.IsSuccessStatusCode)
             {
-                Content = JsonContent.Create(new { Subject = subject, Body = body, UserIds = userIds })
+                return;
+            }
+        }
+
+        public async Task SendVerifyEmailAsync(string email)
+        {
+            HttpRequestMessage httpRequestMessage = new(HttpMethod.Post, Urls.Identity.SendVerifyEmail)
+            {
+                Content = JsonContent.Create(new { email })
             };
 
-            var response = await httpClient.SendAsync(request);
-            response.EnsureSuccessStatusCode();
+            var response = await _httpClient.SendAsync(httpRequestMessage);
+            await _jsRuntime.InvokeVoidAsync("alert", $"Status code: {response.StatusCode}. Header: {response.Headers} Content: {await response.Content.ReadAsStringAsync()}");
         }
 
-        private void NotifyStateChanged() => OnChange?.Invoke();
+        public async Task ChangePasswordAsync(string newPassword)
+        {
+            HttpRequestMessage httpRequestMessage = new(HttpMethod.Post, Urls.Identity.ChangePassword)
+            {
+                Content = JsonContent.Create(new PasswordModel(newPassword))
+            };
+
+            var response = await _httpClient.SendAsync(httpRequestMessage);
+            await _jsRuntime.InvokeVoidAsync("alert", $"Status code: {response.StatusCode}. Header: {response.Headers} Content: {await response.Content.ReadAsStringAsync()}");
+        }
+
+        public async Task ChangeNameAsync(string newName)
+        {
+            HttpRequestMessage httpRequestMessage = new(HttpMethod.Post, Urls.Identity.ChangeName)
+            {
+                Content = JsonContent.Create(new UserNameModel(newName))
+            };
+
+            var response = await _httpClient.SendAsync(httpRequestMessage);
+            await _jsRuntime.InvokeVoidAsync("alert", $"Status code: {response.StatusCode}. Header: {response.Headers} Content: {await response.Content.ReadAsStringAsync()}");
+        }
+
+        public async Task ChangeEmailAsync(string newEmail)
+        {
+            HttpRequestMessage httpRequestMessage = new(HttpMethod.Post, Urls.Identity.ChangeEmail)
+            {
+                Content = JsonContent.Create(new EmailModel(newEmail))
+            };
+
+            var response = await _httpClient.SendAsync(httpRequestMessage);
+            await _jsRuntime.InvokeVoidAsync("alert", $"Status code: {response.StatusCode}. Header: {response.Headers} Content: {await response.Content.ReadAsStringAsync()}");
+        }
     }
 }

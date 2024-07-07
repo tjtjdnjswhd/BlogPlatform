@@ -1,0 +1,38 @@
+﻿@using BlogPlatform.Shared.Models.User
+@inject ApiClient ApiClient
+
+@if (userInfo is null)
+{
+    <p>Not logined</p>
+}
+else
+{
+    <p>@userInfo</p>
+}
+
+@code {
+    private string? _userInfo = null;
+    private string? userInfo
+    {
+        get => _userInfo;
+        set
+        {
+            _userInfo = value;
+            StateHasChanged();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await GetUserInfo();
+        }
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    protected async Task GetUserInfo()
+    {
+        userInfo = await ApiClient.GetUserInfoAsync();
+    }
+}

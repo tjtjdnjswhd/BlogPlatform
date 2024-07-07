@@ -64,7 +64,7 @@ if (app.Environment.IsDevelopment())
     {
         b.AllowAnyHeader();
         b.AllowAnyMethod();
-        b.SetIsOriginAllowed(origin => true);
+        b.WithOrigins("https://localhost:7169");
         b.AllowCredentials();
     });
 }
