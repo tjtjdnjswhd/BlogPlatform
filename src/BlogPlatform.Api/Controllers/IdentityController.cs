@@ -207,6 +207,7 @@ namespace BlogPlatform.Api.Controllers
                 return addOAuthResult switch
                 {
                     EAddOAuthResult.UserNotFound => new AuthenticatedUserDataNotFoundResult(),
+                    EAddOAuthResult.ProviderNotFound => NotFound(new Error(message)),
                     EAddOAuthResult.Success => Ok(),
                     _ => Conflict(new Error(message))
                 };

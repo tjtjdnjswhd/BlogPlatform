@@ -428,7 +428,7 @@ namespace BlogPlatform.Shared.Identity.Services
         /// <inheritdoc/>
         public async Task<UserRead?> GetFirstUserReadAsync(bool isRemoved, IEnumerable<Expression<Func<User, bool>>> filters, CancellationToken cancellationToken = default)
         {
-            IQueryable<User> query = isRemoved ? _blogPlatformDbContext.Users.IgnoreQueryFilters().Where(u => u.SoftDeleteLevel == 0) : _blogPlatformDbContext.Users;
+            IQueryable<User> query = isRemoved ? _blogPlatformDbContext.Users.IgnoreSoftDeleteFilter().Where(u => u.SoftDeleteLevel > 0) : _blogPlatformDbContext.Users;
             query = filters.Aggregate(query, (current, filter) => current.Where(filter));
             UserRead? userRead = await query.Select(u => new UserRead(u.Id,
                                                                      u.BasicAccounts.Select(b => b.AccountId).FirstOrDefault(),

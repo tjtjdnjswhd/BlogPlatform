@@ -65,11 +65,7 @@ namespace BlogPlatform.Api.Controllers
         {
             _logger.LogInformation("Searching for user with {search}", search);
 
-            List<Expression<Func<User, bool>>> filters =
-            [
-                search.IsRemoved ? u => u.SoftDeleteLevel > 0 : u => u.SoftDeleteLevel == 0
-            ];
-
+            List<Expression<Func<User, bool>>> filters = [];
             if (search.Id is not null)
             {
                 filters.Add(u => u.BasicAccounts.Any(b => b.AccountId == search.Id));

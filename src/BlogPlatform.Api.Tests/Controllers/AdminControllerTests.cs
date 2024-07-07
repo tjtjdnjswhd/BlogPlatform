@@ -3,14 +3,19 @@ using BlogPlatform.Api.Identity.Constants;
 using BlogPlatform.Api.Tests.DbContextMock;
 using BlogPlatform.EFCore.Models;
 using BlogPlatform.EFCore.Models.Abstractions;
+using BlogPlatform.Shared.Identity.Options;
+using BlogPlatform.Shared.Identity.Services;
 using BlogPlatform.Shared.Models.Admin;
 using BlogPlatform.Shared.Models.User;
 using BlogPlatform.Shared.Services.Interfaces;
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 using Moq;
 
@@ -78,8 +83,9 @@ namespace BlogPlatform.Api.Tests.Controllers
             XUnitLogger<AdminController> controllerLogger = new(testOutputHelper);
 
             Mock<IMailSender> mailSenderMock = new();
+            IdentityService identityService = new(_setUp.DbContextMock.Object, Mock.Of<IPasswordHasher<BasicAccount>>(), _setUp.SoftDeleteServiceMock.Object, TimeProvider.System, Mock.Of<IOptions<IdentityServiceOptions>>(), Mock.Of<ILogger<IdentityService>>());
             TimeProvider timeProvider = TimeProvider.System;
-            _adminController = new(_setUp.DbContextMock.Object, _setUp.SoftDeleteServiceMock.Object, mailSenderMock.Object, timeProvider, controllerLogger);
+            _adminController = new(_setUp.DbContextMock.Object, identityService, _setUp.SoftDeleteServiceMock.Object, mailSenderMock.Object, timeProvider, controllerLogger);
 
             RouteData routeData = new();
             routeData.Routers.Add(new Mock<IRouter>().Object);

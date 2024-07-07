@@ -36,10 +36,10 @@ namespace BlogPlatform.Api.Tests.Controllers
 
             IdentityController controller = CreateMockController(identityServiceMock);
 
-            BasicLoginInfo loginInfo = new("TestId", "TestPassword", null);
+            BasicLoginInfo loginInfo = new("TestId", "TestPassword");
 
             // Act
-            IActionResult result = await controller.BasicLoginAsync(loginInfo, CancellationToken.None);
+            IActionResult result = await controller.BasicLoginAsync(loginInfo, null, CancellationToken.None);
 
             // Assert
             LoginActionResult actionResult = Assert.IsType<LoginActionResult>(result);
@@ -55,10 +55,10 @@ namespace BlogPlatform.Api.Tests.Controllers
 
             IdentityController controller = CreateMockController(identityServiceMock);
 
-            BasicLoginInfo loginInfo = new("TestId", "TestPassword", null);
+            BasicLoginInfo loginInfo = new("TestId", "TestPassword");
 
             // Act
-            IActionResult result = await controller.BasicLoginAsync(loginInfo, CancellationToken.None);
+            IActionResult result = await controller.BasicLoginAsync(loginInfo, null, CancellationToken.None);
 
             // Assert
             Assert.IsType<NotFoundObjectResult>(result);
@@ -73,10 +73,10 @@ namespace BlogPlatform.Api.Tests.Controllers
 
             IdentityController controller = CreateMockController(identityServiceMock);
 
-            BasicLoginInfo loginInfo = new("TestId", "TestPassword", null);
+            BasicLoginInfo loginInfo = new("TestId", "TestPassword");
 
             // Act
-            IActionResult result = await controller.BasicLoginAsync(loginInfo, CancellationToken.None);
+            IActionResult result = await controller.BasicLoginAsync(loginInfo, null, CancellationToken.None);
 
             // Assert
             Assert.IsType<UnauthorizedObjectResult>(result);
@@ -91,10 +91,10 @@ namespace BlogPlatform.Api.Tests.Controllers
 
             IdentityController controller = CreateMockController(identityServiceMock);
 
-            BasicSignUpInfo signUpInfo = new("TestId", "TestPassword", "TestName", "TestEmail", null);
+            BasicSignUpInfo signUpInfo = new("TestId", "TestPassword", "TestName", "TestEmail");
 
             // Act
-            IActionResult result = await controller.BasicSignUpAsync(signUpInfo, CancellationToken.None);
+            IActionResult result = await controller.BasicSignUpAsync(signUpInfo, null, CancellationToken.None);
 
             // Assert
             LoginActionResult actionResult = Assert.IsType<LoginActionResult>(result);
@@ -113,10 +113,10 @@ namespace BlogPlatform.Api.Tests.Controllers
 
             IdentityController controller = CreateMockController(identityServiceMock);
 
-            BasicSignUpInfo signUpInfo = new("TestId", "TestPassword", "TestName", "TestEmail", null);
+            BasicSignUpInfo signUpInfo = new("TestId", "TestPassword", "TestName", "TestEmail");
 
             // Act
-            IActionResult result = await controller.BasicSignUpAsync(signUpInfo, CancellationToken.None);
+            IActionResult result = await controller.BasicSignUpAsync(signUpInfo, null, CancellationToken.None);
 
             // Assert
             ConflictObjectResult actionResult = Assert.IsType<ConflictObjectResult>(result);
@@ -132,10 +132,10 @@ namespace BlogPlatform.Api.Tests.Controllers
 
             IdentityController controller = CreateMockController(identityServiceMock);
 
-            BasicSignUpInfo signUpInfo = new("TestId", "TestPassword", "TestName", "TestEmail", null);
+            BasicSignUpInfo signUpInfo = new("TestId", "TestPassword", "TestName", "TestEmail");
 
             // Assert
-            await Assert.ThrowsAnyAsync<Exception>(() => controller.BasicSignUpAsync(signUpInfo, CancellationToken.None));
+            await Assert.ThrowsAnyAsync<Exception>(() => controller.BasicSignUpAsync(signUpInfo, null, CancellationToken.None));
         }
 
         [Fact]
@@ -147,7 +147,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             string email = "test@example.com";
 
             // Act
-            IActionResult result = await controller.SendVerifyEmailAsync(new(email), CancellationToken.None);
+            IActionResult result = await controller.SendSignUpVerifyEmailAsync(new(email), CancellationToken.None);
 
             // Assert
             Assert.IsType<OkResult>(result);
@@ -158,14 +158,14 @@ namespace BlogPlatform.Api.Tests.Controllers
         {
             // Arrange
             Mock<IEmailVerifyService> verifyService = new();
-            verifyService.Setup(v => v.VerifyEmailCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult("code")!);
+            verifyService.Setup(v => v.VerifySignUpEmailCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult("code")!);
 
             IdentityController controller = CreateMockController(emailVerifyService: verifyService);
 
             string email = "test@example.com";
 
             // Act
-            IActionResult result = await controller.SendVerifyEmailAsync(new(email), CancellationToken.None);
+            IActionResult result = await controller.SendSignUpVerifyEmailAsync(new(email), CancellationToken.None);
 
             // Assert
             Assert.IsType<OkResult>(result);
@@ -176,14 +176,14 @@ namespace BlogPlatform.Api.Tests.Controllers
         {
             // Arrange
             Mock<IEmailVerifyService> verifyService = new();
-            verifyService.Setup(v => v.VerifyEmailCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult<string?>(null)); ;
+            verifyService.Setup(v => v.VerifySignUpEmailCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult<string?>(null)); ;
 
             IdentityController controller = CreateMockController(emailVerifyService: verifyService);
 
             string email = "test@example.com";
 
             // Act
-            IActionResult result = await controller.VerifyEmailAsync(email, CancellationToken.None);
+            IActionResult result = await controller.ConfirmSignUpEmailAsync(email, CancellationToken.None);
 
             // Assert
             BadRequestObjectResult actionResult = Assert.IsType<BadRequestObjectResult>(result);
@@ -463,7 +463,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             IdentityController identityController = CreateMockController();
 
             // Act
-            IActionResult result = identityController.Logout();
+            IActionResult result = identityController.Logout(null);
 
             // Assert
             Assert.IsType<SignOutResult>(result);
@@ -476,7 +476,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             IdentityController identityController = CreateMockController();
 
             // Act
-            IActionResult result = identityController.Refresh(new AuthorizeToken("accessToken", "refreshToken"), true);
+            IActionResult result = identityController.Refresh(new AuthorizeToken("accessToken", "refreshToken"), null);
 
             // Assert
             Assert.IsType<RefreshResult>(result);
@@ -487,7 +487,7 @@ namespace BlogPlatform.Api.Tests.Controllers
         {
             // Arrange
             Mock<IIdentityService> identityServiceMock = new();
-            identityServiceMock.Setup(i => i.ChangePasswordAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult(true));
+            identityServiceMock.Setup(i => i.ChangePasswordAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult(EChangePasswordResult.Success));
             IdentityController identityController = CreateMockController(identityServiceMock);
 
             // Act
@@ -502,7 +502,7 @@ namespace BlogPlatform.Api.Tests.Controllers
         {
             // Arrange
             Mock<IIdentityService> identityServiceMock = new();
-            identityServiceMock.Setup(i => i.ChangePasswordAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult(false));
+            identityServiceMock.Setup(i => i.ChangePasswordAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult(EChangePasswordResult.UserNotFound));
             IdentityController identityController = CreateMockController(identityServiceMock);
 
             // Act
@@ -554,7 +554,7 @@ namespace BlogPlatform.Api.Tests.Controllers
         {
             // Arrange
             Mock<IIdentityService> identityServiceMock = new();
-            identityServiceMock.Setup(i => i.ChangeNameAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+            identityServiceMock.Setup(i => i.ChangeNameAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(EChangeNameResult.Success);
 
             IdentityController controller = CreateMockController(identityServiceMock);
 
@@ -572,7 +572,7 @@ namespace BlogPlatform.Api.Tests.Controllers
         {
             // Arrange
             Mock<IIdentityService> identityServiceMock = new();
-            identityServiceMock.Setup(i => i.ChangeNameAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+            identityServiceMock.Setup(i => i.ChangeNameAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(EChangeNameResult.UserNotFound);
 
             IdentityController controller = CreateMockController(identityServiceMock);
 
@@ -677,7 +677,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             string newEmail = "new@example.com";
 
             // Act
-            IActionResult result = await controller.ChangeEmailAsync(new(newEmail), CancellationToken.None);
+            IActionResult result = await controller.VerifyChangeEmailAsync(new(newEmail), 1, CancellationToken.None);
 
             // Assert
             Assert.IsType<OkResult>(result);
@@ -688,10 +688,10 @@ namespace BlogPlatform.Api.Tests.Controllers
         {
             // Arrange
             Mock<IIdentityService> identityServiceMock = new();
-            identityServiceMock.Setup(i => i.ChangeEmailAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+            identityServiceMock.Setup(i => i.ChangeEmailAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(EChangeEmailResult.Success);
 
             Mock<IEmailVerifyService> verifyService = new();
-            verifyService.Setup(v => v.VerifyEmailCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult("code")!);
+            verifyService.Setup(v => v.VerifyChangeEmailCodeAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult("code")!);
 
             IdentityController controller = CreateMockController(identityServiceMock, emailVerifyService: verifyService);
 
@@ -707,7 +707,7 @@ namespace BlogPlatform.Api.Tests.Controllers
         {
             // Arrange
             Mock<IEmailVerifyService> verifyService = new();
-            verifyService.Setup(v => v.VerifyEmailCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult<string?>(null));
+            verifyService.Setup(v => v.VerifySignUpEmailCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult<string?>(null));
 
             IdentityController controller = CreateMockController(emailVerifyService: verifyService);
 
@@ -724,10 +724,10 @@ namespace BlogPlatform.Api.Tests.Controllers
         {
             // Arrange
             Mock<IIdentityService> identityServiceMock = new();
-            identityServiceMock.Setup(i => i.ChangeEmailAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+            identityServiceMock.Setup(i => i.ChangeEmailAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(EChangeEmailResult.UserNotFound);
 
             Mock<IEmailVerifyService> verifyService = new();
-            verifyService.Setup(v => v.VerifyEmailCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult("code")!);
+            verifyService.Setup(v => v.VerifyChangeEmailCodeAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult("code")!);
 
             IdentityController controller = CreateMockController(identityServiceMock, emailVerifyService: verifyService);
 
@@ -752,7 +752,7 @@ namespace BlogPlatform.Api.Tests.Controllers
 
             DbContextOptionsBuilder<BlogPlatformDbContext> optionsBuilder = new();
             Mock<BlogPlatformDbContext> dbContextMock = new(optionsBuilder.Options);
-            IdentityController controller = new(dbContextMock.Object, identityServiceMock.Object, userEmailService.Object, emailVerifyService.Object, timeProvider, _logger)
+            IdentityController controller = new(identityServiceMock.Object, userEmailService.Object, emailVerifyService.Object, timeProvider, _logger)
             {
                 Url = urlHelper.Object
             };

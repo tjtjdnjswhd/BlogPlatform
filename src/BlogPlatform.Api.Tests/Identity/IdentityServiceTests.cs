@@ -37,7 +37,7 @@ namespace BlogPlatform.Api.Tests.Identity
             // Arrange
             IdentityService identityService = CreateIdentityService();
             BasicAccount basicAccount = _setUp.BasicOnlyUser.BasicAccounts.First();
-            BasicLoginInfo basicLoginInfo = new(basicAccount.AccountId, SetUp.SuccessPassword, null);
+            BasicLoginInfo basicLoginInfo = new(basicAccount.AccountId, SetUp.SuccessPassword);
 
             // Act
             (ELoginResult loginResult, User? user) = await identityService.LoginAsync(basicLoginInfo);
@@ -53,7 +53,7 @@ namespace BlogPlatform.Api.Tests.Identity
         {
             // Arrange
             IdentityService identityService = CreateIdentityService();
-            BasicLoginInfo basicLoginInfo = new("NotExistId", SetUp.SuccessPassword, null);
+            BasicLoginInfo basicLoginInfo = new("NotExistId", SetUp.SuccessPassword);
 
             // Act
             (ELoginResult loginResult, User? user) = await identityService.LoginAsync(basicLoginInfo);
@@ -69,7 +69,7 @@ namespace BlogPlatform.Api.Tests.Identity
             // Arrange
             IdentityService identityService = CreateIdentityService();
             BasicAccount basicAccount = _setUp.BasicOnlyUser.BasicAccounts.First();
-            BasicLoginInfo basicLoginInfo = new(basicAccount.AccountId, "WrongPassword", null);
+            BasicLoginInfo basicLoginInfo = new(basicAccount.AccountId, "WrongPassword");
 
             // Act
             (ELoginResult loginResult, User? user) = await identityService.LoginAsync(basicLoginInfo);
@@ -123,7 +123,7 @@ namespace BlogPlatform.Api.Tests.Identity
         {
             // Arrange
             IdentityService identityService = CreateIdentityService();
-            BasicSignUpInfo basicSignUpInfo = new("NewAccountId", SetUp.SuccessPassword, "newName", "newEmail@email.com", null);
+            BasicSignUpInfo basicSignUpInfo = new("NewAccountId", SetUp.SuccessPassword, "newName", "newEmail@email.com");
             int userCount = _setUp.DbContext.Users.Count();
 
             // Act
@@ -152,7 +152,7 @@ namespace BlogPlatform.Api.Tests.Identity
             name ??= basicOnlyUser.Name;
 
             IdentityService identityService = CreateIdentityService();
-            BasicSignUpInfo basicSignUpInfo = new(accountId, SetUp.SuccessPassword, name, email, null);
+            BasicSignUpInfo basicSignUpInfo = new(accountId, SetUp.SuccessPassword, name, email);
             int userCount = _setUp.DbContext.Users.Count();
 
             // Act
@@ -396,10 +396,10 @@ namespace BlogPlatform.Api.Tests.Identity
             IdentityService identityService = CreateIdentityService();
 
             // Act
-            bool result = await identityService.ChangePasswordAsync(user.Id, newPassword);
+            EChangePasswordResult result = await identityService.ChangePasswordAsync(user.Id, newPassword);
 
             // Assert
-            Assert.True(result);
+            Assert.Equal(EChangePasswordResult.Success, result);
             _setUp.DbContext.Entry(basicAccount).Reload();
             Assert.NotEqual(oldPasswordHash, basicAccount.PasswordHash);
             Assert.False(basicAccount.IsPasswordChangeRequired);
@@ -414,10 +414,10 @@ namespace BlogPlatform.Api.Tests.Identity
             IdentityService identityService = CreateIdentityService();
 
             // Act
-            bool result = await identityService.ChangePasswordAsync(userId, newPassword);
+            EChangePasswordResult result = await identityService.ChangePasswordAsync(userId, newPassword);
 
             // Assert
-            Assert.False(result);
+            Assert.Equal(EChangePasswordResult.UserNotFound, result);
         }
 
         [Fact]
@@ -429,16 +429,16 @@ namespace BlogPlatform.Api.Tests.Identity
             IdentityService identityService = CreateIdentityService();
 
             // Act
-            bool result = await identityService.ChangeNameAsync(user.Id, newName);
+            EChangeNameResult result = await identityService.ChangeNameAsync(user.Id, newName);
 
             // Assert
-            Assert.True(result);
+            Assert.Equal(EChangeNameResult.Success, result);
             _setUp.DbContext.Entry(user).Reload();
             Assert.Equal(newName, user.Name);
         }
 
         [Fact]
-        public async Task ChangeNameAsync_Fail()
+        public async Task ChangeNameAsync_NameDuplicate()
         {
             // Arrange
             User user = _setUp.BasicOnlyUser;
@@ -446,10 +446,10 @@ namespace BlogPlatform.Api.Tests.Identity
             IdentityService identityService = CreateIdentityService();
 
             // Act
-            bool result = await identityService.ChangeNameAsync(user.Id, newName);
+            EChangeNameResult result = await identityService.ChangeNameAsync(user.Id, newName);
 
             // Assert
-            Assert.False(result);
+            Assert.Equal(EChangeNameResult.NameDuplicate, result);
             _setUp.DbContext.Entry(user).Reload();
             Assert.NotEqual(newName, user.Name);
         }
@@ -494,16 +494,16 @@ namespace BlogPlatform.Api.Tests.Identity
             IdentityService identityService = CreateIdentityService();
 
             // Act
-            bool result = await identityService.ChangeEmailAsync(user.Id, newEmail);
+            EChangeEmailResult result = await identityService.ChangeEmailAsync(user.Id, newEmail);
 
             // Assert
-            Assert.True(result);
+            Assert.Equal(EChangeEmailResult.Success, result);
             _setUp.DbContext.Entry(user).Reload();
             Assert.Equal(newEmail, user.Email);
         }
 
         [Fact]
-        public async Task ChangeEmailAsync_Fail()
+        public async Task ChangeEmailAsync_EmailDuplicate()
         {
             // Arrange
             User user = _setUp.BasicOnlyUser;
@@ -511,12 +511,12 @@ namespace BlogPlatform.Api.Tests.Identity
             IdentityService identityService = CreateIdentityService();
 
             // Act
-            bool result = await identityService.ChangeEmailAsync(user.Id, newEmail);
+            EChangeEmailResult result = await identityService.ChangeEmailAsync(user.Id, newEmail);
 
             // Assert
+            Assert.Equal(EChangeEmailResult.EmailDuplicate, result);
             Assert.NotEqual(newEmail, user.Email);
             _setUp.DbContext.Entry(user).Reload();
-            Assert.False(result);
         }
 
         [Fact]
