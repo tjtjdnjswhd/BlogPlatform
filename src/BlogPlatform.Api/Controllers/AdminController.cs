@@ -1,9 +1,9 @@
 ﻿using BlogPlatform.Api.Helper;
 using BlogPlatform.Api.Identity.Attributes;
-using BlogPlatform.Api.QueryExtensions;
 using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
+using BlogPlatform.Shared.Identity.Services.Interfaces;
 using BlogPlatform.Shared.Models;
 using BlogPlatform.Shared.Models.Admin;
 using BlogPlatform.Shared.Models.User;
@@ -13,6 +13,8 @@ using BlogPlatform.Shared.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
+using System.Linq.Expressions;
+
 namespace BlogPlatform.Api.Controllers
 {
     [ApiController]
@@ -21,14 +23,16 @@ namespace BlogPlatform.Api.Controllers
     public class AdminController : ControllerBase
     {
         private readonly BlogPlatformDbContext _dbContext;
+        private readonly IIdentityService _identityService;
         private readonly ICascadeSoftDeleteService _softDeleteService;
         private readonly IMailSender _mailSender;
         private readonly TimeProvider _timeProvider;
         private readonly ILogger<AdminController> _logger;
 
-        public AdminController(BlogPlatformDbContext dbContext, ICascadeSoftDeleteService softDeleteService, IMailSender mailSender, TimeProvider timeProvider, ILogger<AdminController> logger)
+        public AdminController(BlogPlatformDbContext dbContext, IIdentityService IdentityService, ICascadeSoftDeleteService softDeleteService, IMailSender mailSender, TimeProvider timeProvider, ILogger<AdminController> logger)
         {
             _dbContext = dbContext;
+            _identityService = IdentityService;
             _softDeleteService = softDeleteService;
             _mailSender = mailSender;
             _timeProvider = timeProvider;
@@ -61,27 +65,29 @@ namespace BlogPlatform.Api.Controllers
         {
             _logger.LogInformation("Searching for user with {search}", search);
 
-            IQueryable<User> users = search.IsRemoved ? _dbContext.Users.IgnoreSoftDeleteFilter().Where(u => u.SoftDeleteLevel > 0) : _dbContext.Users;
+            List<Expression<Func<User, bool>>> filters =
+            [
+                search.IsRemoved ? u => u.SoftDeleteLevel > 0 : u => u.SoftDeleteLevel == 0
+            ];
+
             if (search.Id is not null)
             {
-                users = users.Where(u => u.BasicAccounts.Any(b => b.AccountId == search.Id));
+                filters.Add(u => u.BasicAccounts.Any(b => b.AccountId == search.Id));
             }
             else if (search.Email is not null)
             {
-                users = users.Where(u => u.Email == search.Email);
+                filters.Add(u => u.Email == search.Email);
             }
             else if (search.Name is not null)
             {
-                users = users.Where(u => u.Name == search.Name);
+                filters.Add(u => u.Name == search.Name);
             }
 
-            UserRead? userRead = await users.SelectUserRead().FirstOrDefaultAsync(cancellationToken);
+            UserRead? userRead = await _identityService.GetFirstUserReadAsync(search.IsRemoved, filters, cancellationToken);
             if (userRead is null)
             {
                 return NotFound(new Error("존재하지 않는 유저입니다"));
             }
-
-            userRead.BlogUri = userRead.BlogId is not (null or 0) ? Url.ActionLink("Get", "Blog", new { id = userRead.BlogId }) : null;
 
             return Ok(userRead);
         }

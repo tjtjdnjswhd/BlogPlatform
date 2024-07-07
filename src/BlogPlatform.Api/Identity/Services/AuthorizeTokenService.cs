@@ -26,7 +26,7 @@ namespace BlogPlatform.Api.Identity.Services
         private static readonly CookieOptions DefaultCookieOptions = new()
         {
             HttpOnly = true,
-            SameSite = SameSiteMode.Strict,
+            SameSite = SameSiteMode.Lax,
             Secure = true,
         };
 
@@ -149,7 +149,8 @@ namespace BlogPlatform.Api.Identity.Services
         {
             CookieOptions cookieOptions = new(DefaultCookieOptions)
             {
-                Expires = _timeProvider.GetUtcNow().UtcDateTime.Add(_jwtOptions.RefreshTokenExpiration)
+                //Expires = _timeProvider.GetUtcNow().UtcDateTime.Add(_jwtOptions.RefreshTokenExpiration),
+                MaxAge = _jwtOptions.RefreshTokenExpiration
             };
             response.Cookies.Append(_jwtOptions.AccessTokenName, token.AccessToken, cookieOptions);
             response.Cookies.Append(_jwtOptions.RefreshTokenName, token.RefreshToken, cookieOptions);

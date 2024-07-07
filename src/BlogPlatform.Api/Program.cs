@@ -46,6 +46,8 @@ builder.Services.AddPostImageService();
 
 builder.Services.AddScoped<ICascadeSoftDeleteService, CascadeSoftDeleteService>();
 
+builder.Services.AddCors();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

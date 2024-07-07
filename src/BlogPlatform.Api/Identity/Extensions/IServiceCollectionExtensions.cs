@@ -34,6 +34,10 @@ namespace BlogPlatform.Api.Identity.Extensions
             ServiceDescriptor authenticationSchemeProviderService = new(typeof(IAuthenticationSchemeProvider), typeof(IgnoreCaseAuthenticationSchemeProvider), ServiceLifetime.Singleton);
             services.Replace(authenticationSchemeProviderService);
 
+            IConfigurationSection returnUrlWhitelistOptionsSection = optionsSection.GetRequiredSection("ReturnUrlWhitelist");
+            services.Configure<ReturnUrlWhitelistOptions>(returnUrlWhitelistOptionsSection);
+            services.AddScoped<IReturnUrlWhitelistService, ReturnUrlWhitelistService>();
+
             IConfigurationSection identityServiceOptionsSection = optionsSection.GetRequiredSection("IdentityService");
             services.AddIdentityService(identityServiceOptionsSection);
 

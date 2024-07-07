@@ -1,11 +1,11 @@
-﻿using BlogPlatform.Api.Identity.Constants;
-
-using Microsoft.AspNetCore.Authentication;
+﻿using Microsoft.AspNetCore.Authentication;
 
 namespace BlogPlatform.Api.Identity
 {
     public class JwtAuthenticationProperties : AuthenticationProperties
     {
+        public const string IsSignInCookieKey = "SignInCookie";
+
         public JwtAuthenticationProperties(string? redirectUri)
         {
             RedirectUri = redirectUri;
@@ -14,8 +14,8 @@ namespace BlogPlatform.Api.Identity
 
         public bool IsSignInCookie
         {
-            get => GetParameter<bool>(AuthenticationPropertiesParameterKeys.IsSignInCookie);
-            private set => SetParameter(AuthenticationPropertiesParameterKeys.IsSignInCookie, value);
+            get => GetParameter<bool>(IsSignInCookieKey);
+            private set => SetParameter(IsSignInCookieKey, value);
         }
     }
 }
