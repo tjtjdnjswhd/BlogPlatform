@@ -2,6 +2,7 @@
 @using BlogPlatform.Api.BrowserTests.Options
 @using BlogPlatform.Shared.Identity.Models
 @using Microsoft.Extensions.Options
+@using System.Runtime.InteropServices.JavaScript
 @inject ApiClient ApiClient
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
@@ -42,14 +43,8 @@
 
     private async Task BasicLoginAsync()
     {
-        try
-        {
-            await ApiClient.BasicLoginAsync(new BasicLoginInfo(loginId, loginPassword));
-        }
-        catch (Exception)
-        {
-            NavigationManager.Refresh();
-        }
+        BasicLoginInfo loginInfo = new(loginId, loginPassword);
+        await ApiClient.BasicLoginAsync(loginInfo, returnUrl);
     }
 }
 
@@ -74,7 +69,6 @@
     <button type="submit">Send</button>
 </form>
 @code {
-    private string SendVerifyEmailUrl => Urls.BaseAddress + IdentityUrls.SendVerifyEmail;
     private string sendVerifyEmail = string.Empty;
 
     private async Task SendVerifyEmailAsync()
@@ -106,7 +100,6 @@
     <button type="submit">SignUp</button>
 </form>
 @code {
-    private string BasicSignUpUrl => Urls.BaseAddress + IdentityUrls.BasicSignUp + QueryStrings;
     private string signUpId = string.Empty;
     private string signUpName = string.Empty;
     private string signUpEmail = string.Empty;
@@ -114,14 +107,7 @@
 
     private async Task BasicSignUpAsync()
     {
-        try
-        {
-            await ApiClient.BasicSignUpAsync(new BasicSignUpInfo(signUpId, signUpName, signUpEmail, signUpPassword));
-        }
-        catch (Exception)
-        {
-            NavigationManager.Refresh();
-        }
+        await ApiClient.BasicSignUpAsync(new BasicSignUpInfo(signUpId, signUpPassword, signUpName, signUpEmail), returnUrl);
     }
 }
 
@@ -173,7 +159,7 @@
 </form>
 @code {
     private string OAuthRemoveProvider = string.Empty;
-    private string OAuthRemoveUrl => Urls.BaseAddress + IdentityUrls.OAuthRemove + QueryStrings;
+
     private async Task RemoveOAuthAsync()
     {
         try
@@ -229,19 +215,19 @@
 
 <h3>Change email</h3>
 
-<form method="post" @onsubmit="ChangeEmailAsync">
+<form method="post" @onsubmit="SendChangeEmailCodeAsync">
     <label for="new-email">New email</label>
     <input type="email" id="new-email" name="email" @bind="newEmail" />
-    <button type="submit">Change</button>
+    <button type="submit">Send code</button>
 </form>
 @code {
     private string newEmail = string.Empty;
 
-    private async Task ChangeEmailAsync()
+    private async Task SendChangeEmailCodeAsync()
     {
         try
         {
-            await ApiClient.ChangeEmailAsync(newEmail);
+            await ApiClient.SendChangeEmailCodeAsync(newEmail);
         }
         catch (Exception e)
         {
@@ -262,6 +248,7 @@
 </form>
 @code {
     private string newName = string.Empty;
+
     private async Task ChangeNameAsync()
     {
         try
@@ -275,4 +262,3 @@
         NavigationManager.Refresh();
     }
 }
-

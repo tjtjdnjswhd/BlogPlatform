@@ -209,7 +209,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             Helper.SetAuthorizationHeader(httpClient, authorizeToken);
 
             // Act
-            HttpResponseMessage response = await httpClient.GetAsync("/api/identity/email/change/confirm?code=wrongCode");
+            HttpResponseMessage response = await httpClient.GetAsync("/api/identity/email/change?code=wrongCode");
 
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -230,7 +230,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             await Helper.SetEmailVerifyCodeAsync(WebApplicationFactory, "verifyCode", newEmail);
 
             // Act
-            HttpResponseMessage response = await httpClient.GetAsync("/api/identity/email/change/confirm?code=verifyCode");
+            HttpResponseMessage response = await httpClient.GetAsync("/api/identity/email/change?code=verifyCode");
 
             // Assert
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -250,7 +250,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             await Helper.SetEmailVerifyCodeAsync(WebApplicationFactory, "verifyCode", newEmail);
 
             // Act
-            HttpResponseMessage response = await httpClient.GetAsync("/api/identity/email/change/confirm?code=verifyCode");
+            HttpResponseMessage response = await httpClient.GetAsync("/api/identity/email/change?code=verifyCode");
 
             // Assert
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);

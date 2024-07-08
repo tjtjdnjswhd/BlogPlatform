@@ -18,6 +18,11 @@ builder.Services.AddControllers().AddJsonOptions(json =>
     json.JsonSerializerOptions.Converters.Add(new JsonTimeSpanConverter());
 });
 
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddRazorPages();
+}
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -46,8 +51,6 @@ builder.Services.AddPostImageService();
 
 builder.Services.AddScoped<ICascadeSoftDeleteService, CascadeSoftDeleteService>();
 
-builder.Services.AddCors();
-
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -56,25 +59,27 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    app.UseWebAssemblyDebugging();
 }
 
 app.UseHttpsRedirection();
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseCors(b =>
-    {
-        b.AllowAnyHeader();
-        b.AllowAnyMethod();
-        b.WithOrigins("https://localhost:7169");
-        b.AllowCredentials();
-    });
+    app.UseBlazorFrameworkFiles();
+    app.UseStaticFiles();
 }
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+if (app.Environment.IsDevelopment())
+{
+    app.MapRazorPages();
+    app.MapFallbackToFile("index.html");
+}
 
 app.Run();
 

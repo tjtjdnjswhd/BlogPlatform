@@ -147,15 +147,15 @@ namespace BlogPlatform.Api.IntegrationTest
         {
             using var scope = applicationFactory.Services.CreateScope();
             IEmailVerifyService emailVerifyService = scope.ServiceProvider.GetRequiredService<IEmailVerifyService>();
-            await emailVerifyService.SetVerifyCodeAsync(email, code, CancellationToken.None);
+            await emailVerifyService.SetSignUpVerifyCodeAsync(email, code, CancellationToken.None);
         }
 
         public static async Task SetVerifiedEmailAsync(WebApplicationFactory<Program> applicationFactory, string email)
         {
             using var scope = applicationFactory.Services.CreateScope();
             IEmailVerifyService emailVerifyService = scope.ServiceProvider.GetRequiredService<IEmailVerifyService>();
-            await emailVerifyService.SetVerifyCodeAsync(email, "code", CancellationToken.None);
-            await emailVerifyService.VerifyEmailCodeAsync("code", CancellationToken.None);
+            await emailVerifyService.SetSignUpVerifyCodeAsync(email, "code", CancellationToken.None);
+            await emailVerifyService.VerifySignUpEmailCodeAsync("code", CancellationToken.None);
         }
 
         public static void LoadCollection<T, V>(WebApplicationFactory<Program> applicationFactory, T entity, Expression<Func<T, IEnumerable<V>>> navigationExp, bool ignoreSoftDelete = false)

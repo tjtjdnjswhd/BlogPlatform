@@ -25,44 +25,35 @@ namespace BlogPlatform.Api.BrowserTests.Services
 
         public async Task<string?> GetUserInfoAsync()
         {
-            HttpRequestMessage httpRequestMessage = new(HttpMethod.Get, "/api/identity");
+            HttpRequestMessage httpRequestMessage = new(HttpMethod.Get, Urls.Identity.UserInfo);
             var response = await _httpClient.SendAsync(httpRequestMessage);
             return response.IsSuccessStatusCode ? await response.Content.ReadAsStringAsync() : null;
         }
 
-        public async Task BasicSignUpAsync(BasicSignUpInfo signUpInfo)
+        public async Task BasicSignUpAsync(BasicSignUpInfo signUpInfo, string? returnUrl)
         {
-            HttpRequestMessage httpRequestMessage = new(HttpMethod.Post, "/api/identity/signup/basic")
+            HttpRequestMessage httpRequestMessage = new(HttpMethod.Post, $"{Urls.Identity.BasicSignUp}?returnurl={returnUrl}")
             {
                 Content = JsonContent.Create(signUpInfo)
             };
 
             var response = await _httpClient.SendAsync(httpRequestMessage);
             await _jsRuntime.InvokeVoidAsync("alert", $"Status code: {response.StatusCode}. Header: {response.Headers} Content: {await response.Content.ReadAsStringAsync()}");
-            if (!response.IsSuccessStatusCode)
-            {
-                return;
-            }
         }
 
-        public async Task BasicLoginAsync(BasicLoginInfo loginInfo)
+        public async Task BasicLoginAsync(BasicLoginInfo loginInfo, string? returnUrl)
         {
-            HttpRequestMessage httpRequestMessage = new(HttpMethod.Post, "/api/identity/login/basic")
+            HttpRequestMessage httpRequestMessage = new(HttpMethod.Post, $"{Urls.Identity.BasicLogin}?returnurl={returnUrl}")
             {
                 Content = JsonContent.Create(loginInfo)
             };
 
             var response = await _httpClient.SendAsync(httpRequestMessage);
-            await _jsRuntime.InvokeVoidAsync("alert", $"Status code: {response.StatusCode}. Header: {response.Headers} Content: {await response.Content.ReadAsStringAsync()}");
-            if (!response.IsSuccessStatusCode)
-            {
-                return;
-            }
         }
 
         public async Task LogoutAsync(string? returnUrl)
         {
-            var response = await _httpClient.PostAsync($"/api/identity/logout?returnurl={returnUrl}", null);
+            var response = await _httpClient.PostAsync($"{Urls.Identity.Logout}?returnurl={returnUrl}", null);
             await _jsRuntime.InvokeVoidAsync("alert", $"Status code: {response.StatusCode}. Header: {response.Headers} Content: {await response.Content.ReadAsStringAsync()}");
         }
 
@@ -71,18 +62,6 @@ namespace BlogPlatform.Api.BrowserTests.Services
             HttpRequestMessage httpRequestMessage = new(HttpMethod.Delete, string.Format(Urls.Identity.OAuthRemove, provider));
             var response = await _httpClient.SendAsync(httpRequestMessage);
             await _jsRuntime.InvokeVoidAsync("alert", $"Status code: {response.StatusCode}. Header: {response.Headers} Content: {await response.Content.ReadAsStringAsync()}");
-        }
-
-        public async Task RefreshAsync(string? returnUrl)
-        {
-            HttpRequestMessage httpRequestMessage = new(HttpMethod.Post, $"/api/identity/refresh?returnUrl={returnUrl}");
-
-            var response = await _httpClient.SendAsync(httpRequestMessage);
-            await _jsRuntime.InvokeVoidAsync("alert", $"Status code: {response.StatusCode}. Header: {response.Headers} Content: {await response.Content.ReadAsStringAsync()}");
-            if (!response.IsSuccessStatusCode)
-            {
-                return;
-            }
         }
 
         public async Task SendVerifyEmailAsync(string email)
@@ -118,7 +97,7 @@ namespace BlogPlatform.Api.BrowserTests.Services
             await _jsRuntime.InvokeVoidAsync("alert", $"Status code: {response.StatusCode}. Header: {response.Headers} Content: {await response.Content.ReadAsStringAsync()}");
         }
 
-        public async Task ChangeEmailAsync(string newEmail)
+        public async Task SendChangeEmailCodeAsync(string newEmail)
         {
             HttpRequestMessage httpRequestMessage = new(HttpMethod.Post, Urls.Identity.ChangeEmail)
             {

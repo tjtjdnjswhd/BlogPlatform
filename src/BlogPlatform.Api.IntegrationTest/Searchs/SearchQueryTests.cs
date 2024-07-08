@@ -143,7 +143,7 @@ namespace BlogPlatform.Api.IntegrationTest.Searchs
             builder.ConfigureServices(services =>
             {
                 IServiceProvider serviceProvider = services.BuildServiceProvider();
-                var scope = serviceProvider.CreateScope();
+                using var scope = serviceProvider.CreateScope();
 
                 DbContextOptions<BlogPlatformDbContext> dbContextOptions = serviceProvider.GetRequiredService<DbContextOptions<BlogPlatformDbContext>>();
                 DbContextOptionsBuilder<BlogPlatformDbContext> optionsBuilder = new(dbContextOptions);

@@ -18,10 +18,12 @@
     <PackageReference Include="HtmlSanitizer" Version="8.0.865" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="8.0.6" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.6" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.6" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\BlogPlatform.Api.BrowserTests\BlogPlatform.Api.BrowserTests.csproj" />
     <ProjectReference Include="..\BlogPlatform.Shared.Identity\BlogPlatform.Shared.Identity.csproj" />
     <ProjectReference Include="..\BlogPlatform.Shared\BlogPlatform.Shared.csproj" />
   </ItemGroup>
