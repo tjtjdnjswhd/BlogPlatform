@@ -1,0 +1,77 @@
+﻿@inject ApiClient ApiClient
+@inject IJSRuntime JsRuntime
+@inject IOptions<ApiUrls> ApiUrls
+
+<h2>SignUp</h2>
+
+<form @onsubmit="SendVerifyEmailAsync">
+    <label class="form-label" for="verify-email">Verify email:</label>
+    <input class="form-control" type="email" id="verify-email" name="email" @bind="sendVerifyEmail" />
+    <button class="btn btn-primary mt-3" type="submit">Send</button>
+</form>
+
+<hr />
+
+<div class="row">
+    <div class="col align-content-center border-end">
+        <form @onsubmit="BasicSignUpAsync">
+            <label class="form-label" for="signup-id">Id:</label>
+            <input class="form-control" type="id" id="signup-id" name="id" @bind="signUpId" />
+            <label class="form-label" for="signup-name">Name:</label>
+            <input class="form-control" type="text" id="signup-name" name="name" @bind="signUpName" />
+            <label class="form-label" for="signup-email">Email:</label>
+            <input class="form-control" type="email" id="signup-email" name="email" @bind="signUpEmail" />
+            <label class="form-label" for="signup-password">Password:</label>
+            <input class="form-control" type="password" id="signup-password" name="password" @bind="signUpPassword" />
+            <button class="btn btn-primary mt-3" type="submit">SignUp</button>
+        </form>
+    </div>
+
+    <div class="col align-content-center">
+        <form method="post" action="@OAuthSignUpUrl">
+            <label class="form-label" for="signup-provider">Provider:</label>
+            <input class="form-control" type="text" id="provider" name="provider" />
+            <label class="form-label" for="signup-oauth-name">Name:</label>
+            <input class="form-control" type="text" id="signup-oauth-name" name="name" />
+            <button class="btn btn-primary mt-3" type="submit">SignUp</button>
+        </form>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string? ReturnUrl { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> ReturnUrlChanged { get; set; }
+
+    [Parameter]
+    public string? QueryStrings { get; set; }
+
+    private ApiUrls Urls => ApiUrls.Value;
+
+    private string sendVerifyEmail = string.Empty;
+    private async Task SendVerifyEmailAsync()
+    {
+        try
+        {
+            await ApiClient.SendVerifyEmailAsync(sendVerifyEmail);
+        }
+        catch (Exception e)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", e.Message);
+        }
+    }
+
+    private string signUpId = string.Empty;
+    private string signUpName = string.Empty;
+    private string signUpEmail = string.Empty;
+    private string signUpPassword = string.Empty;
+
+    private async Task BasicSignUpAsync()
+    {
+        await ApiClient.BasicSignUpAsync(new BasicSignUpInfo(signUpId, signUpPassword, signUpName, signUpEmail), ReturnUrl);
+    }
+
+    private string OAuthSignUpUrl => Urls.BaseAddress + Urls.Identity.OAuthSignUp + QueryStrings;
+}

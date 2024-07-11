@@ -1,264 +1,82 @@
 ﻿@page "/identity"
-@using BlogPlatform.Api.BrowserTests.Options
-@using BlogPlatform.Shared.Identity.Models
-@using Microsoft.Extensions.Options
-@using System.Runtime.InteropServices.JavaScript
+@using BlogPlatform.Api.BrowserTests.Components.Identity
 @inject ApiClient ApiClient
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
 @inject IOptions<ApiUrls> ApiUrls
 
+<UserInfo />
+
+<section class="border p-3">
+    <SetReturnUrl @bind-ReturnUrl="ReturnUrl" />
+</section>
+
+<div class="btn-group my-3">
+    @{
+        foreach (IdentityView view in Enum.GetValues<IdentityView>())
+        {
+            <input type="radio" id="view-@((int)view)" class="btn-check" name="view" @onclick="() => identityView = view" checked="@(view == IdentityView.Login)" />
+            <label class="btn btn-outline-primary" for="view-@((int)view)">@view</label>
+        }
+    }
+</div>
+
+<section class="border p-3">
+    @switch (identityView)
+    {
+        case IdentityView.Login:
+            <Login @bind-ReturnUrl="ReturnUrl" QueryStrings="@QueryStrings" />
+            break;
+        case IdentityView.SignUp:
+            <SignUp @bind-ReturnUrl="ReturnUrl" QueryStrings="@QueryStrings" />
+            break;
+        case IdentityView.Logout:
+            <Logout Url="@Urls.Identity.Logout" QueryStrings="@QueryStrings" />
+            break;
+        case IdentityView.OAuth:
+            <AddOAuth Url="@Urls.Identity.OAuthAdd" QueryStrings="@QueryStrings" />
+            <hr />
+            <RemoveOAuth />
+            break;
+        case IdentityView.Refresh:
+            <Refresh Url="@Urls.Identity.Refresh" QueryStrings="@QueryStrings" />
+            break;
+        case IdentityView.Change:
+            <ChangePassword />
+            <hr />
+            <ChangeEmail />
+            <hr />
+            <ChangeName />
+            break;
+    }
+</section>
+
 @code {
     private ApiUrls Urls => ApiUrls.Value;
     private string baseAddress => Urls.BaseAddress;
     private ApiUrls.IdentityUrls IdentityUrls => Urls.Identity;
-}
 
-<UserInfo />
-
-<hr />
-
-<h3>Set return url</h3>
-<label for="returnUrl">ReturnUrl</label>
-<input type="text" id="returnUrl" @bind="returnUrl" @bind:after="StateHasChanged" />
-@code {
-    private string? returnUrl = string.Empty;
-    private string QueryStrings => string.IsNullOrWhiteSpace(returnUrl) ? string.Empty : $"?returnUrl={Uri.EscapeDataString(returnUrl)}";
-}
-
-<hr />
-
-<h3>Login</h3>
-
-<form @onsubmit="BasicLoginAsync">
-    <label for="login-id">Id:</label>
-    <input type="id" id="login-id" name="id" @bind="loginId" />
-    <label for="login-password">Password:</label>
-    <input type="password" id="login-password" name="password" @bind="loginPassword" />
-    <button type="submit">Login</button>
-</form>
-@code {
-    private string loginId = string.Empty;
-    private string loginPassword = string.Empty;
-
-    private async Task BasicLoginAsync()
+    private IdentityView _identityView = IdentityView.Login;
+    private IdentityView identityView
     {
-        BasicLoginInfo loginInfo = new(loginId, loginPassword);
-        await ApiClient.BasicLoginAsync(loginInfo, returnUrl);
+        get => _identityView;
+        set
+        {
+            StateHasChanged();
+            _identityView = value;
+        }
     }
-}
 
-<hr />
-
-<form method="post" action="@OAuthLoginUrl">
-    <label for="login-provider">Provider:</label>
-    <input type="text" id="login-provider" name="provider" />
-    <button type="submit">Login</button>
-</form>
-@code {
-    private string OAuthLoginUrl => Urls.BaseAddress + IdentityUrls.OAuthLogin + QueryStrings;
-}
-
-<hr />
-
-<h3>Send Verify Email</h3>
-
-<form @onsubmit="SendVerifyEmailAsync">
-    <label for="verify-email">Email:</label>
-    <input type="email" id="verify-email" name="email" @bind="sendVerifyEmail" />
-    <button type="submit">Send</button>
-</form>
-@code {
-    private string sendVerifyEmail = string.Empty;
-
-    private async Task SendVerifyEmailAsync()
+    private string? _returnUrl;
+    private string? ReturnUrl
     {
-        try
+        get => _returnUrl;
+        set
         {
-            await ApiClient.SendVerifyEmailAsync(sendVerifyEmail);
+            StateHasChanged();
+            _returnUrl = value;
         }
-        catch (Exception e)
-        {
-            await JSRuntime.InvokeVoidAsync("alert", e.Message);
-        }
-        NavigationManager.Refresh();
     }
-}
 
-<hr />
-<h3>SignUp</h3>
-
-<form @onsubmit="BasicSignUpAsync">
-    <label for="signup-id">Id:</label>
-    <input type="id" id="signup-id" name="id" @bind="signUpId" />
-    <label for="signup-name">Name:</label>
-    <input type="text" id="signup-name" name="name" @bind="signUpName" />
-    <label for="signup-email">Email:</label>
-    <input type="email" id="signup-email" name="email" @bind="signUpEmail" />
-    <label for="signup-password">Password:</label>
-    <input type="password" id="signup-password" name="password" @bind="signUpPassword" />
-    <button type="submit">SignUp</button>
-</form>
-@code {
-    private string signUpId = string.Empty;
-    private string signUpName = string.Empty;
-    private string signUpEmail = string.Empty;
-    private string signUpPassword = string.Empty;
-
-    private async Task BasicSignUpAsync()
-    {
-        await ApiClient.BasicSignUpAsync(new BasicSignUpInfo(signUpId, signUpPassword, signUpName, signUpEmail), returnUrl);
-    }
-}
-
-<hr />
-
-<form method="post" action="@OAuthSignUpUrl">
-    <label for="signup-provider">Provider:</label>
-    <input type="text" id="provider" name="provider" />
-    <label for="signup-oauth-name">Name:</label>
-    <input type="text" id="signup-oauth-name" name="name" />
-    <button type="submit">SignUp</button>
-</form>
-@code {
-    private string OAuthSignUpUrl => Urls.BaseAddress + IdentityUrls.OAuthSignUp + QueryStrings;
-}
-
-<hr />
-
-<h3>Logout</h3>
-
-<form method="post" action="@LogoutUrl">
-    <button type="submit">Logout</button>
-</form>
-@code {
-    private string LogoutUrl => Urls.BaseAddress + IdentityUrls.Logout + QueryStrings;
-}
-
-<hr />
-
-<h3>Add oauth</h3>
-
-<form method="post" action="@OAuthAddUrl">
-    <label for="add-provider">Provider:</label>
-    <input type="text" id="add-provider" name="provider" />
-    <button type="submit">Add</button>
-</form>
-@code {
-    private string OAuthAddUrl => Urls.BaseAddress + IdentityUrls.OAuthAdd + QueryStrings;
-}
-
-<hr />
-
-<h3>Remove oauth</h3>
-
-<form @onsubmit="RemoveOAuthAsync">
-    <label for="remove-provider">Provider:</label>
-    <input type="text" id="remove-provider" name="provider" @bind="OAuthRemoveProvider" />
-    <button type="submit">Remove</button>
-</form>
-@code {
-    private string OAuthRemoveProvider = string.Empty;
-
-    private async Task RemoveOAuthAsync()
-    {
-        try
-        {
-            await ApiClient.RemoveOAuthAsync(OAuthRemoveProvider);
-        }
-        catch (Exception e)
-        {
-            await JSRuntime.InvokeVoidAsync("alert", e.Message);
-        }
-        NavigationManager.Refresh();
-    }
-}
-
-<hr />
-
-<h3>Refresh token</h3>
-
-<form method="post" action="@RefreshTokenUrl">
-    <button type="submit">Refresh</button>
-</form>
-@code {
-    private string RefreshTokenUrl => Urls.BaseAddress + IdentityUrls.Refresh + QueryStrings;
-}
-
-<hr />
-
-<h3>Change password</h3>
-
-<form method="post" @onsubmit="ChangePasswordAsync">
-    <label for="new-password">New password</label>
-    <input type="password" id="new-password" name="password" @bind="newPassword" />
-    <button type="submit">Change</button>
-</form>
-@code {
-    private string newPassword = string.Empty;
-
-    private async Task ChangePasswordAsync()
-    {
-        try
-        {
-            await ApiClient.ChangePasswordAsync(newPassword);
-        }
-        catch (Exception e)
-        {
-            await JSRuntime.InvokeVoidAsync("alert", e.Message);
-        }
-        NavigationManager.Refresh();
-    }
-}
-
-<hr />
-
-<h3>Change email</h3>
-
-<form method="post" @onsubmit="SendChangeEmailCodeAsync">
-    <label for="new-email">New email</label>
-    <input type="email" id="new-email" name="email" @bind="newEmail" />
-    <button type="submit">Send code</button>
-</form>
-@code {
-    private string newEmail = string.Empty;
-
-    private async Task SendChangeEmailCodeAsync()
-    {
-        try
-        {
-            await ApiClient.SendChangeEmailCodeAsync(newEmail);
-        }
-        catch (Exception e)
-        {
-            await JSRuntime.InvokeVoidAsync("alert", e.Message);
-        }
-        NavigationManager.Refresh();
-    }
-}
-
-<hr />
-
-<h3>Change name</h3>
-
-<form method="post" @onsubmit="ChangeNameAsync">
-    <label for="new-name">New name</label>
-    <input type="text" id="new-name" name="name" @bind="newName" />
-    <button type="submit">Change</button>
-</form>
-@code {
-    private string newName = string.Empty;
-
-    private async Task ChangeNameAsync()
-    {
-        try
-        {
-            await ApiClient.ChangeNameAsync(newName);
-        }
-        catch (Exception e)
-        {
-            await JSRuntime.InvokeVoidAsync("alert", e.Message);
-        }
-        NavigationManager.Refresh();
-    }
+    private string QueryStrings => string.IsNullOrWhiteSpace(ReturnUrl) ? string.Empty : $"?returnUrl={Uri.EscapeDataString(ReturnUrl)}";
 }

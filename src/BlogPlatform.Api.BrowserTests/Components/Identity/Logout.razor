@@ -1,0 +1,15 @@
+﻿<h2>Logout</h2>
+
+<form method="post" action="@UrlWithQueryStrings">
+    <button class="btn btn-primary" type="submit">Logout</button>
+</form>
+
+@code {
+    [Parameter]
+    public string? Url { get; set; }
+
+    [Parameter]
+    public string? QueryStrings { get; set; }
+
+    public string UrlWithQueryStrings => Url + QueryStrings;
+}

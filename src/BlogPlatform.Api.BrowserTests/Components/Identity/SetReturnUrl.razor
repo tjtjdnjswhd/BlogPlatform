@@ -1,0 +1,15 @@
+﻿<h2>Return url</h2>
+<input class="form-control" type="text" id="returnUrl" @bind="ReturnUrl" @bind:after="ChangeValue" />
+
+@code {
+    [Parameter]
+    public string? ReturnUrl { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> ReturnUrlChanged { get; set; }
+
+    private async Task ChangeValue()
+    {
+        await ReturnUrlChanged.InvokeAsync(ReturnUrl);
+    }
+}

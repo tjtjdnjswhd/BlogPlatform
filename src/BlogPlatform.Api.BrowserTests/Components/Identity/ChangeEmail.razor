@@ -1,0 +1,18 @@
+﻿@inject ApiClient ApiClient
+@inject NavigationManager NavigationManager
+
+<h2>Change email</h2>
+<form method="post" @onsubmit="SendChangeEmailCodeAsync">
+    <label class="form-label" for="new-email">New email</label>
+    <input class="form-control" type="email" id="new-email" name="email" @bind="newEmail" />
+    <button class="btn btn-primary mt-3" type="submit">Send code</button>
+</form>
+
+@code {
+    private string newEmail = string.Empty;
+    private async Task SendChangeEmailCodeAsync()
+    {
+        await ApiClient.SendChangeEmailCodeAsync(newEmail);
+        NavigationManager.Refresh();
+    }
+}

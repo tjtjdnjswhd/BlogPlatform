@@ -1,0 +1,19 @@
+﻿@inject ApiClient ApiClient
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+
+<h2>Remove oauth</h2>
+<form @onsubmit="RemoveOAuthAsync">
+    <label class="form-label" for="remove-provider">Provider:</label>
+    <input class="form-control" type="text" id="remove-provider" name="provider" @bind="OAuthRemoveProvider" />
+    <button class="btn btn-primary mt-3" type="submit">Remove</button>
+</form>
+
+@code {
+    private string OAuthRemoveProvider = string.Empty;
+    private async Task RemoveOAuthAsync()
+    {
+        await ApiClient.RemoveOAuthAsync(OAuthRemoveProvider);
+        NavigationManager.Refresh();
+    }
+}

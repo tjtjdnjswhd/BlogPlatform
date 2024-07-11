@@ -149,7 +149,6 @@ namespace BlogPlatform.Api.Identity.Services
         {
             CookieOptions cookieOptions = new(DefaultCookieOptions)
             {
-                //Expires = _timeProvider.GetUtcNow().UtcDateTime.Add(_jwtOptions.RefreshTokenExpiration),
                 MaxAge = _jwtOptions.RefreshTokenExpiration
             };
             response.Cookies.Append(_jwtOptions.AccessTokenName, token.AccessToken, cookieOptions);

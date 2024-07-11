@@ -27,6 +27,21 @@
         <a class="dismiss">🗙</a>
     </div>
     <script src="_framework/blazor.webassembly.js"></script>
+    <script>
+        async function ajaxRedirect(url, method, body) {
+            let response = await fetch(url, {
+                body: body,
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+            });
+
+            if (response.redirected) {
+                window.location.href = response.url;
+            }
+        }
+    </script>
 </body>
 
 </html>

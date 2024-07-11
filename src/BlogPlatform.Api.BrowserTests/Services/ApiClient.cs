@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
 
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace BlogPlatform.Api.BrowserTests.Services
 {
@@ -30,38 +31,26 @@ namespace BlogPlatform.Api.BrowserTests.Services
             return response.IsSuccessStatusCode ? await response.Content.ReadAsStringAsync() : null;
         }
 
-        public async Task BasicSignUpAsync(BasicSignUpInfo signUpInfo, string? returnUrl)
-        {
-            HttpRequestMessage httpRequestMessage = new(HttpMethod.Post, $"{Urls.Identity.BasicSignUp}?returnurl={returnUrl}")
-            {
-                Content = JsonContent.Create(signUpInfo)
-            };
-
-            var response = await _httpClient.SendAsync(httpRequestMessage);
-            await _jsRuntime.InvokeVoidAsync("alert", $"Status code: {response.StatusCode}. Header: {response.Headers} Content: {await response.Content.ReadAsStringAsync()}");
-        }
-
         public async Task BasicLoginAsync(BasicLoginInfo loginInfo, string? returnUrl)
         {
-            HttpRequestMessage httpRequestMessage = new(HttpMethod.Post, $"{Urls.Identity.BasicLogin}?returnurl={returnUrl}")
-            {
-                Content = JsonContent.Create(loginInfo)
-            };
-
-            var response = await _httpClient.SendAsync(httpRequestMessage);
+            string json = JsonSerializer.Serialize(loginInfo);
+            await _jsRuntime.InvokeVoidAsync("ajaxRedirect", $"{Urls.Identity.BasicLogin}?returnurl={returnUrl}", "POST", json);
         }
 
-        public async Task LogoutAsync(string? returnUrl)
+        public async Task BasicSignUpAsync(BasicSignUpInfo signUpInfo, string? returnUrl)
         {
-            var response = await _httpClient.PostAsync($"{Urls.Identity.Logout}?returnurl={returnUrl}", null);
-            await _jsRuntime.InvokeVoidAsync("alert", $"Status code: {response.StatusCode}. Header: {response.Headers} Content: {await response.Content.ReadAsStringAsync()}");
+            string json = JsonSerializer.Serialize(signUpInfo);
+            await _jsRuntime.InvokeVoidAsync("ajaxRedirect", $"{Urls.Identity.BasicSignUp}?returnurl={returnUrl}", "POST", json);
         }
 
         public async Task RemoveOAuthAsync(string provider)
         {
             HttpRequestMessage httpRequestMessage = new(HttpMethod.Delete, string.Format(Urls.Identity.OAuthRemove, provider));
             var response = await _httpClient.SendAsync(httpRequestMessage);
-            await _jsRuntime.InvokeVoidAsync("alert", $"Status code: {response.StatusCode}. Header: {response.Headers} Content: {await response.Content.ReadAsStringAsync()}");
+            if (!response.IsSuccessStatusCode)
+            {
+                await _jsRuntime.InvokeVoidAsync("alert", $"Status code: {response.StatusCode}. Header: {response.Headers} Content: {await response.Content.ReadAsStringAsync()}");
+            }
         }
 
         public async Task SendVerifyEmailAsync(string email)
@@ -72,7 +61,10 @@ namespace BlogPlatform.Api.BrowserTests.Services
             };
 
             var response = await _httpClient.SendAsync(httpRequestMessage);
-            await _jsRuntime.InvokeVoidAsync("alert", $"Status code: {response.StatusCode}. Header: {response.Headers} Content: {await response.Content.ReadAsStringAsync()}");
+            if (!response.IsSuccessStatusCode)
+            {
+                await _jsRuntime.InvokeVoidAsync("alert", $"Status code: {response.StatusCode}. Header: {response.Headers} Content: {await response.Content.ReadAsStringAsync()}");
+            }
         }
 
         public async Task ChangePasswordAsync(string newPassword)
@@ -83,7 +75,10 @@ namespace BlogPlatform.Api.BrowserTests.Services
             };
 
             var response = await _httpClient.SendAsync(httpRequestMessage);
-            await _jsRuntime.InvokeVoidAsync("alert", $"Status code: {response.StatusCode}. Header: {response.Headers} Content: {await response.Content.ReadAsStringAsync()}");
+            if (!response.IsSuccessStatusCode)
+            {
+                await _jsRuntime.InvokeVoidAsync("alert", $"Status code: {response.StatusCode}. Header: {response.Headers} Content: {await response.Content.ReadAsStringAsync()}");
+            }
         }
 
         public async Task ChangeNameAsync(string newName)
@@ -94,7 +89,10 @@ namespace BlogPlatform.Api.BrowserTests.Services
             };
 
             var response = await _httpClient.SendAsync(httpRequestMessage);
-            await _jsRuntime.InvokeVoidAsync("alert", $"Status code: {response.StatusCode}. Header: {response.Headers} Content: {await response.Content.ReadAsStringAsync()}");
+            if (!response.IsSuccessStatusCode)
+            {
+                await _jsRuntime.InvokeVoidAsync("alert", $"Status code: {response.StatusCode}. Header: {response.Headers} Content: {await response.Content.ReadAsStringAsync()}");
+            }
         }
 
         public async Task SendChangeEmailCodeAsync(string newEmail)
@@ -105,7 +103,10 @@ namespace BlogPlatform.Api.BrowserTests.Services
             };
 
             var response = await _httpClient.SendAsync(httpRequestMessage);
-            await _jsRuntime.InvokeVoidAsync("alert", $"Status code: {response.StatusCode}. Header: {response.Headers} Content: {await response.Content.ReadAsStringAsync()}");
+            if (!response.IsSuccessStatusCode)
+            {
+                await _jsRuntime.InvokeVoidAsync("alert", $"Status code: {response.StatusCode}. Header: {response.Headers} Content: {await response.Content.ReadAsStringAsync()}");
+            }
         }
     }
 }

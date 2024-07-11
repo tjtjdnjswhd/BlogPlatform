@@ -1,0 +1,16 @@
+﻿<h2>Add oauth</h2>
+<form method="post" action="@UrlWithQueryStrings">
+    <label class="form-label" for="add-provider">Provider:</label>
+    <input class="form-control" type="text" id="add-provider" name="provider" />
+    <button class="btn btn-primary mt-3" type="submit">Add</button>
+</form>
+
+@code {
+    [Parameter]
+    public string? Url { get; set; }
+
+    [Parameter]
+    public string? QueryStrings { get; set; }
+
+    private string? UrlWithQueryStrings => Url + QueryStrings;
+}

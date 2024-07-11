@@ -10,9 +10,9 @@ builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddOptions<ApiUrls>().BindConfiguration("API:Urls");
-builder.Services.AddSingleton<CookieHandler>();
 
-builder.Services.AddSingleton<ApiClient>();
+builder.Services.AddScoped<CookieHandler>();
+builder.Services.AddScoped<ApiClient>();
 builder.Services.AddHttpClient<ApiClient>(client => client.BaseAddress = new(builder.HostEnvironment.BaseAddress)).AddDefaultLogger().AddHttpMessageHandler<CookieHandler>();
 
 await builder.Build().RunAsync();

@@ -1,0 +1,50 @@
+﻿@inject ApiClient ApiClient
+@inject IOptions<ApiUrls> ApiUrls
+
+<h2>Login</h2>
+
+<div class="row">
+    <div class="col align-content-center border-end">
+        <form @onsubmit="BasicLoginAsync">
+            <label class="form-label" for="login-id">Id:</label>
+            <input class="form-control" type="id" id="login-id" name="id" @bind="loginId" />
+
+            <label class="form-label" for="login-password">Password:</label>
+            <input class="form-control" type="password" id="login-password" name="password" @bind="loginPassword" />
+
+            <button class="btn btn-primary mt-3" type="submit">Login</button>
+        </form>
+    </div>
+
+    <div class="col align-content-center">
+        <form method="post" action="@OAuthLoginUrl">
+            <label class="form-label" for="login-provider">Provider:</label>
+            <input class="form-control" type="text" id="login-provider" name="provider" />
+            <button class="btn btn-primary mt-3" type="submit">Login</button>
+        </form>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string? ReturnUrl { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> ReturnUrlChanged { get; set; }
+
+    [Parameter]
+    public string? QueryStrings { get; set; }
+
+    private ApiUrls Urls => ApiUrls.Value;
+
+    private string loginId = string.Empty;
+    private string loginPassword = string.Empty;
+
+    private async Task BasicLoginAsync()
+    {
+        BasicLoginInfo loginInfo = new(loginId, loginPassword);
+        await ApiClient.BasicLoginAsync(loginInfo, ReturnUrl);
+    }
+
+    private string OAuthLoginUrl => Urls.BaseAddress + Urls.Identity.OAuthLogin + QueryStrings;
+}

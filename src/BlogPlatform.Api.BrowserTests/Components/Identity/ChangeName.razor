@@ -1,0 +1,19 @@
+﻿@inject ApiClient ApiClient
+@inject NavigationManager NavigationManager
+
+<h2>Change name</h2>
+<form method="post" @onsubmit="ChangeNameAsync">
+    <label class="form-label" for="new-name">New name</label>
+    <input class="form-control" type="text" id="new-name" name="name" @bind="newName" />
+    <button class="btn btn-primary mt-3" type="submit">Change</button>
+</form>
+
+@code {
+
+    private string newName = string.Empty;
+    private async Task ChangeNameAsync()
+    {
+        await ApiClient.ChangeNameAsync(newName);
+        NavigationManager.Refresh();
+    }
+}
