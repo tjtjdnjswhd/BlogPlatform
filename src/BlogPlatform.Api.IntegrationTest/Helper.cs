@@ -143,19 +143,34 @@ namespace BlogPlatform.Api.IntegrationTest
             dbContext.SaveChanges();
         }
 
-        public static async Task SetEmailVerifyCodeAsync(WebApplicationFactory<Program> applicationFactory, string code, string email)
+        public static async Task SetSignUpEmailVerifyCodeAsync(WebApplicationFactory<Program> applicationFactory, string code, string email)
         {
             using var scope = applicationFactory.Services.CreateScope();
             IEmailVerifyService emailVerifyService = scope.ServiceProvider.GetRequiredService<IEmailVerifyService>();
             await emailVerifyService.SetSignUpVerifyCodeAsync(email, code, CancellationToken.None);
         }
 
-        public static async Task SetVerifiedEmailAsync(WebApplicationFactory<Program> applicationFactory, string email)
+        public static async Task SetSignUpVerifiedEmailAsync(WebApplicationFactory<Program> applicationFactory, string email)
         {
             using var scope = applicationFactory.Services.CreateScope();
             IEmailVerifyService emailVerifyService = scope.ServiceProvider.GetRequiredService<IEmailVerifyService>();
             await emailVerifyService.SetSignUpVerifyCodeAsync(email, "code", CancellationToken.None);
             await emailVerifyService.VerifySignUpEmailCodeAsync("code", CancellationToken.None);
+        }
+
+        public static async Task SetChangeEmailVerifyCodeAsync(WebApplicationFactory<Program> applicationFactory, int userId, string code, string email)
+        {
+            using var scope = applicationFactory.Services.CreateScope();
+            IEmailVerifyService emailVerifyService = scope.ServiceProvider.GetRequiredService<IEmailVerifyService>();
+            await emailVerifyService.SetChangeVerifyCodeAsync(userId, email, code, CancellationToken.None);
+        }
+
+        public static async Task SetChangeVerifiedEmailAsync(WebApplicationFactory<Program> applicationFactory, int userId, string email)
+        {
+            using var scope = applicationFactory.Services.CreateScope();
+            IEmailVerifyService emailVerifyService = scope.ServiceProvider.GetRequiredService<IEmailVerifyService>();
+            await emailVerifyService.SetChangeVerifyCodeAsync(userId, email, "code", CancellationToken.None);
+            await emailVerifyService.VerifyChangeEmailCodeAsync(userId, "code", CancellationToken.None);
         }
 
         public static void LoadCollection<T, V>(WebApplicationFactory<Program> applicationFactory, T entity, Expression<Func<T, IEnumerable<V>>> navigationExp, bool ignoreSoftDelete = false)

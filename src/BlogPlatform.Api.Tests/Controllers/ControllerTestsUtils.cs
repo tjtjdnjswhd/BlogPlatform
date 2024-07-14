@@ -1,6 +1,6 @@
-﻿using BlogPlatform.Shared.Models;
-
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 
 namespace BlogPlatform.Api.Tests.Controllers
 {
@@ -17,29 +17,25 @@ namespace BlogPlatform.Api.Tests.Controllers
             Assert.IsType<OkResult>(actionResult);
         }
 
-        public static Error VerifyNotFoundResult(IActionResult actionResult)
+        public static void VerifyNotFoundResult(IActionResult actionResult)
         {
-            NotFoundObjectResult objectResult = Assert.IsType<NotFoundObjectResult>(actionResult);
-            return VerifyErrorResult(objectResult);
+            Assert.True(actionResult is NotFoundResult || actionResult is NotFoundObjectResult || actionResult is IStatusCodeActionResult { StatusCode: StatusCodes.Status404NotFound });
         }
 
-        public static Error VerifyConflictResult(IActionResult actionResult)
+        public static void VerifyConflictResult(IActionResult actionResult)
         {
-            ConflictObjectResult objectResult = Assert.IsType<ConflictObjectResult>(actionResult);
-            return VerifyErrorResult(objectResult);
+            Assert.True(actionResult is ConflictResult || actionResult is ConflictObjectResult || actionResult is IStatusCodeActionResult { StatusCode: StatusCodes.Status409Conflict });
         }
 
-        public static Error VerifyBadRequestResult(IActionResult actionResult)
+        public static void VerifyBadRequestResult(IActionResult actionResult)
         {
-            BadRequestObjectResult objectResult = Assert.IsType<BadRequestObjectResult>(actionResult);
-            return VerifyErrorResult(objectResult);
+            Assert.True(actionResult is BadRequestResult || actionResult is BadRequestObjectResult || actionResult is IStatusCodeActionResult { StatusCode: StatusCodes.Status400BadRequest });
         }
 
-        public static Error VerifyInternalServerError(IActionResult actionResult)
+        public static void VerifyInternalServerError(IActionResult actionResult)
         {
             ObjectResult statusCodeResult = Assert.IsType<ObjectResult>(actionResult);
             Assert.Equal(500, statusCodeResult.StatusCode);
-            return VerifyErrorResult(statusCodeResult);
         }
 
         public static void VerifyNoContentResult(IActionResult actionResult)
@@ -54,7 +50,7 @@ namespace BlogPlatform.Api.Tests.Controllers
 
         public static void VerifyUnauthorizedResult(IActionResult actionResult)
         {
-            Assert.IsType<UnauthorizedResult>(actionResult);
+            Assert.True(actionResult is UnauthorizedResult || actionResult is UnauthorizedObjectResult || actionResult is IStatusCodeActionResult { StatusCode: StatusCodes.Status401Unauthorized });
         }
 
         public static void VerifyCreatedResult(IActionResult actionResult, string actionName, string controllerName)
@@ -62,11 +58,6 @@ namespace BlogPlatform.Api.Tests.Controllers
             CreatedAtActionResult objectResult = Assert.IsType<CreatedAtActionResult>(actionResult);
             Assert.Equal(actionName, objectResult.ActionName);
             Assert.Equal(controllerName, objectResult.ControllerName);
-        }
-
-        public static Error VerifyErrorResult(ObjectResult objectResult)
-        {
-            return Assert.IsType<Error>(objectResult.Value);
         }
     }
 }

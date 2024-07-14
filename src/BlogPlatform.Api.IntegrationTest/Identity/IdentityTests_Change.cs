@@ -13,20 +13,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
     public partial class IdentityTests
     {
         [Fact]
-        public async Task ChangePassword_Unauthorize()
-        {
-            // Arrange
-            HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
-
-            // Act
-            HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/password/change", new PasswordModel("newPassword"));
-
-            // Assert
-            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-        }
-
-        [Fact]
-        public async Task ChangePassword_UserNotFound()
+        public async Task ChangePassword_BasicAccountNotFound()
         {
             // Arrange
             HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
@@ -37,32 +24,27 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             Helper.SoftDelete(WebApplicationFactory, user);
 
             // Act
-            HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/password/change", new PasswordModel("newPassword"));
+            HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/password/change", new PasswordChangeModel("fadsa", "currentPW", "newPW"));
 
             // Assert
-            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
 
         [Fact]
-        public async Task ChangePassword_InvalidPassword()
+        public async Task ChangePassword_WrongCurrentPassword()
         {
             // Arrange
             HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             using var scope = WebApplicationFactory.Services.CreateScope();
             BlogPlatformDbContext dbContext = scope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
-            User user = dbContext.Users.First();
-            string oldPasswordHash = dbContext.BasicAccounts.First(b => b.UserId == user.Id).PasswordHash;
-
-            AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
-            Helper.SetAuthorizationHeader(client, authorizeToken);
+            BasicAccount basicAccount = dbContext.BasicAccounts.First();
 
             // Act
-            HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/password/change", new PasswordModel("abc"));
+            HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/password/change", new PasswordChangeModel(basicAccount.AccountId, "wrongPassword", "user11pw"));
 
             // Assert
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-            Assert.Equal(oldPasswordHash, dbContext.BasicAccounts.First(b => b.UserId == user.Id).PasswordHash);
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         }
 
         [Fact, ResetDataAfterTest]
@@ -73,20 +55,13 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
 
             using var scope = WebApplicationFactory.Services.CreateScope();
             BlogPlatformDbContext dbContext = scope.ServiceProvider.GetRequiredService<BlogPlatformDbContext>();
-            User user = dbContext.Users.First();
-            BasicAccount basicAccount = dbContext.BasicAccounts.First(b => b.UserId == user.Id);
-            string oldPasswordHash = basicAccount.PasswordHash;
-
-            AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
-            Helper.SetAuthorizationHeader(client, authorizeToken);
+            BasicAccount basicAccount = dbContext.BasicAccounts.First();
 
             // Act
-            HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/password/change", new PasswordModel("newPassword"));
+            HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/password/change", new PasswordChangeModel(basicAccount.AccountId, "user1pw", "newPassword"));
 
             // Assert
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            Helper.ReloadEntity(WebApplicationFactory, basicAccount);
-            Assert.NotEqual(oldPasswordHash, basicAccount.PasswordHash);
         }
 
         [Fact]
@@ -227,7 +202,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             Helper.SoftDelete(WebApplicationFactory, user);
 
             string newEmail = "newEmail@email.com";
-            await Helper.SetEmailVerifyCodeAsync(WebApplicationFactory, "verifyCode", newEmail);
+            await Helper.SetChangeEmailVerifyCodeAsync(WebApplicationFactory, user.Id, "verifyCode", newEmail);
 
             // Act
             HttpResponseMessage response = await httpClient.GetAsync("/api/identity/email/change?code=verifyCode");
@@ -247,7 +222,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             Helper.SetAuthorizationHeader(httpClient, authorizeToken);
 
             string newEmail = "newEmail@email.com";
-            await Helper.SetEmailVerifyCodeAsync(WebApplicationFactory, "verifyCode", newEmail);
+            await Helper.SetChangeEmailVerifyCodeAsync(WebApplicationFactory, user.Id, "verifyCode", newEmail);
 
             // Act
             HttpResponseMessage response = await httpClient.GetAsync("/api/identity/email/change?code=verifyCode");

@@ -74,7 +74,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             Helper.ResetAuthorizationHeader(client);
 
             string email = "user55@user.com";
-            await Helper.SetVerifiedEmailAsync(WebApplicationFactory, email);
+            await Helper.SetSignUpVerifiedEmailAsync(WebApplicationFactory, email);
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/basic", new BasicSignUpInfo(basicAccount.AccountId, "user55pw", "user55", email));
@@ -102,7 +102,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             Helper.ResetAuthorizationHeader(client);
 
             string email = user.Email;
-            await Helper.SetVerifiedEmailAsync(WebApplicationFactory, email);
+            await Helper.SetSignUpVerifiedEmailAsync(WebApplicationFactory, email);
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/basic", new BasicSignUpInfo("user55Id", "user55pw", "user55", email));
@@ -135,7 +135,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             Helper.ResetAuthorizationHeader(client);
 
             string email = user.Email;
-            await Helper.SetVerifiedEmailAsync(WebApplicationFactory, email);
+            await Helper.SetSignUpVerifiedEmailAsync(WebApplicationFactory, email);
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/basic", new BasicSignUpInfo(basicAccount.AccountId, "user55pw", "user55", email));

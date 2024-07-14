@@ -309,14 +309,14 @@ namespace BlogPlatform.Shared.Identity.Services
 
             _logger.LogDebug("Changing password. account id: {accountId}, new password: {newPassword}", model.Id, model.NewPassword);
 
-            string currentPasswordHash = _passwordHasher.HashPassword(null, model.CurrentPassword);
-            if (basicAccount.PasswordHash != currentPasswordHash)
+            if (_passwordHasher.VerifyHashedPassword(null, basicAccount.PasswordHash, model.CurrentPassword) == PasswordVerificationResult.Failed)
             {
                 return EChangePasswordResult.WrongPassword;
             }
 
             string newPasswordHash = _passwordHasher.HashPassword(null, model.NewPassword);
             basicAccount.PasswordHash = newPasswordHash;
+            basicAccount.IsPasswordChangeRequired = false;
 
             await _blogPlatformDbContext.SaveChangesAsync(cancellationToken);
             return EChangePasswordResult.Success;

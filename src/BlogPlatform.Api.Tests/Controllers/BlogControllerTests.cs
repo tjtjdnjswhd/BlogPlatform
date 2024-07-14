@@ -72,8 +72,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             IActionResult result = await _blogController.CreateAsync(new BlogCreate("blog1", "bb"), 1, CancellationToken.None);
 
             // Assert
-            ConflictObjectResult conflictResult = Assert.IsType<ConflictObjectResult>(result);
-            Utils.VerifyConflictResult(conflictResult);
+            Utils.VerifyConflictResult(result);
             _blogDbSetMock.Verify(set => set.Add(It.IsAny<Blog>()), Times.Never);
             _setUp.DbContextMock.Verify(db => db.SaveChangesAsync(CancellationToken.None), Times.Never);
         }

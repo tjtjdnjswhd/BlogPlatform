@@ -111,16 +111,13 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             BasicAccount basicAccount = Helper.GetFirstEntity<BasicAccount>(WebApplicationFactory, b => b.UserId == user.Id, false);
             string email = "user55@user.com";
-            await Helper.SetVerifiedEmailAsync(WebApplicationFactory, email);
+            await Helper.SetSignUpVerifiedEmailAsync(WebApplicationFactory, email);
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/basic", new BasicSignUpInfo(basicAccount.AccountId, "user55pw", "user55", email));
 
             // Assert
             Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
-            Error? error = await response.Content.ReadFromJsonAsync<Error>();
-            Assert.NotNull(error);
-            Assert.Equal("중복된 Id입니다", error.Message);
         }
 
         [Fact]
@@ -130,16 +127,13 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
             string email = "user55@user.com";
-            await Helper.SetVerifiedEmailAsync(WebApplicationFactory, email);
+            await Helper.SetSignUpVerifiedEmailAsync(WebApplicationFactory, email);
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/basic", new BasicSignUpInfo("user55Id", "user55pw", user.Name, email));
 
             // Assert
             Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
-            Error? error = await response.Content.ReadFromJsonAsync<Error>();
-            Assert.NotNull(error);
-            Assert.Equal("중복된 이름입니다", error.Message);
         }
 
         [Fact]
@@ -148,16 +142,13 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             // Arrange
             HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
-            await Helper.SetVerifiedEmailAsync(WebApplicationFactory, user.Email);
+            await Helper.SetSignUpVerifiedEmailAsync(WebApplicationFactory, user.Email);
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/basic", new BasicSignUpInfo("user55Id", "user55pw", "user55", user.Email));
 
             // Assert
             Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
-            Error? error = await response.Content.ReadFromJsonAsync<Error>();
-            Assert.NotNull(error);
-            Assert.Equal("중복된 이메일입니다", error.Message);
         }
 
         [Fact, ResetDataAfterTest]
@@ -167,7 +158,7 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpClient client = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             string email = "user55@user.com";
-            await Helper.SetVerifiedEmailAsync(WebApplicationFactory, email);
+            await Helper.SetSignUpVerifiedEmailAsync(WebApplicationFactory, email);
 
             // Act
             HttpResponseMessage response = await client.PostAsJsonAsync("/api/identity/signup/basic", new BasicSignUpInfo("user55Id", "user55pw", "user55", email));

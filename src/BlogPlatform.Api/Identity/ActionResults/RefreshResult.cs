@@ -41,6 +41,7 @@ namespace BlogPlatform.Api.Identity.ActionResults
 
             if (AuthorizeToken is null)
             {
+                context.HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
                 ProblemDetails problemDetails = problemDetailsFactory.CreateProblemDetails(context.HttpContext, StatusCodes.Status400BadRequest, detail: "Token required");
                 await problemDetailsService.WriteAsync(new ProblemDetailsContext() { HttpContext = context.HttpContext, ProblemDetails = problemDetails });
                 return;
@@ -55,6 +56,7 @@ namespace BlogPlatform.Api.Identity.ActionResults
                 logger.LogInformation("Refreshing token failed. Expired");
                 if (ReturnUrl is null)
                 {
+                    context.HttpContext.Response.StatusCode = StatusCodes.Status403Forbidden;
                     ProblemDetails problemDetails = problemDetailsFactory.CreateProblemDetails(context.HttpContext, StatusCodes.Status403Forbidden, detail: "Token expired");
                     await problemDetailsService.WriteAsync(new ProblemDetailsContext() { HttpContext = context.HttpContext, ProblemDetails = problemDetails });
                     return;

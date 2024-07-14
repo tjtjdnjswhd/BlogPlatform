@@ -4,7 +4,6 @@ using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Models;
 using BlogPlatform.Shared.Identity.Models;
 using BlogPlatform.Shared.Identity.Services.Interfaces;
-using BlogPlatform.Shared.Models;
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -61,7 +60,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             IActionResult result = await controller.BasicLoginAsync(loginInfo, null, CancellationToken.None);
 
             // Assert
-            Assert.IsType<NotFoundObjectResult>(result);
+            ControllerTestsUtils.VerifyNotFoundResult(result);
         }
 
         [Fact]
@@ -79,7 +78,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             IActionResult result = await controller.BasicLoginAsync(loginInfo, null, CancellationToken.None);
 
             // Assert
-            Assert.IsType<UnauthorizedObjectResult>(result);
+            ControllerTestsUtils.VerifyUnauthorizedResult(result);
         }
 
         [Fact]
@@ -119,8 +118,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             IActionResult result = await controller.BasicSignUpAsync(signUpInfo, null, CancellationToken.None);
 
             // Assert
-            ConflictObjectResult actionResult = Assert.IsType<ConflictObjectResult>(result);
-            Assert.IsType<Error>(actionResult.Value);
+            ControllerTestsUtils.VerifyConflictResult(result);
         }
 
         [Fact]
@@ -186,8 +184,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             IActionResult result = await controller.ConfirmSignUpEmailAsync(email, CancellationToken.None);
 
             // Assert
-            BadRequestObjectResult actionResult = Assert.IsType<BadRequestObjectResult>(result);
-            Assert.IsType<Error>(actionResult.Value);
+            ControllerTestsUtils.VerifyBadRequestResult(result);
         }
 
         [Fact]
@@ -214,7 +211,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             OAuthLoginInfo loginInfo = new("TestProvider", "TestNameIdentifier");
 
             // Act
-            IActionResult result = await controller.OAuthLoginCallbackAsync(loginInfo, null, CancellationToken.None);
+            IActionResult result = await controller.OAuthLoginCallbackAsync(loginInfo, "returnUrl", CancellationToken.None);
 
             // Assert
             LoginActionResult actionResult = Assert.IsType<LoginActionResult>(result);
@@ -235,7 +232,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             IActionResult result = await controller.OAuthLoginCallbackAsync(loginInfo, null, CancellationToken.None);
 
             // Assert
-            Assert.IsType<NotFoundObjectResult>(result);
+            ControllerTestsUtils.VerifyNotFoundResult(result);
         }
 
         [Fact]
@@ -301,8 +298,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             IActionResult result = await controller.OAuthSignUpCallbackAsync(signUpInfo, null, CancellationToken.None);
 
             // Assert
-            ConflictObjectResult actionResult = Assert.IsType<ConflictObjectResult>(result);
-            Assert.IsType<Error>(actionResult.Value);
+            ControllerTestsUtils.VerifyConflictResult(result);
         }
 
         [Fact]
@@ -368,8 +364,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             IActionResult result = await controller.AddOAuthCallbackAsync(loginInfo, 1, null, CancellationToken.None);
 
             // Assert
-            var actionResult = Assert.IsType<ConflictObjectResult>(result);
-            Assert.IsType<Error>(actionResult.Value);
+            ControllerTestsUtils.VerifyConflictResult(result);
         }
 
         [Fact]
@@ -386,8 +381,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             IActionResult result = await controller.AddOAuthCallbackAsync(loginInfo, 1, null, CancellationToken.None);
 
             // Assert
-            var actionResult = Assert.IsType<NotFoundObjectResult>(result);
-            Assert.IsType<Error>(actionResult.Value);
+            ControllerTestsUtils.VerifyNotFoundResult(result);
         }
 
         [Fact]
@@ -419,8 +413,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             IActionResult result = await controller.RemoveOAuthAsync("provider", 1, CancellationToken.None);
 
             // Assert
-            var actionResult = Assert.IsType<ConflictObjectResult>(result);
-            Assert.IsType<Error>(actionResult.Value);
+            ControllerTestsUtils.VerifyConflictResult(result);
         }
 
         [Fact]
@@ -452,8 +445,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             IActionResult result = await controller.RemoveOAuthAsync("provider", 1, CancellationToken.None);
 
             // Assert
-            var actionResult = Assert.IsType<NotFoundObjectResult>(result);
-            Assert.IsType<Error>(actionResult.Value);
+            ControllerTestsUtils.VerifyNotFoundResult(result);
         }
 
         [Fact]
@@ -487,29 +479,29 @@ namespace BlogPlatform.Api.Tests.Controllers
         {
             // Arrange
             Mock<IIdentityService> identityServiceMock = new();
-            identityServiceMock.Setup(i => i.ChangePasswordAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult(EChangePasswordResult.Success));
+            identityServiceMock.Setup(i => i.ChangePasswordAsync(It.IsAny<PasswordChangeModel>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult(EChangePasswordResult.Success));
             IdentityController identityController = CreateMockController(identityServiceMock);
 
             // Act
-            IActionResult result = await identityController.ChangePasswordAsync(new("newPassword"), 1, CancellationToken.None);
+            IActionResult result = await identityController.ChangePasswordAsync(new("id", "currentPassword", "newPassword"), CancellationToken.None);
 
             // Assert
             Assert.IsType<OkResult>(result);
         }
 
         [Fact]
-        public async Task ChangePasswordAsync_ReturnsAuthenticatedUserDataNotFoundResult()
+        public async Task ChangePasswordAsync_ReturnsAccountNotFoundResult()
         {
             // Arrange
             Mock<IIdentityService> identityServiceMock = new();
-            identityServiceMock.Setup(i => i.ChangePasswordAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult(EChangePasswordResult.UserNotFound));
+            identityServiceMock.Setup(i => i.ChangePasswordAsync(It.IsAny<PasswordChangeModel>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult(EChangePasswordResult.BasicAccountNotFound));
             IdentityController identityController = CreateMockController(identityServiceMock);
 
             // Act
-            IActionResult result = await identityController.ChangePasswordAsync(new("newPassword"), 1, CancellationToken.None);
+            IActionResult result = await identityController.ChangePasswordAsync(new("id", "currentPassword", "newPassword"), CancellationToken.None);
 
             // Assert
-            Assert.IsType<AuthenticatedUserDataNotFoundResult>(result);
+            ControllerTestsUtils.VerifyNotFoundResult(result);
         }
 
         [Fact]
@@ -545,8 +537,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             IActionResult result = await controller.ResetPasswordAsync(new(email), CancellationToken.None);
 
             // Assert
-            var actionResult = Assert.IsType<NotFoundObjectResult>(result);
-            Assert.IsType<Error>(actionResult.Value);
+            ControllerTestsUtils.VerifyNotFoundResult(result);
         }
 
         [Fact]
@@ -664,8 +655,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             IActionResult result = await controller.CancelWithDrawAsync(1, CancellationToken.None);
 
             // Assert
-            var actionResult = Assert.IsType<BadRequestObjectResult>(result);
-            Assert.IsType<Error>(actionResult.Value);
+            ControllerTestsUtils.VerifyBadRequestResult(result);
         }
 
         [Fact]
@@ -715,8 +705,7 @@ namespace BlogPlatform.Api.Tests.Controllers
             IActionResult result = await controller.ConfirmChangeEmailAsync("code", 1, CancellationToken.None);
 
             // Assert
-            var actionResult = Assert.IsType<BadRequestObjectResult>(result);
-            Assert.IsType<Error>(actionResult.Value);
+            ControllerTestsUtils.VerifyBadRequestResult(result);
         }
 
         [Fact]

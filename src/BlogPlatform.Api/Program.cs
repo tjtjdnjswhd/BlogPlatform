@@ -14,6 +14,8 @@ if (builder.Environment.IsDevelopment())
     builder.Services.AddRazorPages();
 }
 
+builder.Services.AddProblemDetails();
+
 builder.Services.AddControllers().AddJsonOptions(json =>
 {
     json.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());

@@ -1,6 +1,4 @@
-﻿using BlogPlatform.Api.Identity.Services.Interfaces;
-
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 
 namespace BlogPlatform.Api.Identity.ActionResults
@@ -21,15 +19,13 @@ namespace BlogPlatform.Api.Identity.ActionResults
 
             ProblemDetailsFactory problemDetailsFactory = scope.ServiceProvider.GetRequiredService<ProblemDetailsFactory>();
             IProblemDetailsService problemDetailsService = scope.ServiceProvider.GetRequiredService<IProblemDetailsService>();
+
             context.HttpContext.Response.StatusCode = StatusCode!.Value;
             await problemDetailsService.WriteAsync(new ProblemDetailsContext()
             {
                 HttpContext = context.HttpContext,
-                ProblemDetails = problemDetailsFactory.CreateProblemDetails(context.HttpContext, StatusCode!.Value, detail: "User not exist")
+                ProblemDetails = problemDetailsFactory.CreateProblemDetails(context.HttpContext, StatusCode!.Value, detail: "User not exist"),
             });
-
-            IAuthorizeTokenService authorizeTokenService = scope.ServiceProvider.GetRequiredService<IAuthorizeTokenService>();
-            await authorizeTokenService.RemoveTokenAsync(context.HttpContext.Request, context.HttpContext.Response, null, default);
         }
     }
 }
