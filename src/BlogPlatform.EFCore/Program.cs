@@ -11,12 +11,7 @@ public class Program
 {
     private static void Main(string[] args)
     {
-        var builder =
-#if DEBUG
-    Host.CreateApplicationBuilder(new HostApplicationBuilderSettings() { EnvironmentName = "Development", Args = args });
-#else
-    Host.CreateApplicationBuilder(args);
-#endif
+        var builder = Host.CreateApplicationBuilder(args);
 
         builder.Services.AddSingleton(TimeProvider.System);
 
