@@ -396,7 +396,7 @@ namespace BlogPlatform.Api.Tests.Identity
             IdentityService identityService = CreateIdentityService();
 
             // Act
-            EChangePasswordResult result = await identityService.ChangePasswordAsync(user.Id, newPassword);
+            EChangePasswordResult result = await identityService.ChangePasswordAsync(new(basicAccount.AccountId, SetUp.SuccessPassword, newPassword));
 
             // Assert
             Assert.Equal(EChangePasswordResult.Success, result);
@@ -406,18 +406,39 @@ namespace BlogPlatform.Api.Tests.Identity
         }
 
         [Fact]
-        public async Task ChangePasswordAsync_Fail()
+        public async Task ChangePasswordAsync_WrongPassword()
         {
             // Arrange
+            User user = _setUp.BasicOnlyUser;
+            BasicAccount basicAccount = user.BasicAccounts.First();
+            basicAccount.IsPasswordChangeRequired = true;
+            _setUp.DbContext.SaveChanges();
+
             string newPassword = "newPassword";
-            int userId = 123456789;
+
             IdentityService identityService = CreateIdentityService();
 
             // Act
-            EChangePasswordResult result = await identityService.ChangePasswordAsync(userId, newPassword);
+            EChangePasswordResult result = await identityService.ChangePasswordAsync(new(basicAccount.AccountId, "WrongPassword", newPassword));
 
             // Assert
-            Assert.Equal(EChangePasswordResult.UserNotFound, result);
+            Assert.Equal(EChangePasswordResult.WrongPassword, result);
+            _setUp.DbContext.Entry(basicAccount).Reload();
+            Assert.Equal(SetUp.SuccessPasswordHash, basicAccount.PasswordHash);
+            Assert.True(basicAccount.IsPasswordChangeRequired);
+        }
+
+        [Fact]
+        public async Task ChangePasswordAsync_BasicAccountNotFound()
+        {
+            // Arrange
+            IdentityService identityService = CreateIdentityService();
+
+            // Act
+            EChangePasswordResult result = await identityService.ChangePasswordAsync(new("notexist", "currentPW", "newPW"));
+
+            // Assert
+            Assert.Equal(EChangePasswordResult.BasicAccountNotFound, result);
         }
 
         [Fact]

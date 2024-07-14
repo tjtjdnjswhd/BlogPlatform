@@ -87,12 +87,11 @@ namespace BlogPlatform.Shared.Identity.Services.Interfaces
         /// <summary>
         /// 현 사용자의 비밀번호를 변경합니다
         /// </summary>
-        /// <param name="userId"></param>
-        /// <param name="newPassword"></param>
+        /// <param name="model"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         /// <exception cref="OperationCanceledException"/>
-        Task<EChangePasswordResult> ChangePasswordAsync(int userId, string newPassword, CancellationToken cancellationToken = default);
+        Task<EChangePasswordResult> ChangePasswordAsync(PasswordChangeModel model, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// 현 사용자의 이름을 변경합니다

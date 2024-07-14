@@ -272,18 +272,17 @@ namespace BlogPlatform.Api.Controllers
         public RefreshResult Refresh([ModelBinder<RefreshAuthorizeTokenBinder>, FromBody] AuthorizeToken? authorizeToken, [FromQuery, ReturnUrlWhiteList] string? returnUrl) => new(authorizeToken, returnUrl);
 
         [HttpPost("password/change")]
-        [UserAuthorize]
         [SwaggerOperation("비밀번호를 변경합니다")]
         [SwaggerResponse(StatusCodes.Status200OK, "변경 성공")]
-        [SwaggerResponse(StatusCodes.Status401Unauthorized, "인증 실패")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "현재 비밀번호 불일치")]
         [SwaggerResponse(StatusCodes.Status404NotFound, "계정이 존재하지 않음")]
-        public async Task<IActionResult> ChangePasswordAsync([FromBody] PasswordModel password, [UserIdBind] int userId, CancellationToken cancellationToken)
+        public async Task<IActionResult> ChangePasswordAsync([FromBody] PasswordChangeModel model, CancellationToken cancellationToken)
         {
-            EChangePasswordResult changeResult = await _identityService.ChangePasswordAsync(userId, password.Password, cancellationToken);
+            EChangePasswordResult changeResult = await _identityService.ChangePasswordAsync(model, cancellationToken);
             return changeResult switch
             {
                 EChangePasswordResult.Success => Ok(),
-                EChangePasswordResult.UserNotFound => new AuthenticatedUserDataNotFoundResult(),
+                EChangePasswordResult.WrongPassword => Unauthorized(),
                 EChangePasswordResult.BasicAccountNotFound => NotFound(),
                 _ => throw new InvalidEnumArgumentException(nameof(changeResult), (int)changeResult, typeof(EChangePasswordResult))
             };

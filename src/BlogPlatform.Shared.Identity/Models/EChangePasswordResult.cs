@@ -3,7 +3,7 @@
     public enum EChangePasswordResult
     {
         Success,
-        UserNotFound,
+        WrongPassword,
         BasicAccountNotFound
     }
 }

@@ -299,21 +299,27 @@ namespace BlogPlatform.Shared.Identity.Services
         }
 
         /// <inheritdoc/>
-        public async Task<EChangePasswordResult> ChangePasswordAsync(int userId, string newPassword, CancellationToken cancellationToken = default)
+        public async Task<EChangePasswordResult> ChangePasswordAsync(PasswordChangeModel model, CancellationToken cancellationToken = default)
         {
-            _logger.LogDebug("Changing password. user id: {userId}, new password: {newPassword}", userId, newPassword);
-            string newPasswordHash = _passwordHasher.HashPassword(null, newPassword);
-            bool isUserExist = await _blogPlatformDbContext.Users.AnyAsync(u => u.Id == userId, cancellationToken);
-            if (!isUserExist)
+            BasicAccount? basicAccount = await _blogPlatformDbContext.BasicAccounts.FirstOrDefaultAsync(b => b.AccountId == model.Id, cancellationToken);
+            if (basicAccount is null)
             {
-                return EChangePasswordResult.UserNotFound;
+                return EChangePasswordResult.BasicAccountNotFound;
             }
 
-            int result = await _blogPlatformDbContext.BasicAccounts.Where(b => b.User.Id == userId).ExecuteUpdateAsync(set => set.SetProperty(b => b.PasswordHash, newPasswordHash).SetProperty(b => b.IsPasswordChangeRequired, false), cancellationToken);
-            Debug.Assert(result <= 1);
+            _logger.LogDebug("Changing password. account id: {accountId}, new password: {newPassword}", model.Id, model.NewPassword);
 
-            _logger.LogInformation("Password changed. user id: {userId}", userId);
-            return result == 1 ? EChangePasswordResult.Success : EChangePasswordResult.BasicAccountNotFound;
+            string currentPasswordHash = _passwordHasher.HashPassword(null, model.CurrentPassword);
+            if (basicAccount.PasswordHash != currentPasswordHash)
+            {
+                return EChangePasswordResult.WrongPassword;
+            }
+
+            string newPasswordHash = _passwordHasher.HashPassword(null, model.NewPassword);
+            basicAccount.PasswordHash = newPasswordHash;
+
+            await _blogPlatformDbContext.SaveChangesAsync(cancellationToken);
+            return EChangePasswordResult.Success;
         }
 
         /// <inheritdoc/>
