@@ -613,31 +613,31 @@ namespace BlogPlatform.Api.Tests.Controllers
         {
             // Arrange
             Mock<IIdentityService> identityServiceMock = new();
-            identityServiceMock.Setup(i => i.CancelWithDrawAsync(It.IsAny<int>(), It.IsAny<CancellationToken>())).ReturnsAsync(ECancelWithDrawResult.Success);
+            identityServiceMock.Setup(i => i.CancelWithDrawAsync(It.IsAny<BasicLoginInfo>(), It.IsAny<CancellationToken>())).ReturnsAsync(ECancelWithDrawResult.Success);
 
             IdentityController controller = CreateMockController(identityServiceMock);
 
             // Act
-            IActionResult result = await controller.CancelWithDrawAsync(1, CancellationToken.None);
+            IActionResult result = await controller.CancelWithDrawAsync(new BasicLoginInfo("", ""), CancellationToken.None);
 
             // Assert
             Assert.IsType<OkResult>(result);
         }
 
         [Fact]
-        public async Task CancelWithDrawAsync_ReturnsAuthenticatedUserDataNotFoundResult()
+        public async Task CancelWithDrawAsync_ReturnsAccountNotFound()
         {
             // Arrange
             Mock<IIdentityService> identityServiceMock = new();
-            identityServiceMock.Setup(i => i.CancelWithDrawAsync(It.IsAny<int>(), It.IsAny<CancellationToken>())).ReturnsAsync(ECancelWithDrawResult.UserNotFound);
+            identityServiceMock.Setup(i => i.CancelWithDrawAsync(It.IsAny<BasicLoginInfo>(), It.IsAny<CancellationToken>())).ReturnsAsync(ECancelWithDrawResult.AccountNotFound);
 
             IdentityController controller = CreateMockController(identityServiceMock);
 
             // Act
-            IActionResult result = await controller.CancelWithDrawAsync(1, CancellationToken.None);
+            IActionResult result = await controller.CancelWithDrawAsync(new("", ""), CancellationToken.None);
 
             // Assert
-            Assert.IsType<AuthenticatedUserDataNotFoundResult>(result);
+            ControllerTestsUtils.VerifyNotFoundResult(result);
         }
 
         [Theory]
@@ -647,12 +647,12 @@ namespace BlogPlatform.Api.Tests.Controllers
         {
             // Arrange
             Mock<IIdentityService> identityServiceMock = new();
-            identityServiceMock.Setup(i => i.CancelWithDrawAsync(It.IsAny<int>(), It.IsAny<CancellationToken>())).ReturnsAsync(cancelWithDrawResult);
+            identityServiceMock.Setup(i => i.CancelWithDrawAsync(It.IsAny<BasicLoginInfo>(), It.IsAny<CancellationToken>())).ReturnsAsync(cancelWithDrawResult);
 
             IdentityController controller = CreateMockController(identityServiceMock);
 
             // Act
-            IActionResult result = await controller.CancelWithDrawAsync(1, CancellationToken.None);
+            IActionResult result = await controller.CancelWithDrawAsync(new("", ""), CancellationToken.None);
 
             // Assert
             ControllerTestsUtils.VerifyBadRequestResult(result);

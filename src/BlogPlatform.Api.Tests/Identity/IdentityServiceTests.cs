@@ -610,14 +610,15 @@ namespace BlogPlatform.Api.Tests.Identity
             User user = _setUp.BasicOnlyUser;
             user.SoftDeleteLevel = 1;
             user.SoftDeletedAt = DateTimeOffset.UtcNow;
-            user.BasicAccounts.First().SoftDeleteLevel = 2;
-            user.BasicAccounts.First().SoftDeletedAt = DateTimeOffset.UtcNow;
+            BasicAccount basicAccount = user.BasicAccounts.First();
+            basicAccount.SoftDeleteLevel = 2;
+            basicAccount.SoftDeletedAt = DateTimeOffset.UtcNow;
             _setUp.DbContext.SaveChanges();
 
             IdentityService identityService = CreateIdentityService();
 
             // Act
-            ECancelWithDrawResult result = await identityService.CancelWithDrawAsync(user.Id);
+            ECancelWithDrawResult result = await identityService.CancelWithDrawAsync(new BasicLoginInfo(basicAccount.AccountId, SetUp.SuccessPassword));
 
             // Assert
             Assert.Equal(ECancelWithDrawResult.Success, result);
@@ -627,27 +628,16 @@ namespace BlogPlatform.Api.Tests.Identity
         }
 
         [Fact]
-        public async Task CancelWithDrawAsync_UserNotFound()
+        public async Task CancelWithDrawAsync_AccountNotFound()
         {
             // Arrange
-            User user = _setUp.BasicOnlyUser;
-            user.SoftDeleteLevel = 1;
-            user.SoftDeletedAt = DateTimeOffset.UtcNow;
-            user.BasicAccounts.First().SoftDeleteLevel = 2;
-            user.BasicAccounts.First().SoftDeletedAt = DateTimeOffset.UtcNow;
-            _setUp.DbContext.SaveChanges();
-
-            int userId = 123456789;
             IdentityService identityService = CreateIdentityService();
 
             // Act
-            ECancelWithDrawResult result = await identityService.CancelWithDrawAsync(userId);
+            ECancelWithDrawResult result = await identityService.CancelWithDrawAsync(new BasicLoginInfo("notexist", SetUp.SuccessPassword));
 
             // Assert
-            Assert.Equal(ECancelWithDrawResult.UserNotFound, result);
-            Assert.Equal(1, user.SoftDeleteLevel);
-            Assert.True(user.SoftDeletedAt != EntityBase.DefaultSoftDeletedAt);
-            Assert.True(user.BasicAccounts.All(b => b.SoftDeleteLevel == 2));
+            Assert.Equal(ECancelWithDrawResult.AccountNotFound, result);
         }
 
         [Fact]
@@ -657,6 +647,7 @@ namespace BlogPlatform.Api.Tests.Identity
             User user = _setUp.BasicOnlyUser;
             user.SoftDeleteLevel = 1;
             user.SoftDeletedAt = DateTimeOffset.UtcNow.AddHours(-25);
+            BasicAccount basicAccount = user.BasicAccounts.First();
             user.BasicAccounts.First().SoftDeleteLevel = 2;
             user.BasicAccounts.First().SoftDeletedAt = DateTimeOffset.UtcNow.AddHours(-25);
             _setUp.DbContext.SaveChanges();
@@ -664,7 +655,7 @@ namespace BlogPlatform.Api.Tests.Identity
             IdentityService identityService = CreateIdentityService();
 
             // Act
-            ECancelWithDrawResult result = await identityService.CancelWithDrawAsync(user.Id);
+            ECancelWithDrawResult result = await identityService.CancelWithDrawAsync(new BasicLoginInfo(basicAccount.AccountId, SetUp.SuccessPassword));
 
             // Assert
             Assert.Equal(ECancelWithDrawResult.Expired, result);
@@ -678,10 +669,11 @@ namespace BlogPlatform.Api.Tests.Identity
         {
             // Arrange
             User user = _setUp.BasicOnlyUser;
+            BasicAccount basicAccount = user.BasicAccounts.First();
             IdentityService identityService = CreateIdentityService();
 
             // Act
-            ECancelWithDrawResult result = await identityService.CancelWithDrawAsync(user.Id);
+            ECancelWithDrawResult result = await identityService.CancelWithDrawAsync(new BasicLoginInfo(basicAccount.AccountId, SetUp.SuccessPassword));
 
             // Assert
             Assert.Equal(ECancelWithDrawResult.WithDrawNotRequested, result);

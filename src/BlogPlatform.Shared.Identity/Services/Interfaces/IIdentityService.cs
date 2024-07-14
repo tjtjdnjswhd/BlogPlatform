@@ -137,10 +137,18 @@ namespace BlogPlatform.Shared.Identity.Services.Interfaces
         /// <summary>
         /// 해당 유저의 계정 삭제를 취소합니다
         /// </summary>
-        /// <param name="userId"></param>
+        /// <param name="loginInfo"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task<ECancelWithDrawResult> CancelWithDrawAsync(int userId, CancellationToken cancellationToken = default);
+        Task<ECancelWithDrawResult> CancelWithDrawAsync(BasicLoginInfo loginInfo, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// 해당 유저의 계정 삭제를 취소합니다
+        /// </summary>
+        /// <param name="loginInfo"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task<ECancelWithDrawResult> CancelWithDrawAsync(OAuthLoginInfo loginInfo, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// 해당 유저의 이메일을 변경합니다

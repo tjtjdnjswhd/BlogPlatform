@@ -386,32 +386,61 @@ namespace BlogPlatform.Shared.Identity.Services
         }
 
         /// <inheritdoc/>
-        public async Task<ECancelWithDrawResult> CancelWithDrawAsync(int userId, CancellationToken cancellationToken = default)
+        public async Task<ECancelWithDrawResult> CancelWithDrawAsync(BasicLoginInfo loginInfo, CancellationToken cancellationToken = default)
         {
-            _logger.LogInformation("Canceling withdrawal. user id: {userId}", userId);
-
-            User? userData = _blogPlatformDbContext.Users.IgnoreSoftDeleteFilter().FirstOrDefault(u => u.Id == userId);
-            if (userData is null)
+            BasicAccount? basicAccount = await _blogPlatformDbContext.BasicAccounts.IgnoreSoftDeleteFilter().FirstOrDefaultAsync(b => b.AccountId == loginInfo.Id, cancellationToken);
+            if (basicAccount is null)
             {
-                return ECancelWithDrawResult.UserNotFound;
+                return ECancelWithDrawResult.AccountNotFound;
             }
 
-            if (userData.SoftDeleteLevel == 0)
+            User user = await _blogPlatformDbContext.Users.IgnoreSoftDeleteFilter().FirstAsync(u => u.Id == basicAccount.UserId, cancellationToken);
+            if (user.SoftDeleteLevel == 0)
             {
                 return ECancelWithDrawResult.WithDrawNotRequested;
             }
 
-            if (userData.SoftDeletedAt.Add(UserRestoreDuration) < _timeProvider.GetUtcNow())
+            if (user.SoftDeletedAt.Add(UserRestoreDuration) < _timeProvider.GetUtcNow())
             {
                 return ECancelWithDrawResult.Expired;
             }
 
-            var status = await _softDeleteService.ResetSoftDeleteAsync(userData, true);
+            var status = await _softDeleteService.ResetSoftDeleteAsync(user, true);
 
             if (!status.IsValid)
             {
                 return ECancelWithDrawResult.DatabaseError;
             }
+
+            return ECancelWithDrawResult.Success;
+        }
+
+        public async Task<ECancelWithDrawResult> CancelWithDrawAsync(OAuthLoginInfo loginInfo, CancellationToken cancellationToken = default)
+        {
+            OAuthAccount? oAuthAccount = await _blogPlatformDbContext.OAuthAccounts.IgnoreSoftDeleteFilter().FirstOrDefaultAsync(b => b.NameIdentifier == loginInfo.NameIdentifier && b.Provider.Name == loginInfo.Provider);
+            if (oAuthAccount is null)
+            {
+                return ECancelWithDrawResult.AccountNotFound;
+            }
+
+            User user = await _blogPlatformDbContext.Users.IgnoreSoftDeleteFilter().FirstAsync(u => u.Id == oAuthAccount.UserId, cancellationToken);
+            if (user.SoftDeleteLevel == 0)
+            {
+                return ECancelWithDrawResult.WithDrawNotRequested;
+            }
+
+            if (user.SoftDeletedAt.Add(UserRestoreDuration) < _timeProvider.GetUtcNow())
+            {
+                return ECancelWithDrawResult.Expired;
+            }
+
+            var status = await _softDeleteService.ResetSoftDeleteAsync(user, true);
+
+            if (!status.IsValid)
+            {
+                return ECancelWithDrawResult.DatabaseError;
+            }
+
             return ECancelWithDrawResult.Success;
         }
 

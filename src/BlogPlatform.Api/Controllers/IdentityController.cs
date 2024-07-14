@@ -355,23 +355,82 @@ namespace BlogPlatform.Api.Controllers
             };
         }
 
-        [HttpPost("withdraw/cancel")]
-        [UserAuthorize]
+        [HttpPost("withdraw/cancel/basic")]
+        [SwaggerOperation("Id/PW 인증 방식으로 유저 탈퇴를 취소합니다")]
+        [SwaggerResponse(StatusCodes.Status200OK, "취소 성공")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Expired: 탈퇴 기간 지남. Withdraw not requested: 탈퇴하지 않은 유저")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "인증 실패")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "계정 없음")]
+        public async Task<IActionResult> CancelWithDrawAsync([FromBody] BasicLoginInfo loginInfo, CancellationToken cancellationToken)
+        {
+            ECancelWithDrawResult cancelResult = await _identityService.CancelWithDrawAsync(loginInfo, cancellationToken);
+            return cancelResult switch
+            {
+                ECancelWithDrawResult.Success => Ok(),
+                ECancelWithDrawResult.AccountNotFound => Problem("Account not found", statusCode: StatusCodes.Status404NotFound),
+                ECancelWithDrawResult.Expired => Problem(detail: "Expired", statusCode: StatusCodes.Status400BadRequest),
+                ECancelWithDrawResult.WithDrawNotRequested => Problem(detail: "Withdraw not requested", statusCode: StatusCodes.Status400BadRequest),
+                ECancelWithDrawResult.DatabaseError => Problem("DB error", statusCode: StatusCodes.Status500InternalServerError),
+                _ => throw new InvalidEnumArgumentException(null, (int)cancelResult, typeof(ECancelWithDrawResult)),
+            };
+        }
+
+        [HttpPost("withdraw/cancel/oauth")]
         [SwaggerOperation("유저 탈퇴를 취소합니다")]
         [SwaggerResponse(StatusCodes.Status200OK, "취소 성공")]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "Expired: 탈퇴 기간 지남. Withdraw not requested: 탈퇴하지 않은 유저")]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "인증 실패")]
-        public async Task<IActionResult> CancelWithDrawAsync([UserIdBind] int userId, CancellationToken cancellationToken)
+        public IActionResult CancelWithDraw([FromForm, Required(AllowEmptyStrings = false)] string provider, [Url, ReturnUrlWhiteList] string? returnUrl, CancellationToken cancellationToken)
         {
-            ECancelWithDrawResult result = await _identityService.CancelWithDrawAsync(userId, cancellationToken);
-            return result switch
+            string? redirectUri = Url.Action("CancelWithDrawOAuthCallback", "Identity");
+            Debug.Assert(redirectUri is not null);
+
+            AuthenticationProperties authenticationProperties = new()
             {
-                ECancelWithDrawResult.Success => Ok(),
-                ECancelWithDrawResult.UserNotFound => new AuthenticatedUserDataNotFoundResult(),
-                ECancelWithDrawResult.Expired => Problem(detail: "Expired", statusCode: StatusCodes.Status400BadRequest),
-                ECancelWithDrawResult.WithDrawNotRequested => Problem(detail: "Withdraw not requested", statusCode: StatusCodes.Status400BadRequest),
-                _ => throw new InvalidEnumArgumentException(nameof(result), (int)result, typeof(ECancelWithDrawResult))
+                ExpiresUtc = _timeProvider.GetUtcNow().AddMinutes(10),
+                IsPersistent = false,
+                RedirectUri = $"{redirectUri}?{(returnUrl is null ? string.Empty : $"&returnUrl={returnUrl}")}",
+                IssuedUtc = _timeProvider.GetUtcNow(),
             };
+
+            return Challenge(authenticationProperties, provider);
+        }
+
+        [HttpGet("withdraw/cancel/oauth")]
+        [SwaggerIgnore]
+        public async Task<IActionResult> CancelWithDrawOAuthCallbackAsync([FromSpecial] OAuthLoginInfo oAuthLoginInfo, [Url, ReturnUrlWhiteList, FromQuery] string? returnUrl, CancellationToken cancellationToken)
+        {
+            ECancelWithDrawResult cancelResult = await _identityService.CancelWithDrawAsync(oAuthLoginInfo, cancellationToken);
+
+            if (returnUrl is null)
+            {
+                return cancelResult switch
+                {
+                    ECancelWithDrawResult.Success => Ok(),
+                    ECancelWithDrawResult.AccountNotFound => Problem("Account not found", statusCode: StatusCodes.Status400BadRequest),
+                    ECancelWithDrawResult.Expired => Problem(detail: "Expired", statusCode: StatusCodes.Status400BadRequest),
+                    ECancelWithDrawResult.WithDrawNotRequested => Problem(detail: "Withdraw not requested", statusCode: StatusCodes.Status400BadRequest),
+                    ECancelWithDrawResult.DatabaseError => Problem("DB error", statusCode: StatusCodes.Status500InternalServerError),
+                    _ => throw new InvalidEnumArgumentException(null, (int)cancelResult, typeof(ECancelWithDrawResult)),
+                };
+            }
+            else
+            {
+                string message = cancelResult switch
+                {
+                    ECancelWithDrawResult.Success => "",
+                    ECancelWithDrawResult.AccountNotFound => "AccountNotFound",
+                    ECancelWithDrawResult.Expired => "Expired",
+                    ECancelWithDrawResult.WithDrawNotRequested => "WithDrawNotRequested",
+                    ECancelWithDrawResult.DatabaseError => "DatabaseError",
+                    _ => throw new InvalidEnumArgumentException(null, (int)cancelResult, typeof(ECancelWithDrawResult)),
+                };
+
+                UriHelper.FromAbsolute(returnUrl, out _, out _, out _, query: out var query, out _);
+                query = query.Add("error", message);
+                returnUrl = returnUrl.Split('?')[0] + query;
+                return Redirect(returnUrl);
+            }
         }
 
         [HttpPost("email/change")]

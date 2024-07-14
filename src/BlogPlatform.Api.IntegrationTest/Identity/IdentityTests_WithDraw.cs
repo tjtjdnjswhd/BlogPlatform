@@ -151,24 +151,6 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             Assert.True(newUser.IsSoftDeletedAtDefault());
         }
 
-        [Fact]
-        public async Task CancelWithDraw_UserNotFound()
-        {
-            // Arrange
-            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
-
-            User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
-            AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
-            Helper.SetAuthorizationHeader(httpClient, authorizeToken);
-            Helper.HardDelete(WebApplicationFactory, user);
-
-            // Act
-            HttpResponseMessage response = await httpClient.PostAsync("/api/identity/withdraw/cancel", null);
-
-            // Assert
-            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-        }
-
         [Fact, ResetDataAfterTest]
         public async Task CancelWithDraw_Expired()
         {
@@ -176,14 +158,13 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
-            AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
-            Helper.SetAuthorizationHeader(httpClient, authorizeToken);
+            BasicAccount basicAccount = Helper.GetFirstEntity<BasicAccount>(WebApplicationFactory, b => b.UserId == user.Id);
             Helper.SoftDelete(WebApplicationFactory, user);
             user.SoftDeletedAt = DateTimeOffset.UtcNow.AddDays(-2);
             Helper.UpdateEntity(WebApplicationFactory, user);
 
             // Act
-            HttpResponseMessage response = await httpClient.PostAsync("/api/identity/withdraw/cancel", null);
+            HttpResponseMessage response = await httpClient.PostAsJsonAsync("/api/identity/withdraw/cancel", new BasicLoginInfo(basicAccount.AccountId, "user1pw"));
 
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -196,27 +177,13 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
-            AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
-            Helper.SetAuthorizationHeader(httpClient, authorizeToken);
+            BasicAccount basicAccount = Helper.GetFirstEntity<BasicAccount>(WebApplicationFactory, b => b.UserId == user.Id);
 
             // Act
-            HttpResponseMessage response = await httpClient.PostAsync("/api/identity/withdraw/cancel", null);
+            HttpResponseMessage response = await httpClient.PostAsJsonAsync("/api/identity/withdraw/cancel", new BasicLoginInfo(basicAccount.AccountId, "user1pw"));
 
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        }
-
-        [Fact]
-        public async Task CancelWithDraw_Unauthorize()
-        {
-            // Arrange
-            HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
-
-            // Act
-            HttpResponseMessage response = await httpClient.PostAsync("/api/identity/withdraw/cancel", null);
-
-            // Assert
-            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         }
 
         [Fact, ResetDataAfterTest]
@@ -226,12 +193,11 @@ namespace BlogPlatform.Api.IntegrationTest.Identity
             HttpClient httpClient = WebApplicationFactory.CreateLoggingClient(TestOutputHelper);
 
             User user = Helper.GetFirstEntity<User>(WebApplicationFactory);
-            AuthorizeToken authorizeToken = await Helper.GetAuthorizeTokenAsync(WebApplicationFactory, user);
-            Helper.SetAuthorizationHeader(httpClient, authorizeToken); ;
+            BasicAccount basicAccount = Helper.GetFirstEntity<BasicAccount>(WebApplicationFactory, b => b.UserId == user.Id);
             Helper.SoftDelete(WebApplicationFactory, user);
 
             // Act
-            HttpResponseMessage response = await httpClient.PostAsync("/api/identity/withdraw/cancel", null);
+            HttpResponseMessage response = await httpClient.PostAsJsonAsync("/api/identity/withdraw/cancel", new BasicLoginInfo(basicAccount.AccountId, "user1pw"));
 
             // Assert
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);

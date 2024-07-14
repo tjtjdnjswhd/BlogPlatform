@@ -13,9 +13,9 @@ namespace BlogPlatform.Shared.Identity.Models
         Success,
 
         /// <summary>
-        /// 해당 유저를 찾을 수 없음
+        /// 해당 계정을 찾을 수 없음
         /// </summary>
-        UserNotFound,
+        AccountNotFound,
 
         /// <summary>
         /// 복구 가능 시간이 지나 탈퇴 취소가 불가능함
