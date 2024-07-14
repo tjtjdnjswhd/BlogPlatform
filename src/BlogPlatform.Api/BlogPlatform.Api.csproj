@@ -6,6 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>a001a04f-fb58-406d-a37d-2169c6c7d336</UserSecretsId>
     <IncludeOpenAPIAnalyzers>true</IncludeOpenAPIAnalyzers>
+	<GenerateDocumentationFile>true</GenerateDocumentationFile>
+	<NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,11 +21,12 @@
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="8.0.6" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.6" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.6" Condition="'$(Configuration)' == 'Debug'" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.6" />
+    <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="6.6.2" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\BlogPlatform.Api.BrowserTests\BlogPlatform.Api.BrowserTests.csproj" Condition="'$(Configuration)' == 'Debug'" />
+    <ProjectReference Include="..\BlogPlatform.Api.BrowserTests\BlogPlatform.Api.BrowserTests.csproj" />
     <ProjectReference Include="..\BlogPlatform.Shared.Identity\BlogPlatform.Shared.Identity.csproj" />
     <ProjectReference Include="..\BlogPlatform.Shared\BlogPlatform.Shared.csproj" />
   </ItemGroup>

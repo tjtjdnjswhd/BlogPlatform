@@ -8,7 +8,6 @@ using BlogPlatform.Api.Identity.Attributes;
 using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
-using BlogPlatform.Shared.Models;
 using BlogPlatform.Shared.Models.Post;
 using BlogPlatform.Shared.Services;
 using BlogPlatform.Shared.Services.Interfaces;
@@ -18,6 +17,8 @@ using Ganss.Xss;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
+
+using Swashbuckle.AspNetCore.Annotations;
 
 using System.ComponentModel;
 
@@ -43,9 +44,9 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpGet("{id:int}")]
-        [ProducesResponseType(typeof(PostRead), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
-        [ProducesDefaultResponseType]
+        [SwaggerOperation("해당 ID의 게시글의 sanitize된 HTML을 반환합니다")]
+        [SwaggerResponse(StatusCodes.Status200OK, "게시글의 sanitize된 HTML", typeof(PostRead))]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "해당 게시글 없음")]
         public async Task<IActionResult> GetAsync([FromRoute] int id, CancellationToken cancellationToken)
         {
             HtmlSanitizer htmlSanitizer = new();
@@ -53,7 +54,7 @@ namespace BlogPlatform.Api.Controllers
             if (post == null)
             {
                 _logger.LogInformation("Post with id {id} not found", id);
-                return NotFound(new Error("존재하지 않는 포스트입니다"));
+                return NotFound();
             }
 
             string sanitizedContent = htmlSanitizer.Sanitize(post.Content);
@@ -62,6 +63,7 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpGet]
+        [SwaggerOperation("게시글을 검색합니다")]
         public IAsyncEnumerable<PostSearchResult> Get([FromQuery] PostSearch search)
         {
             IQueryable<Post> postQuery = _dbContext.Posts;
@@ -129,18 +131,18 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpPost]
         [UserAuthorize]
-        [ProducesResponseType(StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status500InternalServerError)]
-        [ProducesDefaultResponseType]
+        [SwaggerOperation("현재 로그인한 유저의 게시글을 생성합니다")]
+        [SwaggerResponse(StatusCodes.Status201Created, "게시글 생성 성공")]
+        [SwaggerResponse(StatusCodes.Status403Forbidden, "해당 카테고리에 대한 권한이 없음")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "해당 카테고리 않음")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "게시글 생성 실패")]
         public async Task<IActionResult> CreateAsync([FromBody] PostCreate model, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             var categoryInfo = await _dbContext.Categories.Where(c => c.Id == model.CategoryId).Select(c => new { c.Id, c.Blog.UserId }).FirstOrDefaultAsync(cancellationToken);
             if (categoryInfo == null)
             {
                 _logger.LogInformation("Category with id {categoryId} not found", model.CategoryId);
-                return NotFound(new Error("존재하지 않는 카테고리입니다"));
+                return NotFound();
             }
 
             if (categoryInfo.UserId != userId)
@@ -154,7 +156,7 @@ namespace BlogPlatform.Api.Controllers
             if (!isImageSaved)
             {
                 _logger.LogWarning("Some images not found in cache. Post creation aborted.");
-                return StatusCode(StatusCodes.Status500InternalServerError, new Error("이미지를 저장하는데 실패했습니다"));
+                return Problem(detail: "Image upload failed", statusCode: StatusCodes.Status500InternalServerError);
             }
 
             Post post = new(model.Title, model.Content, categoryInfo.Id);
@@ -170,7 +172,7 @@ namespace BlogPlatform.Api.Controllers
             {
                 _logger.LogError(e, "An error occurred while saving post to database");
                 await _imageService.RemoveImageFromDatabaseAsync(serverImages, CancellationToken.None);
-                throw;
+                return Problem(detail: "Post upload failed", statusCode: StatusCodes.Status500InternalServerError);
             }
 
             return CreatedAtAction("Get", "Post", new { id = post.Id }, null);
@@ -178,18 +180,18 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpPut("{id:int}")]
         [UserAuthorize]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status500InternalServerError)]
-        [ProducesDefaultResponseType]
+        [SwaggerOperation("게시글을 수정합니다")]
+        [SwaggerResponse(StatusCodes.Status204NoContent, "게시글 수정 성공")]
+        [SwaggerResponse(StatusCodes.Status403Forbidden, "해당 게시글에 대한 권한이 없음")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "Category not found: 카테고리가 없음\nPost not found: 해당 게시글이 없음")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "게시글 수정 실패")]
         public async Task<IActionResult> UpdateAsync([FromRoute] int id, [FromBody] PostCreate model, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             var categoryInfo = await _dbContext.Categories.Where(c => c.Id == model.CategoryId).Select(c => new { c.Id, c.Blog.UserId }).FirstOrDefaultAsync(cancellationToken);
             if (categoryInfo == null)
             {
                 _logger.LogInformation("Category with id {categoryId} not found", model.CategoryId);
-                return NotFound(new Error("존재하지 않는 카테고리입니다"));
+                return Problem(detail: "Category not found", statusCode: StatusCodes.Status404NotFound);
             }
 
             if (categoryInfo.UserId != userId)
@@ -202,7 +204,7 @@ namespace BlogPlatform.Api.Controllers
             if (postInfo == null)
             {
                 _logger.LogInformation("Post with id {id} not found", id);
-                return NotFound(new Error("존재하지 않는 포스트입니다"));
+                return Problem(detail: "Post not found", statusCode: StatusCodes.Status404NotFound);
             }
 
             if (postInfo.userId != userId)
@@ -220,7 +222,7 @@ namespace BlogPlatform.Api.Controllers
             if (!isImageSaved)
             {
                 _logger.LogWarning("Some images not found in cache. Post update aborted.");
-                return StatusCode(StatusCodes.Status500InternalServerError, new Error("이미지를 저장하는데 실패했습니다"));
+                return Problem(detail: "Image upload failed", statusCode: StatusCodes.Status500InternalServerError);
             }
 
             await _imageService.RemoveImageFromDatabaseAsync(deletedImgSrcs, cancellationToken);
@@ -239,18 +241,18 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpDelete("{id:int}")]
         [UserAuthorize]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status500InternalServerError)]
-        [ProducesDefaultResponseType]
+        [SwaggerOperation("해당 게시글을 삭제합니다")]
+        [SwaggerResponse(StatusCodes.Status204NoContent, "게시글 삭제 성공")]
+        [SwaggerResponse(StatusCodes.Status403Forbidden, "해당 게시글에 대한 권한이 없음")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "해당 게시글이 없음")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "게시글 삭제")]
         public async Task<IActionResult> DeleteAsync([FromRoute] int id, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             Post? post = await _dbContext.Posts.FindAsync([id], cancellationToken);
             if (post == null)
             {
                 _logger.LogInformation("Post with id {id} not found", id);
-                return NotFound(new Error("존재하지 않는 포스트입니다"));
+                return NotFound();
             }
 
             int blogUserId = await _dbContext.Categories.Where(c => c.Id == post.CategoryId).Select(c => c.Blog.UserId).FirstOrDefaultAsync(cancellationToken);
@@ -262,29 +264,30 @@ namespace BlogPlatform.Api.Controllers
 
             var status = await _softDeleteService.SetSoftDeleteAsync(post, true);
             _logger.LogStatusGeneric(status);
-            return status.HasErrors ? StatusCode(StatusCodes.Status500InternalServerError, new Error(status.Message)) : NoContent();
+            return status.HasErrors ? Problem(detail: status.Message, statusCode: StatusCodes.Status500InternalServerError) : NoContent();
         }
 
         [HttpPost("restore/{id:int}")]
         [UserAuthorize]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
-        [ProducesDefaultResponseType]
+        [SwaggerOperation("게시글 삭제를 취소합니다")]
+        [SwaggerResponse(StatusCodes.Status204NoContent, "게시글 복구 성공")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "해당 게시글이 삭제되지 않음")]
+        [SwaggerResponse(StatusCodes.Status403Forbidden, "해당 게시글에 대한 권한이 없음")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "해당 게시글이 없음")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "게시글 복구 실패")]
         public async Task<IActionResult> RestoreAsync([FromRoute] int id, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             Post? post = await _dbContext.Posts.IgnoreSoftDeleteFilter().FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
             if (post == null)
             {
                 _logger.LogInformation("Post with id {id} not found", id);
-                return NotFound(new Error("존재하지 않는 포스트입니다"));
+                return NotFound();
             }
 
             if (post.IsSoftDeletedAtDefault())
             {
                 _logger.LogInformation("Post with id {id} is not deleted", id);
-                return BadRequest(new Error("삭제되지 않은 포스트입니다"));
+                return Problem(detail: "Post not deleted", statusCode: StatusCodes.Status400BadRequest);
             }
 
             int blogUserId = await _dbContext.Categories.Where(c => c.Id == post.CategoryId).Select(c => c.Blog.UserId).FirstOrDefaultAsync(cancellationToken);
@@ -297,18 +300,19 @@ namespace BlogPlatform.Api.Controllers
             if (post.SoftDeletedAt.Add(TimeSpan.FromDays(1)) < _timeProvider.GetUtcNow())
             {
                 _logger.LogInformation("Post with id {id} is not restorable", id);
-                return BadRequest(new Error("복원할 수 없는 게시글입니다"));
+                return Problem(detail: "Can not restore post over time", statusCode: StatusCodes.Status400BadRequest);
             }
 
             var status = await _softDeleteService.ResetSoftDeleteAsync(post, true);
             _logger.LogStatusGeneric(status);
-            return status.HasErrors ? StatusCode(StatusCodes.Status500InternalServerError, new Error(status.Message)) : NoContent();
+            return status.HasErrors ? Problem(detail: status.Message, statusCode: StatusCodes.Status500InternalServerError) : NoContent();
         }
 
         [HttpPost("image")]
-        [UserAuthorize]
         [PostImageFilter(nameof(image))]
-        [ProducesResponseType(StatusCodes.Status201Created)]
+        [UserAuthorize]
+        [SwaggerOperation("이미지를 캐싱합니다")]
+        [SwaggerResponse(StatusCodes.Status201Created, "이미지 캐시 성공")]
         public async Task<CreatedAtActionResult> CacheImageAsync(IFormFile image, CancellationToken cancellationToken)
         {
             DistributedCacheEntryOptions imageCacheOptions = new()
@@ -330,9 +334,9 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpGet("image/{fileName}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesDefaultResponseType]
+        [SwaggerOperation("이미지를 반환합니다")]
+        [SwaggerResponse(StatusCodes.Status200OK, "이미지 반환 성공")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "해당 이미지가 없음")]
         public async Task<IActionResult> GetImageAsync([FromRoute] string fileName, CancellationToken cancellationToken)
         {
             ImageInfo? image = await _imageService.GetImageAsync(fileName, EGetImageMode.CacheThenDatabase, cancellationToken);

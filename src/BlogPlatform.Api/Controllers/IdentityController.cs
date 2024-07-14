@@ -14,6 +14,8 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
+using Swashbuckle.AspNetCore.Annotations;
+
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
@@ -24,6 +26,8 @@ namespace BlogPlatform.Api.Controllers
     [ApiController]
     public class IdentityController : ControllerBase
     {
+        private const string LoginDescription = "returnUrl을 설정할 경우 cookie를 통해 인증합니다. 설정하지 않은 경우 body로 반환합니다";
+
         private readonly IIdentityService _identityService;
         private readonly IUserEmailService _userEmailService;
         private readonly IEmailVerifyService _emailVerifyService;
@@ -41,6 +45,8 @@ namespace BlogPlatform.Api.Controllers
 
         [UserAuthorize]
         [HttpGet]
+        [SwaggerOperation("현재 로그인된 사용자의 정보를 반환합니다")]
+        [SwaggerResponse(StatusCodes.Status200OK, "사용자 정보", typeof(UserRead))]
         public async Task<IActionResult> GetUserInfo([UserIdBind] int userId, CancellationToken cancellationToken)
         {
             UserRead? userRead = await _identityService.GetFirstUserReadAsync(false, [u => u.Id == userId], cancellationToken);
@@ -53,10 +59,11 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpPost("login/basic")]
         [PasswordChangeRequiredFilter(nameof(loginInfo))]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
-        [ProducesDefaultResponseType]
+        [SwaggerOperation("Id/PW로 로그인합니다", LoginDescription)]
+        [SwaggerResponse(StatusCodes.Status200OK, "로그인 성공")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "비밀번호가 틀림")]
+        [SwaggerResponse(StatusCodes.Status403Forbidden, "비밀번호 변경 필요")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "계정이 존재하지 않음")]
         public async Task<IActionResult> BasicLoginAsync([FromBody] BasicLoginInfo loginInfo, [FromQuery, ReturnUrlWhiteList] string? returnUrl, CancellationToken cancellationToken)
         {
             (ELoginResult loginResult, User? user) = await _identityService.LoginAsync(loginInfo, cancellationToken);
@@ -65,9 +72,9 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpPost("signup/basic")]
         [SignUpEmailVerificationFilter(nameof(signUpInfo))]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status409Conflict)]
-        [ProducesDefaultResponseType]
+        [SwaggerOperation("Id/PW로 가입합니다", LoginDescription)]
+        [SwaggerResponse(StatusCodes.Status200OK, "가입 성공")]
+        [SwaggerResponse(StatusCodes.Status409Conflict, "가입 실패\r\n")]
         public async Task<IActionResult> BasicSignUpAsync([FromBody] BasicSignUpInfo signUpInfo, [FromQuery, ReturnUrlWhiteList] string? returnUrl, CancellationToken cancellationToken)
         {
             (ESignUpResult signUpResult, User? user) = await _identityService.SignUpAsync(signUpInfo, cancellationToken);
@@ -76,8 +83,8 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpPost("signup/email/verify")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesDefaultResponseType]
+        [SwaggerOperation("가입 이메일을 인증하기 위한 이메일을 보냅니다")]
+        [SwaggerResponse(StatusCodes.Status200OK, "이메일 전송 성공")]
         public async Task<IActionResult> SendSignUpVerifyEmailAsync([FromBody] EmailModel newEmail, CancellationToken cancellationToken)
         {
             string? verifyUri = Url.ActionLink("ConfirmSignUpEmail", "Identity");
@@ -89,20 +96,19 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpGet("signup/email/confirm")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status400BadRequest)]
-        [ProducesDefaultResponseType]
+        [SwaggerOperation("가입 이메일을 인증합니다")]
+        [SwaggerResponse(StatusCodes.Status200OK, "이메일 인증 성공")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "잘못된 코드")]
         public async Task<IActionResult> ConfirmSignUpEmailAsync([FromQuery] string code, CancellationToken cancellationToken)
         {
             string? email = await _emailVerifyService.VerifySignUpEmailCodeAsync(code, cancellationToken);
-            return email is not null ? Ok() : BadRequest(new Error("잘못된 코드입니다"));
+            return email is not null ? Ok() : BadRequest();
         }
 
         [HttpPost("login/oauth")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
-        [ProducesDefaultResponseType]
+        [SwaggerOperation("OAuth 공급자를 통해 로그인합니다", LoginDescription)]
+        [SwaggerResponse(StatusCodes.Status200OK, "로그인 성공")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "계정이 존재하지 않음")]
         public IActionResult OAuthLogin([FromForm, Required(AllowEmptyStrings = false)] string provider, [FromQuery, ReturnUrlWhiteList] string? returnUrl)
         {
             string? redirectUri = Url.Action("OAuthLoginCallback", "Identity");
@@ -122,10 +128,7 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpGet("login/oauth")]
         [OAuthAuthorize]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
-        [ProducesDefaultResponseType]
+        [SwaggerIgnore]
         public async Task<IActionResult> OAuthLoginCallbackAsync([FromSpecial] OAuthLoginInfo loginInfo, [FromQuery, ReturnUrlWhiteList] string? returnUrl, CancellationToken cancellationToken)
         {
             (ELoginResult loginResult, User? user) = await _identityService.LoginAsync(loginInfo, cancellationToken);
@@ -134,6 +137,9 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpPost("signup/oauth")]
+        [SwaggerOperation("OAuth 공급자를 통해 가입합니다", LoginDescription)]
+        [SwaggerResponse(StatusCodes.Status200OK, "가입 성공")]
+        [SwaggerResponse(StatusCodes.Status409Conflict, "중복된 값으로 인해 가입 실패")]
         public IActionResult OAuthSignUp([FromForm, Required(AllowEmptyStrings = false)] string provider, [FromForm, UserNameValidate] string name, [FromQuery, Url] string? returnUrl)
         {
             string? redirectUri = Url.Action("OAuthSignUpCallback", "Identity");
@@ -153,10 +159,7 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpGet("signup/oauth")]
         [OAuthAuthorize]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status409Conflict)]
-        [ProducesDefaultResponseType]
+        [SwaggerIgnore]
         public async Task<IActionResult> OAuthSignUpCallbackAsync([FromSpecial] OAuthSignUpInfo signUpInfo, [FromQuery, ReturnUrlWhiteList] string? returnUrl, CancellationToken cancellationToken)
         {
             (ESignUpResult signUpResult, User? user) = await _identityService.SignUpAsync(signUpInfo, cancellationToken);
@@ -165,6 +168,11 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpPost("add/oauth")]
         [UserAuthorize]
+        [SwaggerOperation("현재 계정에 OAuth 공급자 계정을 추가합니다", "returnUrl을 설정할 경우 성공 시 URL 그대로 리디렉트, 실패 시 querystring에 error를 추가해 리디렉트 합니다. 설정하지 않을 경우 성공/실패에 따른 결과를 반환합니다")]
+        [SwaggerResponse(StatusCodes.Status200OK, "추가 성공")]
+        [SwaggerResponse(StatusCodes.Status302Found, "추가 성공 후 리디렉트")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "계정이 존재하지 않음")]
+        [SwaggerResponse(StatusCodes.Status409Conflict, "추가 실패")]
         public IActionResult AddOAuth([FromForm] string provider, [FromQuery, ReturnUrlWhiteList] string? returnUrl, [UserIdBind] int userId)
         {
             string? redirectUri = Url.Action("AddOAuthCallback", "Identity");
@@ -183,11 +191,7 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpGet("add/oauth")]
         [OAuthAuthorize]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status302Found)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status409Conflict)]
-        [ProducesDefaultResponseType]
+        [SwaggerIgnore]
         public async Task<IActionResult> AddOAuthCallbackAsync([FromSpecial] OAuthLoginInfo info, [FromQuery] int userId, [FromQuery, ReturnUrlWhiteList] string? returnUrl, CancellationToken cancellationToken)
         {
             EAddOAuthResult addOAuthResult = await _identityService.AddOAuthAsync(userId, info, cancellationToken);
@@ -207,9 +211,9 @@ namespace BlogPlatform.Api.Controllers
                 return addOAuthResult switch
                 {
                     EAddOAuthResult.UserNotFound => new AuthenticatedUserDataNotFoundResult(),
-                    EAddOAuthResult.ProviderNotFound => NotFound(new Error(message)),
+                    EAddOAuthResult.ProviderNotFound => Problem(detail: message, statusCode: StatusCodes.Status404NotFound),
                     EAddOAuthResult.Success => Ok(),
-                    _ => Conflict(new Error(message))
+                    _ => Problem(detail: message, statusCode: StatusCodes.Status409Conflict)
                 };
             }
             else
@@ -228,11 +232,10 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpDelete("oauth/{provider:alpha}")]
         [UserAuthorize]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status409Conflict)]
-        [ProducesDefaultResponseType]
+        [SwaggerOperation("현재 계정에 연결된 OAuth 공급자 계정을 제거합니다")]
+        [SwaggerResponse(StatusCodes.Status200OK, "제거 성공")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "해당 OAuth 공급자는 존재하지 않음")]
+        [SwaggerResponse(StatusCodes.Status409Conflict, "해당 계정 이외의 계정이 없음")]
         public async Task<IActionResult> RemoveOAuthAsync([FromRoute] string provider, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             ERemoveOAuthResult removeOAuthResult = await _identityService.RemoveOAuthAsync(userId, provider, cancellationToken);
@@ -242,13 +245,13 @@ namespace BlogPlatform.Api.Controllers
                     return Ok();
 
                 case ERemoveOAuthResult.HasSingleAccount:
-                    return Conflict(new Error("HasSingleAccount"));
+                    return Conflict();
 
                 case ERemoveOAuthResult.UserNotFound:
                     return new AuthenticatedUserDataNotFoundResult();
 
                 case ERemoveOAuthResult.OAuthNotFound:
-                    return NotFound(new Error("OAuthNotFound"));
+                    return NotFound();
 
                 default:
                     Debug.Assert(false);
@@ -257,23 +260,23 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpPost("logout")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesDefaultResponseType]
+        [SwaggerOperation("로그아웃합니다", "returnUrl을 설정할 경우 로그아웃 후 해당 URL로 리디렉트합니다. cookie를 통한 인증 시 해당 쿠키를 삭제합니다")]
+        [SwaggerResponse(StatusCodes.Status200OK, "로그아웃 성공")]
         public SignOutResult Logout([FromQuery, ReturnUrlWhiteList] string? returnUrl) => SignOut(new AuthenticationProperties() { RedirectUri = returnUrl });
 
         [HttpPost("refresh")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
-        [ProducesDefaultResponseType]
-        public RefreshResult Refresh([ModelBinder<RefreshAuthorizeTokenBinder>, FromSpecial] AuthorizeToken authorizeToken, [FromQuery, ReturnUrlWhiteList] string? returnUrl) => new(authorizeToken, returnUrl);
+        [SwaggerOperation("현재 토큰을 갱신합니다", "returnUrl을 설정할 경우 갱신 후 해당 URL로 리디렉트합니다")]
+        [SwaggerResponse(StatusCodes.Status200OK, "갱신 성공")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "토큰이 존재하지 않음")]
+        [SwaggerResponse(StatusCodes.Status403Forbidden, "토큰 만료")]
+        public RefreshResult Refresh([ModelBinder<RefreshAuthorizeTokenBinder>, FromBody] AuthorizeToken? authorizeToken, [FromQuery, ReturnUrlWhiteList] string? returnUrl) => new(authorizeToken, returnUrl);
 
         [HttpPost("password/change")]
         [UserAuthorize]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
-        [ProducesDefaultResponseType]
+        [SwaggerOperation("비밀번호를 변경합니다")]
+        [SwaggerResponse(StatusCodes.Status200OK, "변경 성공")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "인증 실패")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "계정이 존재하지 않음")]
         public async Task<IActionResult> ChangePasswordAsync([FromBody] PasswordModel password, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             EChangePasswordResult changeResult = await _identityService.ChangePasswordAsync(userId, password.Password, cancellationToken);
@@ -281,21 +284,21 @@ namespace BlogPlatform.Api.Controllers
             {
                 EChangePasswordResult.Success => Ok(),
                 EChangePasswordResult.UserNotFound => new AuthenticatedUserDataNotFoundResult(),
-                EChangePasswordResult.BasicAccountNotFound => NotFound(new Error("BasicAccountNotFound")),
+                EChangePasswordResult.BasicAccountNotFound => NotFound(),
                 _ => throw new InvalidEnumArgumentException(nameof(changeResult), (int)changeResult, typeof(EChangePasswordResult))
             };
         }
 
         [HttpPost("password/reset")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
-        [ProducesDefaultResponseType]
+        [SwaggerOperation("해당 이메일을 가진 유저의 계정 비밀번호를 초기화합니다. 변경된 비밀번호는 메일로 전송합니다", "초기화 후 로그인 전 비밀번호를 변경해야 합니다")]
+        [SwaggerResponse(StatusCodes.Status200OK, "초기화 성공")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "계정이 존재하지 않음")]
         public async Task<IActionResult> ResetPasswordAsync([FromBody] EmailModel email, CancellationToken cancellationToken)
         {
             string? newPassword = await _identityService.ResetPasswordAsync(email.Email, cancellationToken);
             if (newPassword is null)
             {
-                return NotFound(new Error("NotFound"));
+                return NotFound();
             }
 
             _userEmailService.SendPasswordResetMail(email.Email, newPassword, CancellationToken.None);
@@ -304,9 +307,9 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpPost("name")]
         [UserAuthorize]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status401Unauthorized)]
-        [ProducesDefaultResponseType]
+        [SwaggerOperation("유저 이름을 변경합니다")]
+        [SwaggerResponse(StatusCodes.Status200OK, "변경 성공")]
+        [SwaggerResponse(StatusCodes.Status409Conflict, "이름 중복")]
         public async Task<IActionResult> ChangeNameAsync([FromBody] UserNameModel name, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             EChangeNameResult result = await _identityService.ChangeNameAsync(userId, name.Name, cancellationToken);
@@ -314,15 +317,15 @@ namespace BlogPlatform.Api.Controllers
             {
                 EChangeNameResult.Success => Ok(),
                 EChangeNameResult.UserNotFound => new AuthenticatedUserDataNotFoundResult(),
-                EChangeNameResult.NameDuplicate => Conflict(new Error("NameDuplicate")),
+                EChangeNameResult.NameDuplicate => Conflict(),
                 _ => throw new InvalidEnumArgumentException(nameof(result), (int)result, typeof(EChangeNameResult))
             };
         }
 
         [HttpPost("id/find")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
-        [ProducesDefaultResponseType]
+        [SwaggerOperation("해당 이메일을 가진 유저의 아이디를 메일로 전송합니다")]
+        [SwaggerResponse(StatusCodes.Status200OK, "전송 성공")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "계정이 존재하지 않음")]
         public async Task<IActionResult> FindIdAsync([FromBody] EmailModel email, CancellationToken cancellationToken)
         {
             string? accountId = await _identityService.FindAccountIdAsync(email.Email, cancellationToken);
@@ -337,9 +340,10 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpPost("withdraw")]
         [UserAuthorize]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status401Unauthorized)]
-        [ProducesDefaultResponseType]
+        [SwaggerOperation("현재 유저를 탈퇴시킵니다", "24시간 안에 탈퇴를 취소할 수 있습니다")]
+        [SwaggerResponse(StatusCodes.Status200OK, "탈퇴 성공")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "인증 실패")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "DB 오류")]
         public async Task<IActionResult> WithDrawAsync([UserIdBind] int userId, CancellationToken cancellationToken)
         {
             EWithDrawResult result = await _identityService.WithDrawAsync(userId, cancellationToken);
@@ -347,17 +351,17 @@ namespace BlogPlatform.Api.Controllers
             {
                 EWithDrawResult.Success => Ok(),
                 EWithDrawResult.UserNotFound => new AuthenticatedUserDataNotFoundResult(),
-                EWithDrawResult.DatabaseError => StatusCode(StatusCodes.Status500InternalServerError, new Error("DatabaseError")),
+                EWithDrawResult.DatabaseError => Problem(detail: "DB error", statusCode: StatusCodes.Status500InternalServerError),
                 _ => throw new InvalidEnumArgumentException(nameof(result), (int)result, typeof(EWithDrawResult))
             };
         }
 
         [HttpPost("withdraw/cancel")]
         [UserAuthorize]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status401Unauthorized)]
-        [ProducesDefaultResponseType]
+        [SwaggerOperation("유저 탈퇴를 취소합니다")]
+        [SwaggerResponse(StatusCodes.Status200OK, "취소 성공")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Expired: 탈퇴 기간 지남. Withdraw not requested: 탈퇴하지 않은 유저")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "인증 실패")]
         public async Task<IActionResult> CancelWithDrawAsync([UserIdBind] int userId, CancellationToken cancellationToken)
         {
             ECancelWithDrawResult result = await _identityService.CancelWithDrawAsync(userId, cancellationToken);
@@ -365,17 +369,16 @@ namespace BlogPlatform.Api.Controllers
             {
                 ECancelWithDrawResult.Success => Ok(),
                 ECancelWithDrawResult.UserNotFound => new AuthenticatedUserDataNotFoundResult(),
-                ECancelWithDrawResult.Expired => BadRequest(new Error("Expired")),
-                ECancelWithDrawResult.WithDrawNotRequested => BadRequest(new Error("WithDrawNotRequested")),
+                ECancelWithDrawResult.Expired => Problem(detail: "Expired", statusCode: StatusCodes.Status400BadRequest),
+                ECancelWithDrawResult.WithDrawNotRequested => Problem(detail: "Withdraw not requested", statusCode: StatusCodes.Status400BadRequest),
                 _ => throw new InvalidEnumArgumentException(nameof(result), (int)result, typeof(ECancelWithDrawResult))
             };
         }
 
         [HttpPost("email/change")]
         [UserAuthorize]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status400BadRequest)]
-        [ProducesDefaultResponseType]
+        [SwaggerOperation("이메일 변경을 위한 이메일을 전송합니다")]
+        [SwaggerResponse(StatusCodes.Status200OK, "전송 성공")]
         public async Task<IActionResult> VerifyChangeEmailAsync([FromBody] EmailModel newEmail, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             string? verifyUri = Url.ActionLink("ConfirmChangeEmail", "Identity");
@@ -388,15 +391,16 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpGet("email/change")]
         [UserAuthorize]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status400BadRequest)]
-        [ProducesDefaultResponseType]
+        [SwaggerOperation("이메일 변경을 확인합니다")]
+        [SwaggerResponse(StatusCodes.Status200OK, "변경 성공")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "잘못된 코드")]
+        [SwaggerResponse(StatusCodes.Status409Conflict, "중복된 이메일")]
         public async Task<IActionResult> ConfirmChangeEmailAsync([FromQuery] string code, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             string? email = await _emailVerifyService.VerifyChangeEmailCodeAsync(userId, code, cancellationToken);
             if (email is null)
             {
-                return BadRequest(new Error("Invalid code"));
+                return Problem(detail: "Invalid code", statusCode: StatusCodes.Status400BadRequest);
             }
 
             EChangeEmailResult result = await _identityService.ChangeEmailAsync(userId, email, cancellationToken);
@@ -404,7 +408,7 @@ namespace BlogPlatform.Api.Controllers
             {
                 EChangeEmailResult.Success => Ok(),
                 EChangeEmailResult.UserNotFound => new AuthenticatedUserDataNotFoundResult(),
-                EChangeEmailResult.EmailDuplicate => Conflict(new Error("EmailDuplicate")),
+                EChangeEmailResult.EmailDuplicate => Problem(detail: "EmailDuplicate", statusCode: StatusCodes.Status409Conflict),
                 _ => throw new InvalidEnumArgumentException(nameof(result), (int)result, typeof(EChangeEmailResult))
             };
         }
@@ -420,24 +424,25 @@ namespace BlogPlatform.Api.Controllers
             }
 
             Debug.Assert(loginResult is not ELoginResult.Success);
-            string message = loginResult switch
-            {
-                ELoginResult.NotFound => "NotFound",
-                ELoginResult.WrongPassword => "WrongPassword",
-                _ => throw new InvalidEnumArgumentException(nameof(loginResult), (int)loginResult, typeof(ELoginResult))
-            };
 
             if (returnUrl is null)
             {
                 return loginResult switch
                 {
-                    ELoginResult.NotFound => NotFound(new Error(message)),
-                    ELoginResult.WrongPassword => Unauthorized(new Error(message)),
+                    ELoginResult.NotFound => NotFound(),
+                    ELoginResult.WrongPassword => Unauthorized(),
                     _ => throw new InvalidEnumArgumentException(nameof(loginResult), (int)loginResult, typeof(ELoginResult))
                 };
             }
             else
             {
+                string message = loginResult switch
+                {
+                    ELoginResult.NotFound => "NotFound",
+                    ELoginResult.WrongPassword => "WrongPassword",
+                    _ => throw new InvalidEnumArgumentException(nameof(loginResult), (int)loginResult, typeof(ELoginResult))
+                };
+
                 UriHelper.FromAbsolute(returnUrl, out _, out _, out _, query: out var query, out _);
                 query = query.Add("error", message);
                 returnUrl = returnUrl.Split('?')[0] + query;
@@ -467,7 +472,7 @@ namespace BlogPlatform.Api.Controllers
 
             if (returnUrl is null)
             {
-                return Conflict(new Error(message));
+                return Problem(detail: message, statusCode: StatusCodes.Status409Conflict);
             }
             else
             {

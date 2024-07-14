@@ -1,9 +1,9 @@
 ﻿using BlogPlatform.EFCore;
-using BlogPlatform.Shared.Models;
 
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
 using System.Diagnostics;
@@ -55,8 +55,11 @@ namespace BlogPlatform.Api.Identity.Filters
             if (banExpiresAt is not null && _timeProvider.GetUtcNow() < banExpiresAt)
             {
                 _logger.LogInformation("User {userId} is banned until {banExpiresAt}", userId, banExpiresAt);
-                await context.HttpContext.Response.WriteAsJsonAsync(new Error($"해당 계정은 {banExpiresAt}까지 사용할 수 없습니다."));
-                context.Result = new ForbidResult();
+
+                IProblemDetailsService problemDetailsService = context.HttpContext.RequestServices.GetRequiredService<IProblemDetailsService>();
+                ProblemDetailsFactory problemDetailsFactory = context.HttpContext.RequestServices.GetRequiredService<ProblemDetailsFactory>();
+                ProblemDetails problemDetails = problemDetailsFactory.CreateProblemDetails(context.HttpContext, StatusCodes.Status403Forbidden, detail: "User is banned");
+                await problemDetailsService.WriteAsync(new ProblemDetailsContext() { HttpContext = context.HttpContext, ProblemDetails = problemDetails });
             }
         }
     }

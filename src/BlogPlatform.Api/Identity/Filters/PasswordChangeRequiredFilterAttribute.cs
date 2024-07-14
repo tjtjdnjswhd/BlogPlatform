@@ -1,9 +1,9 @@
 ﻿using BlogPlatform.EFCore;
 using BlogPlatform.Shared.Identity.Models;
-using BlogPlatform.Shared.Models;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
 using System.Diagnostics;
@@ -38,8 +38,10 @@ namespace BlogPlatform.Api.Identity.Filters
 
             if (isPasswordChangeRequired)
             {
-                context.Result = new ForbidResult();
-                await context.HttpContext.Response.WriteAsJsonAsync(new Error("비밀번호 변경 후 로그인해야 합니다."), cancellationToken: CancellationToken.None);
+                IProblemDetailsService problemDetailsService = scope.ServiceProvider.GetRequiredService<IProblemDetailsService>();
+                ProblemDetailsFactory problemDetailsFactory = scope.ServiceProvider.GetRequiredService<ProblemDetailsFactory>();
+                ProblemDetails problemDetails = problemDetailsFactory.CreateProblemDetails(context.HttpContext, StatusCodes.Status403Forbidden, detail: "Must change password");
+                await problemDetailsService.WriteAsync(new ProblemDetailsContext() { HttpContext = context.HttpContext, ProblemDetails = problemDetails });
                 return;
             }
 

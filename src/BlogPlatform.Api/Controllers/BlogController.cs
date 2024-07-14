@@ -4,11 +4,12 @@ using BlogPlatform.Api.Identity.Attributes;
 using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Extensions;
 using BlogPlatform.EFCore.Models;
-using BlogPlatform.Shared.Models;
 using BlogPlatform.Shared.Models.Blog;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace BlogPlatform.Api.Controllers
 {
@@ -30,16 +31,16 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpGet("{id:int}")]
-        [ProducesResponseType(typeof(BlogRead), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
-        [ProducesDefaultResponseType]
+        [SwaggerOperation("해당 Id의 블로그를 반환합니다")]
+        [SwaggerResponse(StatusCodes.Status200OK, "블로그 반환 성공", typeof(BlogRead))]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "해당 블로그 없음")]
         public async Task<IActionResult> GetAsync([FromRoute] int id, CancellationToken cancellationToken)
         {
             Blog? blog = await _dbContext.Blogs.FindAsync([id], cancellationToken);
             if (blog == null)
             {
                 _logger.LogInformation("Blog with id {id} not found", id);
-                return NotFound(new Error("존재하지 않는 블로그입니다"));
+                return NotFound();
             }
 
             BlogRead blogDto = new(blog.Id, blog.Name, blog.Description, blog.UserId);
@@ -48,23 +49,23 @@ namespace BlogPlatform.Api.Controllers
 
         [UserAuthorize]
         [HttpPost]
-        [ProducesResponseType(StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status409Conflict)]
-        [ProducesDefaultResponseType]
+        [SwaggerOperation("새 블로그를 생성합니다")]
+        [SwaggerResponse(StatusCodes.Status201Created, "블로그 생성 성공")]
+        [SwaggerResponse(StatusCodes.Status409Conflict, "Blog already exists: 기존의 블로그 있음\r\nBlog name already exists: 이름 중복됨")]
         public async Task<IActionResult> CreateAsync(BlogCreate model, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             bool isUserHasBlog = await _dbContext.Blogs.AnyAsync(b => b.UserId == userId, cancellationToken);
             if (isUserHasBlog)
             {
                 _logger.LogInformation("User {userId} already has a blog", userId);
-                return Conflict(new Error("이미 블로그가 존재합니다"));
+                return Problem("Blog already exists", statusCode: StatusCodes.Status409Conflict);
             }
 
             bool isSameNameExist = await _dbContext.Blogs.AnyAsync(b => b.Name == model.BlogName, cancellationToken);
             if (isSameNameExist)
             {
                 _logger.LogInformation("Blog with name {name} already exists", model.BlogName);
-                return Conflict(new Error("이미 존재하는 블로그 이름입니다"));
+                return Problem("Blog name already exists", statusCode: StatusCodes.Status409Conflict);
             }
 
             Blog blog = new(model.BlogName, model.Description, userId);
@@ -77,16 +78,17 @@ namespace BlogPlatform.Api.Controllers
 
         [UserAuthorize]
         [HttpPut("{id:int}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
-        [ProducesDefaultResponseType]
+        [SwaggerOperation("해당 Id의 블로그를 수정합니다")]
+        [SwaggerResponse(StatusCodes.Status200OK, "블로그 수정 성공")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "해당 블로그 없음")]
+        [SwaggerResponse(StatusCodes.Status409Conflict, "이름 중복됨")]
         public async Task<IActionResult> UpdateAsync([FromRoute] int id, BlogCreate model, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             Blog? blog = await _dbContext.Blogs.FindAsync([id], cancellationToken);
             if (blog == null)
             {
                 _logger.LogInformation("Blog with id {id} not found", id);
-                return NotFound(new Error("존재하지 않는 블로그입니다"));
+                return NotFound();
             }
 
             if (blog.UserId != userId)
@@ -99,7 +101,7 @@ namespace BlogPlatform.Api.Controllers
             if (isSameNameExist)
             {
                 _logger.LogInformation("Blog with name {name} already exists", model.BlogName);
-                return Conflict(new Error("이미 존재하는 블로그 이름입니다"));
+                return Conflict();
             }
 
             blog.Name = model.BlogName;
@@ -111,17 +113,18 @@ namespace BlogPlatform.Api.Controllers
 
         [UserAuthorize]
         [HttpDelete("{id:int}")]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status500InternalServerError)]
-        [ProducesDefaultResponseType]
+        [SwaggerOperation("해당 Id의 블로그를 삭제합니다")]
+        [SwaggerResponse(StatusCodes.Status204NoContent, "블로그 삭제 성공")]
+        [SwaggerResponse(StatusCodes.Status403Forbidden, "블로그의 권한 없음")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "해당 블로그 없음")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "블로그 삭제 실패")]
         public async Task<IActionResult> DeleteAsync([FromRoute] int id, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             Blog? blog = await _dbContext.Blogs.FindAsync([id], cancellationToken);
             if (blog == null)
             {
                 _logger.LogInformation("Blog with id {id} not found", id);
-                return NotFound(new Error("존재하지 않는 블로그입니다"));
+                return NotFound();
             }
 
             if (blog.UserId != userId)
@@ -132,31 +135,30 @@ namespace BlogPlatform.Api.Controllers
 
             var status = await _softDeleteService.SetSoftDeleteAsync(blog, true);
             _logger.LogStatusGeneric(status);
-            return status.HasErrors ? StatusCode(StatusCodes.Status500InternalServerError, new Error(status.Message)) : NoContent();
+            return status.HasErrors ? Problem(status.Message, statusCode: StatusCodes.Status500InternalServerError) : NoContent();
         }
 
         [UserAuthorize]
         [HttpPost("restore/{id:int}")]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status409Conflict)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status500InternalServerError)]
-        [ProducesDefaultResponseType]
+        [SwaggerOperation("해당 Id의 블로그를 복원합니다")]
+        [SwaggerResponse(StatusCodes.Status204NoContent, "블로그 복원 성공")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Blog not deleted: 삭제되지 않은 블로그\r\nCan not restore blog over time: 복구 시간 만료됨")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "해당 블로그 없음")]
+        [SwaggerResponse(StatusCodes.Status409Conflict, "Blog already exist: 새로 생성한 블로그 있음\r\nBlog name already exist: 블로그 이름 중복")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "블로그 복원 실패")]
         public async Task<IActionResult> RestoreAsync([FromRoute] int id, [FromBody] BlogCreate? model, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             Blog? blog = await _dbContext.Blogs.IgnoreSoftDeleteFilter().FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
             if (blog == null)
             {
                 _logger.LogInformation("Blog with id {id} not found", id);
-                return NotFound(new Error("존재하지 않는 블로그입니다"));
+                return NotFound();
             }
 
             if (blog.IsSoftDeletedAtDefault())
             {
                 _logger.LogInformation("Blog with id {id} is not deleted", id);
-                return BadRequest(new Error("삭제되지 않은 블로그입니다"));
+                return Problem("Blog not deleted", statusCode: StatusCodes.Status400BadRequest);
             }
 
             if (blog.UserId != userId)
@@ -168,13 +170,13 @@ namespace BlogPlatform.Api.Controllers
             if (_dbContext.Blogs.Any(b => b.UserId == userId))
             {
                 _logger.LogInformation("User {userId} already has a blog", userId);
-                return Conflict(new Error("이미 블로그가 존재합니다"));
+                return Problem("Blog already exist", statusCode: StatusCodes.Status409Conflict);
             }
 
             if (blog.SoftDeletedAt.Add(TimeSpan.FromDays(1)) < _timeProvider.GetUtcNow())
             {
                 _logger.LogInformation("Blog with id {id} is not restorable", id);
-                return BadRequest(new Error("복원할 수 없는 블로그입니다"));
+                return Problem("Can not restore blog over time", statusCode: StatusCodes.Status400BadRequest);
             }
 
             blog.Name = model?.BlogName ?? blog.Name;
@@ -183,12 +185,12 @@ namespace BlogPlatform.Api.Controllers
             if (await _dbContext.Blogs.AnyAsync(b => b.Name == blog.Name, cancellationToken))
             {
                 _logger.LogInformation("Blog with name {name} already exists", blog.Name);
-                return Conflict(new Error("이미 존재하는 블로그 이름입니다"));
+                return Problem("Blog name already exists", statusCode: StatusCodes.Status409Conflict);
             }
 
             var status = await _softDeleteService.ResetSoftDeleteAsync(blog, true);
             _logger.LogStatusGeneric(status);
-            return status.HasErrors ? StatusCode(StatusCodes.Status500InternalServerError, new Error(status.Message)) : NoContent();
+            return status.HasErrors ? Problem(status.Message, statusCode: StatusCodes.Status500InternalServerError) : NoContent();
         }
     }
 }

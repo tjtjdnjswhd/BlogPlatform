@@ -2,12 +2,12 @@
 using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Models;
 using BlogPlatform.Shared.Identity.Models;
-using BlogPlatform.Shared.Models;
 
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
 using System.Diagnostics;
@@ -19,10 +19,10 @@ namespace BlogPlatform.Api.Identity.ActionResults
     /// </summary>
     public class RefreshResult : IActionResult
     {
-        private AuthorizeToken AuthorizeToken { get; init; }
+        private AuthorizeToken? AuthorizeToken { get; init; }
         private string? ReturnUrl { get; init; }
 
-        public RefreshResult(AuthorizeToken authorizeToken, string? returnUrl)
+        public RefreshResult(AuthorizeToken? authorizeToken, string? returnUrl)
         {
             AuthorizeToken = authorizeToken;
             ReturnUrl = returnUrl;
@@ -35,6 +35,17 @@ namespace BlogPlatform.Api.Identity.ActionResults
 
             ILogger<RefreshResult> logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger<RefreshResult>();
             logger.LogInformation("Refreshing token begin");
+
+            IProblemDetailsService problemDetailsService = scope.ServiceProvider.GetRequiredService<IProblemDetailsService>();
+            ProblemDetailsFactory problemDetailsFactory = scope.ServiceProvider.GetRequiredService<ProblemDetailsFactory>();
+
+            if (AuthorizeToken is null)
+            {
+                ProblemDetails problemDetails = problemDetailsFactory.CreateProblemDetails(context.HttpContext, StatusCodes.Status400BadRequest, detail: "Token required");
+                await problemDetailsService.WriteAsync(new ProblemDetailsContext() { HttpContext = context.HttpContext, ProblemDetails = problemDetails });
+                return;
+            }
+
             logger.LogDebug("Access token: {accessToken}. Refresh token: {refreshToken}", AuthorizeToken.AccessToken, AuthorizeToken.RefreshToken);
 
             IAuthorizeTokenService authorizeTokenService = scope.ServiceProvider.GetRequiredService<IAuthorizeTokenService>();
@@ -44,8 +55,9 @@ namespace BlogPlatform.Api.Identity.ActionResults
                 logger.LogInformation("Refreshing token failed. Expired");
                 if (ReturnUrl is null)
                 {
-                    context.HttpContext.Response.StatusCode = StatusCodes.Status403Forbidden;
-                    await context.HttpContext.Response.WriteAsJsonAsync(new Error("Token expired"), cancellationToken: CancellationToken.None);
+                    ProblemDetails problemDetails = problemDetailsFactory.CreateProblemDetails(context.HttpContext, StatusCodes.Status403Forbidden, detail: "Token expired");
+                    await problemDetailsService.WriteAsync(new ProblemDetailsContext() { HttpContext = context.HttpContext, ProblemDetails = problemDetails });
+                    return;
                 }
                 else
                 {
@@ -67,7 +79,8 @@ namespace BlogPlatform.Api.Identity.ActionResults
             User? user = await blogPlatformDbContext.Users.FirstOrDefaultAsync(u => u.Id == userId);
             if (user is null)
             {
-                logger.LogInformation("Refreshing token failed. User not found");
+                logger.LogWarning("Refreshing token failed. User not found");
+
                 await new AuthenticatedUserDataNotFoundResult().ExecuteResultAsync(context);
                 return;
             }

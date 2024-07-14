@@ -3,11 +3,12 @@ using BlogPlatform.Api.Helper;
 using BlogPlatform.Api.Identity.Attributes;
 using BlogPlatform.EFCore;
 using BlogPlatform.EFCore.Models;
-using BlogPlatform.Shared.Models;
 using BlogPlatform.Shared.Models.Comment;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+
+using Swashbuckle.AspNetCore.Annotations;
 
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
@@ -31,21 +32,22 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpGet("{id:int}")]
-        [ProducesResponseType(typeof(CommentRead), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
-        [ProducesDefaultResponseType]
+        [SwaggerOperation("해당 댓글을 반환합니다")]
+        [SwaggerResponse(StatusCodes.Status200OK, type: typeof(CommentRead))]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "해당 댓글 없음")]
         public async Task<IActionResult> GetAsync([FromRoute] int id, CancellationToken cancellationToken)
         {
             Comment? comment = await _dbContext.Comments.FindAsync([id], cancellationToken);
             if (comment == null)
             {
-                return NotFound(new Error("존재하지 않는 댓글입니다"));
+                return NotFound();
             }
 
             return Ok(new CommentRead(comment.Id, comment.Content, comment.CreatedAt, comment.LastUpdatedAt, comment.PostId, comment.UserId, comment.ParentCommentId));
         }
 
         [HttpGet("post/{postId:int}")]
+        [SwaggerOperation("해당 게시글의 댓글을 최대 100개까지 반환합니다. 해당 게시글이 없을 경우 빈 결과를 반환합니다.")]
         public IAsyncEnumerable<CommentRead> GetByPost([FromRoute] int postId, [FromQuery, Range(1, int.MaxValue)] int page = 1)
         {
             IAsyncEnumerable<CommentRead> queryResult = _dbContext.Comments
@@ -60,6 +62,7 @@ namespace BlogPlatform.Api.Controllers
         }
 
         [HttpGet]
+        [SwaggerOperation("검색 조건에 맞는 댓글을 최대 100개 검색합니다")]
         public IAsyncEnumerable<CommentSearchResult> GetAsync([FromQuery] CommentSearch commentSearch)
         {
             IQueryable<Comment> query = _dbContext.Comments;
@@ -105,8 +108,9 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpPost]
         [UserAuthorize]
-        [ProducesResponseType(StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
+        [SwaggerOperation("댓글을 생성합니다")]
+        [SwaggerResponse(StatusCodes.Status201Created, "댓글 생성 성공")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "Post not found: 게시글 없음\r\nComment not found: 댓글 없음")]
         [ProducesDefaultResponseType]
         public async Task<IActionResult> CreateAsync([FromBody] CommentCreate model, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
@@ -114,7 +118,7 @@ namespace BlogPlatform.Api.Controllers
 
             if (model.PostId.HasValue && !await _dbContext.Posts.AnyAsync(p => p.Id == model.PostId, cancellationToken))
             {
-                return NotFound(new Error("존재하지 않는 게시글입니다"));
+                return Problem(detail: "Post not found", statusCode: StatusCodes.Status404NotFound);
             }
 
             var commentInfo = model.PostId.HasValue ? new { PostId = model.PostId.Value, Level = 0 } :
@@ -124,7 +128,7 @@ namespace BlogPlatform.Api.Controllers
                 .FirstOrDefaultAsync(cancellationToken);
             if (commentInfo is null)
             {
-                return NotFound(new Error("존재하지 않는 댓글입니다"));
+                return Problem(detail: "Comment not found", statusCode: StatusCodes.Status404NotFound);
             }
 
             Comment comment = new(model.Content, commentInfo.PostId, userId, model.ParentCommentId)
@@ -140,16 +144,16 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpPut("{id:int}")]
         [UserAuthorize]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
-        [ProducesDefaultResponseType]
+        [SwaggerOperation("해당 댓글을 수정합니다")]
+        [SwaggerResponse(StatusCodes.Status204NoContent, "댓글 수정 성공")]
+        [SwaggerResponse(StatusCodes.Status403Forbidden, "댓글 작성자가 아님")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "해당 댓글 없음")]
         public async Task<IActionResult> UpdateAsync([FromRoute] int id, [FromBody] CommentUpdate model, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             Comment? comment = await _dbContext.Comments.FindAsync([id], cancellationToken);
             if (comment == null)
             {
-                return NotFound(new Error("존재하지 않는 댓글입니다"));
+                return NotFound();
             }
 
             if (comment.UserId != userId)
@@ -165,17 +169,17 @@ namespace BlogPlatform.Api.Controllers
 
         [HttpDelete("{id:int}")]
         [UserAuthorize]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(Error), StatusCodes.Status500InternalServerError)]
-        [ProducesDefaultResponseType]
+        [SwaggerOperation("해당 댓글을 삭제합니다")]
+        [SwaggerResponse(StatusCodes.Status204NoContent, "댓글 삭제 성공")]
+        [SwaggerResponse(StatusCodes.Status403Forbidden, "댓글 작성자가 아님")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "해당 댓글 없음")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "댓글 삭제 실패")]
         public async Task<IActionResult> DeleteAsync([FromRoute] int id, [UserIdBind] int userId, CancellationToken cancellationToken)
         {
             Comment? comment = await _dbContext.Comments.FindAsync([id], cancellationToken);
             if (comment == null)
             {
-                return NotFound(new Error("존재하지 않는 댓글입니다"));
+                return NotFound();
             }
 
             if (comment.UserId != userId)
@@ -185,7 +189,7 @@ namespace BlogPlatform.Api.Controllers
 
             var status = await _softDeleteService.SetSoftDeleteAsync(comment, true);
             _logger.LogStatusGeneric(status);
-            return status.HasErrors ? StatusCode(StatusCodes.Status500InternalServerError, new Error(status.Message)) : NoContent();
+            return status.HasErrors ? Problem(detail: status.Message, statusCode: StatusCodes.Status500InternalServerError) : NoContent();
         }
     }
 }

@@ -12,18 +12,24 @@ namespace BlogPlatform.Api.Identity.ActionResults
     {
         public int? StatusCode => StatusCodes.Status401Unauthorized;
 
-        public Task ExecuteResultAsync(ActionContext context)
+        public async Task ExecuteResultAsync(ActionContext context)
         {
             using var scope = context.HttpContext.RequestServices.CreateScope();
             ILoggerFactory loggerFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
             ILogger<AuthenticatedUserDataNotFoundResult> logger = loggerFactory.CreateLogger<AuthenticatedUserDataNotFoundResult>();
             logger.LogWarning("Authenticated user data not found. Logging out. user: {user}", context.HttpContext.User.Identities);
 
-            IAuthorizeTokenService authorizeTokenService = scope.ServiceProvider.GetRequiredService<IAuthorizeTokenService>();
-            authorizeTokenService.RemoveTokenAsync(context.HttpContext.Request, context.HttpContext.Response, null, default);
-
+            ProblemDetailsFactory problemDetailsFactory = scope.ServiceProvider.GetRequiredService<ProblemDetailsFactory>();
+            IProblemDetailsService problemDetailsService = scope.ServiceProvider.GetRequiredService<IProblemDetailsService>();
             context.HttpContext.Response.StatusCode = StatusCode!.Value;
-            return Task.CompletedTask;
+            await problemDetailsService.WriteAsync(new ProblemDetailsContext()
+            {
+                HttpContext = context.HttpContext,
+                ProblemDetails = problemDetailsFactory.CreateProblemDetails(context.HttpContext, StatusCode!.Value, detail: "User not exist")
+            });
+
+            IAuthorizeTokenService authorizeTokenService = scope.ServiceProvider.GetRequiredService<IAuthorizeTokenService>();
+            await authorizeTokenService.RemoveTokenAsync(context.HttpContext.Request, context.HttpContext.Response, null, default);
         }
     }
 }

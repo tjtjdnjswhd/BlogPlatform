@@ -4,13 +4,15 @@ using BlogPlatform.Api.Json;
 using BlogPlatform.Api.Swagger;
 using BlogPlatform.Shared.Extensions;
 
+using System.Reflection;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-#if DEBUG
-builder.Services.AddRazorPages();
-#endif
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddRazorPages();
+}
 
 builder.Services.AddControllers().AddJsonOptions(json =>
 {
@@ -21,6 +23,9 @@ builder.Services.AddControllers().AddJsonOptions(json =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
+    var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
+    options.EnableAnnotations();
     options.AddTimeSpanSchema();
     options.AddBearerAuthorization();
 });
@@ -42,28 +47,27 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    app.UseWebAssemblyDebugging();
 }
-
-#if DEBUG
-app.UseWebAssemblyDebugging();
-#endif
 
 app.UseHttpsRedirection();
 
-#if DEBUG
-app.UseBlazorFrameworkFiles();
-app.UseStaticFiles();
-#endif
+if (app.Environment.IsDevelopment())
+{
+    app.UseBlazorFrameworkFiles();
+    app.UseStaticFiles();
+}
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
-#if DEBUG
-app.MapRazorPages();
-app.MapFallbackToFile("index.html");
-#endif
+if (app.Environment.IsDevelopment())
+{
+    app.MapRazorPages();
+    app.MapFallbackToFile("index.html");
+}
 
 app.Run();
 
